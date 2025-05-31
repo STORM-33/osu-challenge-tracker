@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Frontend Next.js application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - OSU_CLIENT_ID=${OSU_CLIENT_ID}
+      - OSU_CLIENT_SECRET=${OSU_CLIENT_SECRET}
+      - OSU_REDIRECT_URI=${OSU_REDIRECT_URI}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+    depends_on:
+      - backend-worker
+    restart: unless-stopped
+
+  # Backend Python worker
+  backend-worker:
+    build:
+      context: ./backend-worker
+      dockerfile: Dockerfile
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - OSU_CLIENT_ID=${OSU_CLIENT_ID}
+      - OSU_CLIENT_SECRET=${OSU_CLIENT_SECRET}
+      - TRACKED_ROOMS=${TRACKED_ROOMS}
+      - UPDATE_INTERVAL=60
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+
+  # Local PostgreSQL for development (optional)
+  # Uncomment if you want to run Supabase locally
+  # postgres:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres
+  #     - POSTGRES_DB=osu_tracker
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+  # Redis for caching (optional enhancement)
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
