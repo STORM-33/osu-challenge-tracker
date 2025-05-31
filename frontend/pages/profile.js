@@ -58,10 +58,11 @@ export default function Profile() {
       <Layout>
         <div className="text-center py-12">
           <p className="text-gray-400 mb-4">Please login to view your profile</p>
-          <Link href="/api/auth/login">
-            <a className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors inline-block">
-              Login with osu!
-            </a>
+          <Link 
+            href="/api/auth/login"
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors inline-block"
+          >
+            Login with osu!
           </Link>
         </div>
       </Layout>
@@ -88,7 +89,7 @@ export default function Profile() {
             <div>
               <h1 className="text-2xl font-bold mb-1">{user.username}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-400">
-                {user.country && <span>🌍 {user.country}</span>}
+                {user.country && <span>🏴 {user.country}</span>}
                 {user.global_rank && <span>Global #{user.global_rank.toLocaleString()}</span>}
                 {user.pp && <span>{user.pp.toFixed(0)}pp</span>}
               </div>
@@ -107,10 +108,11 @@ export default function Profile() {
             <div className="text-center py-12 bg-black/30 rounded-xl border border-purple-500/30">
               <Trophy className="w-12 h-12 text-gray-600 mx-auto mb-4" />
               <p className="text-gray-400 mb-4">No challenge scores yet</p>
-              <Link href="/">
-                <a className="text-purple-400 hover:text-purple-300 transition-colors">
-                  Browse active challenges →
-                </a>
+              <Link 
+                href="/"
+                className="text-purple-400 hover:text-purple-300 transition-colors"
+              >
+                Browse active challenges →
               </Link>
             </div>
           ) : (
@@ -163,10 +165,11 @@ export default function Profile() {
                   </div>
                   
                   {score.playlists?.challenges?.room_id && (
-                    <Link href={`/challenges/${score.playlists.challenges.room_id}`}>
-                      <a className="text-purple-400 hover:text-purple-300 text-sm mt-2 inline-block transition-colors">
-                        View challenge →
-                      </a>
+                    <Link 
+                      href={`/challenges/${score.playlists.challenges.room_id}`}
+                      className="text-purple-400 hover:text-purple-300 text-sm mt-2 inline-block transition-colors"
+                    >
+                      View challenge →
                     </Link>
                   )}
                 </div>

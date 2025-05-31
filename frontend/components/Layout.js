@@ -41,49 +41,53 @@ export default function Layout({ children }) {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/">
-              <a className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <Trophy className="w-8 h-8 text-purple-400" />
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  osu! Challenge Tracker
-                </h1>
-              </a>
+            <Link 
+              href="/"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <Trophy className="w-8 h-8 text-purple-400" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                osu! Challenge Tracker
+              </h1>
             </Link>
 
             {/* Navigation */}
             <nav className="flex items-center gap-6">
-              <Link href="/">
-                <a className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              <Link 
+                href="/"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                   router.pathname === '/' 
                     ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
                     : 'text-gray-400 hover:text-white'
-                }`}>
-                  <Home className="w-4 h-4" />
-                  Challenges
-                </a>
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                Challenges
               </Link>
 
-              <Link href="/admin">
-                <a className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              <Link 
+                href="/admin"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                   router.pathname === '/admin'
                     ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
                     : 'text-gray-400 hover:text-white'
-                }`}>
-                  <Plus className="w-4 h-4" />
-                  Add
-                </a>
+                }`}
+              >
+                <Plus className="w-4 h-4" />
+                Add
               </Link>
 
               {user && (
-                <Link href="/profile">
-                  <a className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                <Link 
+                  href="/profile"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                     router.pathname === '/profile'
                       ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
                       : 'text-gray-400 hover:text-white'
-                  }`}>
-                    <Activity className="w-4 h-4" />
-                    My Scores
-                  </a>
+                  }`}
+                >
+                  <Activity className="w-4 h-4" />
+                  My Scores
                 </Link>
               )}
 
@@ -91,11 +95,12 @@ export default function Layout({ children }) {
               {!loading && (
                 <>
                   {!user ? (
-                    <Link href="/api/auth/login">
-                      <a className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors">
-                        <LogIn className="w-4 h-4" />
-                        Login with osu!
-                      </a>
+                    <Link 
+                      href="/api/auth/login"
+                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      Login with osu!
                     </Link>
                   ) : (
                     <div className="flex items-center gap-4">

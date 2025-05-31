@@ -43,19 +43,18 @@ export default function Home() {
         ) : challenges?.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-400 mb-4">No active challenges at the moment</p>
-            <Link href="/admin">
-              <a className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors inline-block">
-                Add First Challenge
-              </a>
+            <Link 
+              href="/admin"
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors inline-block"
+            >
+              Add First Challenge
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {challenges?.map(challenge => (
               <Link key={challenge.id} href={`/challenges/${challenge.room_id}`}>
-                <a>
-                  <ChallengeCard challenge={challenge} />
-                </a>
+                <ChallengeCard challenge={challenge} />
               </Link>
             ))}
           </div>
