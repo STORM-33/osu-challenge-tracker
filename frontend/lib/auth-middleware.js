@@ -9,26 +9,64 @@ export async function withAuth(handler) {
       const token = req.cookies.osu_auth_token || req.headers.authorization?.replace('Bearer ', '');
 
       if (!token) {
-        return res.status(401).json({ error: 'No authentication token provided' });
+        return res.status(401).json({ 
+          success: false,
+          error: { 
+            message: 'No authentication token provided',
+            code: 'NO_TOKEN'
+          }
+        });
       }
 
-      // In production, use proper JWT verification
-      // For now, we'll use a simple session check
-      const userId = req.cookies.osu_session;
-      
-      if (!userId) {
-        return res.status(401).json({ error: 'Invalid session' });
+      // Verify JWT token (if using JWT)
+      let decoded;
+      try {
+        if (process.env.JWT_SECRET) {
+          decoded = jwt.verify(token, process.env.JWT_SECRET);
+        } else {
+          // Fallback to session-based auth
+          const userId = req.cookies.osu_session;
+          if (!userId) {
+            throw new Error('Invalid session');
+          }
+          decoded = { userId };
+        }
+      } catch (jwtError) {
+        return res.status(401).json({ 
+          success: false,
+          error: { 
+            message: 'Invalid authentication token',
+            code: 'INVALID_TOKEN'
+          }
+        });
       }
 
       // Get user from database
       const { data: user, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', userId)
+        .eq('id', decoded.userId || decoded.sub)
         .single();
 
       if (error || !user) {
-        return res.status(401).json({ error: 'User not found' });
+        return res.status(401).json({ 
+          success: false,
+          error: { 
+            message: 'User not found or inactive',
+            code: 'USER_NOT_FOUND'
+          }
+        });
+      }
+
+      // Check if user is active
+      if (user.status === 'inactive' || user.banned_at) {
+        return res.status(403).json({ 
+          success: false,
+          error: { 
+            message: 'User account is inactive or banned',
+            code: 'USER_INACTIVE'
+          }
+        });
       }
 
       // Add user to request
@@ -38,58 +76,72 @@ export async function withAuth(handler) {
       return handler(req, res);
     } catch (error) {
       console.error('Auth middleware error:', error);
-      return res.status(401).json({ error: 'Authentication failed' });
+      return res.status(500).json({ 
+        success: false,
+        error: { 
+          message: 'Authentication verification failed',
+          code: 'AUTH_ERROR'
+        }
+      });
     }
   };
 }
 
-// Middleware to optionally get user if authenticated
+// Optional auth middleware (doesn't fail if no token)
 export async function withOptionalAuth(handler) {
   return async (req, res) => {
     try {
-      const userId = req.cookies.osu_session;
+      const token = req.cookies.osu_auth_token || req.headers.authorization?.replace('Bearer ', '');
       
-      if (userId) {
-        const { data: user } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', userId)
-          .single();
-        
-        req.user = user;
+      if (token) {
+        try {
+          let decoded;
+          if (process.env.JWT_SECRET) {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+          } else {
+            const userId = req.cookies.osu_session;
+            if (userId) {
+              decoded = { userId };
+            }
+          }
+
+          if (decoded) {
+            const { data: user, error } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', decoded.userId || decoded.sub)
+              .single();
+
+            if (!error && user && user.status !== 'inactive' && !user.banned_at) {
+              req.user = user;
+            }
+          }
+        } catch (authError) {
+          // Silently fail for optional auth
+          console.warn('Optional auth failed:', authError.message);
+        }
       }
 
       return handler(req, res);
     } catch (error) {
-      // Continue without user
-      return handler(req, res);
+      console.error('Optional auth middleware error:', error);
+      return handler(req, res); // Continue without auth
     }
   };
 }
 
-// Helper to generate session token
-export function generateSessionToken(user) {
-  // In production, use proper JWT with expiration
-  return {
-    userId: user.id,
-    username: user.username,
-    timestamp: Date.now()
-  };
-}
-
-// Helper to set auth cookies
-export function setAuthCookies(res, user) {
-  // Set httpOnly cookie for security
-  res.setHeader('Set-Cookie', [
-    `osu_session=${user.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`, // 7 days
-    `osu_username=${user.username}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`
-  ]);
-}
-
-// Helper to clear auth cookies
-export function clearAuthCookies(res) {
-  res.setHeader('Set-Cookie', [
-    'osu_session=; Path=/; HttpOnly; Max-Age=0',
-    'osu_username=; Path=/; Max-Age=0'
-  ]);
+// Admin-only middleware
+export async function withAdminAuth(handler) {
+  return withAuth(async (req, res) => {
+    if (!req.user.is_admin) {
+      return res.status(403).json({ 
+        success: false,
+        error: { 
+          message: 'Admin access required',
+          code: 'ADMIN_REQUIRED'
+        }
+      });
+    }
+    return handler(req, res);
+  });
 }
