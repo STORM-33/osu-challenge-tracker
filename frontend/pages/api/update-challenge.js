@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { supabaseAdmin } from '../../lib/supabase-admin';
 import { getOsuClient, getCachedOrFetch } from '../../lib/osu-api';
 
 export default async function handler(req, res) {
@@ -91,8 +92,8 @@ export default async function handler(req, res) {
         
         if (!userData?.id) continue;
 
-        // Upsert user
-        const { data: dbUser } = await supabase
+        // Upsert user using admin client (bypasses RLS)
+        const { data: dbUser } = await supabaseAdmin
           .from('users')
           .upsert({
             osu_id: userData.id,

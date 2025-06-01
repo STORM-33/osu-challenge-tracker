@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase-admin';
 
 export default async function handler(req, res) {
   const { code, state } = req.query;
@@ -50,8 +50,8 @@ export default async function handler(req, res) {
     
     const osuUser = await userResponse.json();
     
-    // Upsert user in database
-    const { data: dbUser, error: dbError } = await supabase
+    // Upsert user in database using admin client (bypasses RLS)
+    const { data: dbUser, error: dbError } = await supabaseAdmin
       .from('users')
       .upsert({
         osu_id: osuUser.id,
@@ -61,6 +61,7 @@ export default async function handler(req, res) {
         global_rank: osuUser.statistics?.global_rank,
         country_rank: osuUser.statistics?.country_rank,
         pp: osuUser.statistics?.pp,
+        updated_at: new Date().toISOString()
       }, {
         onConflict: 'osu_id',
       })

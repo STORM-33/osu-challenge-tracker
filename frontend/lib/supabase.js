@@ -9,6 +9,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Import admin client for server-side operations
+let supabaseAdmin = null;
+if (typeof window === 'undefined') {
+  // Only import on server side
+  try {
+    const { supabaseAdmin: admin } = require('./supabase-admin');
+    supabaseAdmin = admin;
+  } catch (error) {
+    console.warn('Could not load admin client:', error.message);
+  }
+}
+
 // Helper functions for common queries
 export const challengeQueries = {
   // Get all active challenges
@@ -131,7 +143,10 @@ export const auth = {
     
     console.log(user.user_metadata)
 
-    const { data: userInDb, error: upsertError } = await supabase
+    // Use admin client for user upsert if available (server-side)
+    const client = supabaseAdmin || supabase;
+
+    const { data: userInDb, error: upsertError } = await client
       .from('users')
       .upsert({
         osu_id: osuId,
@@ -150,7 +165,6 @@ export const auth = {
 
     return userInDb;
   },
-
 
   // Sign out
   signOut: async () => {
