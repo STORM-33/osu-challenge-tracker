@@ -121,20 +121,36 @@ export const challengeQueries = {
 
 // Auth helper functions
 export const auth = {
-  // Get current user from Supabase auth
   getCurrentUser: async () => {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return null;
+
+    const osuId = user.user_metadata?.osu_id;
+
+    if (!osuId) return null;
     
-    // Get user details from our users table
-    const { data: userData } = await supabase
+    console.log(user.user_metadata)
+
+    const { data: userInDb, error: upsertError } = await supabase
       .from('users')
-      .select('*')
-      .eq('osu_id', user.user_metadata?.osu_id)
+      .upsert({
+        osu_id: osuId,
+        username: user.user_metadata?.username || 'Unknown',
+        avatar_url: user.user_metadata?.avatar_url || null,
+        country: user.user_metadata?.country || null,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'osu_id' })
+      .select()
       .single();
-    
-    return userData;
+
+    if (upsertError) {
+      console.error('Failed to upsert user into public.users', upsertError);
+      return null;
+    }
+
+    return userInDb;
   },
+
 
   // Sign out
   signOut: async () => {

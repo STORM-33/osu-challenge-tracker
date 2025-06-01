@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     };
 
     const { data: challenge, error: challengeError } = await supabase
-      .table('challenges')
+      .from('challenges')
       .upsert(challengeData, { onConflict: 'room_id' })
       .select()
       .single();
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       };
 
       const { data: dbPlaylist, error: playlistError } = await supabase
-        .table('playlists')
+        .from('playlists')
         .upsert(playlistData, { onConflict: 'playlist_id' })
         .select()
         .single();
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
 
         // Upsert user
         const { data: dbUser } = await supabase
-          .table('users')
+          .from('users')
           .upsert({
             osu_id: userData.id,
             username: userData.username || 'Unknown',
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
 
         // Upsert score
         const { error: scoreError } = await supabase
-          .table('scores')
+          .from('scores')
           .upsert({
             playlist_id: dbPlaylist.id,
             user_id: dbUser.id,
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
       const uniqueUserIds = [...new Set(participants.map(p => p.user_id))];
       for (const userId of uniqueUserIds) {
         await supabase
-          .table('user_challenges')
+          .from('user_challenges')
           .upsert({
             user_id: userId,
             challenge_id: challenge.id,
