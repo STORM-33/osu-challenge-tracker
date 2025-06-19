@@ -24,12 +24,19 @@ if (typeof window === 'undefined') {
 
 // Helper functions for common queries
 export const challengeQueries = {
-  // Get all active challenges
+  // Get all active challenges with season information
   getActiveChallenges: async () => {
     const { data, error } = await supabase
       .from('challenges')
       .select(`
         *,
+        seasons (
+          id,
+          name,
+          start_date,
+          end_date,
+          is_current
+        ),
         playlists (
           id,
           playlist_id,
@@ -45,12 +52,77 @@ export const challengeQueries = {
     return data;
   },
 
+  // Get featured challenges for main page
+  getFeaturedChallenges: async () => {
+    const { data, error } = await supabase
+      .from('challenges')
+      .select(`
+        *,
+        seasons (
+          id,
+          name,
+          start_date,
+          end_date,
+          is_current
+        ),
+        playlists (
+          id,
+          playlist_id,
+          beatmap_title,
+          beatmap_artist,
+          beatmap_version
+        )
+      `)
+      .eq('is_active', true)
+      .eq('is_featured', true)
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get challenges by season
+  getChallengesBySeason: async (seasonId) => {
+    const { data, error } = await supabase
+      .from('challenges')
+      .select(`
+        *,
+        seasons (
+          id,
+          name,
+          start_date,
+          end_date,
+          is_current
+        ),
+        playlists (
+          id,
+          playlist_id,
+          beatmap_title,
+          beatmap_artist,
+          beatmap_version
+        )
+      `)
+      .eq('season_id', seasonId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
   // Get single challenge with all details
   getChallengeDetails: async (roomId) => {
     const { data, error } = await supabase
       .from('challenges')
       .select(`
         *,
+        seasons (
+          id,
+          name,
+          start_date,
+          end_date,
+          is_current
+        ),
         playlists (
           *,
           scores (
@@ -89,7 +161,11 @@ export const challengeQueries = {
           *,
           challenges (
             name,
-            room_id
+            custom_name,
+            room_id,
+            seasons (
+              name
+            )
           )
         )
       `)
@@ -132,44 +208,111 @@ export const challengeQueries = {
   }
 };
 
-// Auth helper functions
-export const auth = {
-  getCurrentUser: async () => {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) return null;
+// Season helper functions
+export const seasonQueries = {
+  // Get current season
+  getCurrentSeason: async () => {
+    const { data, error } = await supabase
+      .from('seasons')
+      .select('*')
+      .eq('is_current', true)
+      .single();
 
-    const osuId = user.user_metadata?.osu_id;
+    if (error) throw error;
+    return data;
+  },
 
-    if (!osuId) return null;
-    
-    console.log(user.user_metadata)
+  // Get all seasons
+  getAllSeasons: async () => {
+    const { data, error } = await supabase
+      .from('seasons')
+      .select('*')
+      .order('start_date', { ascending: false });
 
-    // Use admin client for user upsert if available (server-side)
-    const client = supabaseAdmin || supabase;
+    if (error) throw error;
+    return data;
+  },
 
-    const { data: userInDb, error: upsertError } = await client
-      .from('users')
-      .upsert({
-        osu_id: osuId,
-        username: user.user_metadata?.username || 'Unknown',
-        avatar_url: user.user_metadata?.avatar_url || null,
-        country: user.user_metadata?.country || null,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'osu_id' })
+  // Create new season
+  createSeason: async (seasonData) => {
+    // Only admin can create seasons (this should be called server-side)
+    const { data, error } = await supabase
+      .from('seasons')
+      .insert(seasonData)
       .select()
       .single();
 
-    if (upsertError) {
-      console.error('Failed to upsert user into public.users', upsertError);
+    if (error) throw error;
+    return data;
+  }
+};
+
+// Auth helper functions
+export const auth = {
+  getCurrentUser: async () => {
+    console.log('🔍 auth.getCurrentUser() called');
+    
+    try {
+      // Check if we're in browser environment
+      if (typeof window === 'undefined') {
+        console.log('❌ Server-side environment, no user');
+        return null;
+      }
+
+      // Call our auth status API (which can read HttpOnly cookies)
+      console.log('📡 Calling auth status API...');
+      const response = await fetch('/api/auth/status', {
+        method: 'GET',
+        credentials: 'include' // Important: include cookies in request
+      });
+
+      if (!response.ok) {
+        console.error('❌ Auth status API failed:', response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log('📡 Auth status response:', data);
+
+      if (!data.authenticated || !data.user) {
+        console.log('❌ User not authenticated');
+        return null;
+      }
+
+      console.log('✅ User authenticated successfully:', data.user.username, 'Admin:', data.user.admin);
+      return data.user;
+
+    } catch (error) {
+      console.error('🚨 Error in getCurrentUser:', error);
       return null;
     }
+  },
 
-    return userInDb;
+  // Check if user is admin
+  isAdmin: async () => {
+    const user = await auth.getCurrentUser();
+    return user?.admin || false;
   },
 
   // Sign out
   signOut: async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    console.log('🚪 Signing out...');
+    
+    try {
+      // Call logout API which will clear the HttpOnly cookie
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        console.warn('⚠️ Logout API failed, clearing manually');
+      }
+      
+      console.log('✅ Signed out successfully');
+    } catch (error) {
+      console.error('🚨 Signout error:', error);
+      throw error;
+    }
   }
 };

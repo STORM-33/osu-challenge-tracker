@@ -1,64 +1,40 @@
-import jwt from 'jsonwebtoken';
 import { supabase } from './supabase';
 
-// Middleware to verify user authentication
-export async function withAuth(handler) {
+// Middleware to verify user authentication using cookie-based sessions
+export function withAuth(handler) {
   return async (req, res) => {
     try {
-      // Get token from cookie or header
-      const token = req.cookies.osu_auth_token || req.headers.authorization?.replace('Bearer ', '');
+      // Get user ID from cookie (matches your current auth setup)
+      const userId = req.cookies.osu_session;
 
-      if (!token) {
+      if (!userId) {
         return res.status(401).json({ 
           success: false,
           error: { 
-            message: 'No authentication token provided',
-            code: 'NO_TOKEN'
+            message: 'No authentication session found',
+            code: 'NO_SESSION'
           }
         });
       }
 
-      // Verify JWT token (if using JWT)
-      let decoded;
-      try {
-        if (process.env.JWT_SECRET) {
-          decoded = jwt.verify(token, process.env.JWT_SECRET);
-        } else {
-          // Fallback to session-based auth
-          const userId = req.cookies.osu_session;
-          if (!userId) {
-            throw new Error('Invalid session');
-          }
-          decoded = { userId };
-        }
-      } catch (jwtError) {
-        return res.status(401).json({ 
-          success: false,
-          error: { 
-            message: 'Invalid authentication token',
-            code: 'INVALID_TOKEN'
-          }
-        });
-      }
-
-      // Get user from database
+      // Get user from database with admin field
       const { data: user, error } = await supabase
         .from('users')
-        .select('*')
-        .eq('id', decoded.userId || decoded.sub)
+        .select('*, admin')
+        .eq('id', userId)
         .single();
 
       if (error || !user) {
         return res.status(401).json({ 
           success: false,
           error: { 
-            message: 'User not found or inactive',
+            message: 'User not found or session invalid',
             code: 'USER_NOT_FOUND'
           }
         });
       }
 
-      // Check if user is active
+      // Check if user is active (if you have status/banned fields)
       if (user.status === 'inactive' || user.banned_at) {
         return res.status(403).json({ 
           success: false,
@@ -87,34 +63,22 @@ export async function withAuth(handler) {
   };
 }
 
-// Optional auth middleware (doesn't fail if no token)
-export async function withOptionalAuth(handler) {
+// Optional auth middleware (doesn't fail if no session)
+export function withOptionalAuth(handler) {
   return async (req, res) => {
     try {
-      const token = req.cookies.osu_auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const userId = req.cookies.osu_session;
       
-      if (token) {
+      if (userId) {
         try {
-          let decoded;
-          if (process.env.JWT_SECRET) {
-            decoded = jwt.verify(token, process.env.JWT_SECRET);
-          } else {
-            const userId = req.cookies.osu_session;
-            if (userId) {
-              decoded = { userId };
-            }
-          }
+          const { data: user, error } = await supabase
+            .from('users')
+            .select('*, admin')
+            .eq('id', userId)
+            .single();
 
-          if (decoded) {
-            const { data: user, error } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', decoded.userId || decoded.sub)
-              .single();
-
-            if (!error && user && user.status !== 'inactive' && !user.banned_at) {
-              req.user = user;
-            }
+          if (!error && user && user.status !== 'inactive' && !user.banned_at) {
+            req.user = user;
           }
         } catch (authError) {
           // Silently fail for optional auth
@@ -131,9 +95,9 @@ export async function withOptionalAuth(handler) {
 }
 
 // Admin-only middleware
-export async function withAdminAuth(handler) {
+export function withAdminAuth(handler) {
   return withAuth(async (req, res) => {
-    if (!req.user.is_admin) {
+    if (!req.user.admin) {
       return res.status(403).json({ 
         success: false,
         error: { 
@@ -144,4 +108,24 @@ export async function withAdminAuth(handler) {
     }
     return handler(req, res);
   });
+}
+
+// Check if user has admin privileges (for client-side use)
+export async function checkAdminStatus(userId) {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('admin')
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) {
+      return false;
+    }
+
+    return user.admin || false;
+  } catch (error) {
+    console.error('Admin status check error:', error);
+    return false;
+  }
 }

@@ -1,10 +1,12 @@
 import { supabase } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { withAdminAuth } from '../../../lib/auth-middleware';
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     return handleGetChallenges(req, res);
   } else if (req.method === 'POST') {
-    return handleCreateChallenge(req, res);
+    return withAdminAuth(handleCreateChallenge)(req, res);
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -12,10 +14,10 @@ export default async function handler(req, res) {
 
 async function handleGetChallenges(req, res) {
   try {
-    
     // Get query parameters
     const { 
-      active = 'true', 
+      active,
+      season_id,
       limit = 50, 
       offset = 0,
       search = '',
@@ -24,45 +26,52 @@ async function handleGetChallenges(req, res) {
     } = req.query;
 
     console.log('=== API DEBUG ===');
-    console.log('Query parameters:', { active, limit, offset, search, sortBy, sortOrder });
+    console.log('Query parameters:', { active, season_id, limit, offset, search, sortBy, sortOrder });
 
-    // First, let's see if ANY challenges exist at all
-    const { data: allChallenges, error: testError } = await supabase
-      .from('challenges')
-      .select('*');
-
-    console.log('All challenges in DB:', allChallenges);
-    console.log('Total challenges count:', allChallenges?.length || 0);
-    console.log('Test query error:', testError);
-
-    // Check the is_active values
-    if (allChallenges && allChallenges.length > 0) {
-      console.log('Challenge is_active values:', allChallenges.map(c => ({ id: c.id, is_active: c.is_active, name: c.name })));
-    }
-
-    const parsedLimit = Math.min(parseInt(limit) || 50, 100); // Max 100 items
+    const parsedLimit = Math.min(parseInt(limit) || 50, 100);
     const parsedOffset = parseInt(offset) || 0;
 
-    // Build query - simplified for debugging
+    // Build query with season information
     let query = supabase
       .from('challenges')
-      .select('*', { count: 'exact' });
+      .select(`
+        *,
+        seasons (
+          id,
+          name,
+          start_date,
+          end_date,
+          is_current
+        ),
+        playlists (
+          id,
+          playlist_id,
+          beatmap_title,
+          beatmap_artist,
+          beatmap_version,
+          beatmap_cover_url
+        )
+      `, { count: 'exact' });
 
     // Filter by active status
-    console.log('Filtering by active:', active);
     if (active === 'true') {
       query = query.eq('is_active', true);
     } else if (active === 'false') {
       query = query.eq('is_active', false);
     }
 
+    // Filter by season
+    if (season_id) {
+      query = query.eq('season_id', parseInt(season_id));
+    }
+
     // Search filter
     if (search) {
-      query = query.or(`name.ilike.%${search}%,host.ilike.%${search}%`);
+      query = query.or(`name.ilike.%${search}%,custom_name.ilike.%${search}%,host.ilike.%${search}%`);
     }
 
     // Sorting
-    const validSortFields = ['created_at', 'updated_at', 'name', 'participant_count'];
+    const validSortFields = ['created_at', 'updated_at', 'name', 'participant_count', 'start_date'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at';
     const ascending = sortOrder === 'asc';
     
@@ -78,7 +87,6 @@ async function handleGetChallenges(req, res) {
       count, 
       error: error?.message 
     });
-    console.log('Filtered challenges:', data);
 
     if (error) {
       console.error('Database error:', error);
@@ -105,7 +113,6 @@ async function handleGetChallenges(req, res) {
       });
     }
 
-    // For now, return simple data without complex stats calculation
     console.log('Returning challenges:', data);
     res.status(200).json({
       success: true,
@@ -132,7 +139,7 @@ async function handleGetChallenges(req, res) {
 
 async function handleCreateChallenge(req, res) {
   try {
-    const { roomId, name, description } = req.body;
+    const { roomId, name, custom_name } = req.body;
 
     if (!roomId) {
       return res.status(400).json({ error: 'Room ID is required' });
@@ -146,7 +153,7 @@ async function handleCreateChallenge(req, res) {
     // Check if challenge already exists
     const { data: existingChallenge } = await supabase
       .from('challenges')
-      .select('id, room_id, name')
+      .select('id, room_id, name, custom_name')
       .eq('room_id', parseInt(roomId))
       .single();
 
@@ -157,17 +164,32 @@ async function handleCreateChallenge(req, res) {
       });
     }
 
-    // Create placeholder challenge
-    const { data: challenge, error: createError } = await supabase
+    // Get current season for new challenges
+    let currentSeasonId = null;
+    try {
+      const seasonResponse = await fetch(`${req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL}/api/seasons/current`);
+      if (seasonResponse.ok) {
+        const seasonData = await seasonResponse.json();
+        if (seasonData.success && seasonData.season) {
+          currentSeasonId = seasonData.season.id;
+        }
+      }
+    } catch (seasonError) {
+      console.warn('Could not fetch current season:', seasonError);
+    }
+
+    // Create challenge - removed is_featured field
+    const { data: challenge, error: createError } = await supabaseAdmin
       .from('challenges')
       .insert({
         room_id: parseInt(roomId),
         name: name || `Challenge ${roomId}`,
-        description: description || null,
+        custom_name: custom_name || null,
         host: 'Unknown',
         room_type: 'playlisted',
         participant_count: 0,
         is_active: true,
+        season_id: currentSeasonId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
