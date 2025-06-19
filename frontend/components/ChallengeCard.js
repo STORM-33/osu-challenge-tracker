@@ -20,17 +20,17 @@ export default function ChallengeCard({ challenge }) {
   const daysRemaining = getDaysRemaining(challenge.end_date);
 
   return (
-    <div className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-xl p-6 hover:border-purple-400/50 transition-all cursor-pointer hover:shadow-lg hover:shadow-purple-500/20 h-full flex flex-col">
+    <div className="glass-card rounded-2xl p-6 hover:shadow-xl transition-all cursor-pointer group h-full flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-white mb-1 line-clamp-2">
+          <h3 className="text-xl font-bold text-neutral-800 mb-1 line-clamp-2 group-hover:text-primary-600 transition-colors">
             {challenge.name}
           </h3>
-          <p className="text-sm text-gray-400">Hosted by {challenge.host}</p>
+          <p className="text-sm text-neutral-600">Hosted by {challenge.host}</p>
         </div>
         <div className="ml-2">
-          <span className="text-xs text-purple-400 bg-purple-500/20 px-2 py-1 rounded whitespace-nowrap">
+          <span className="text-xs text-primary-600 bg-primary-100 px-3 py-1.5 rounded-full font-medium whitespace-nowrap">
             {challenge.room_type}
           </span>
         </div>
@@ -39,49 +39,49 @@ export default function ChallengeCard({ challenge }) {
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-4 mb-4 flex-1">
         <div className="text-center">
-          <div className="flex items-center justify-center mb-1">
-            <Users className="w-4 h-4 text-purple-400" />
+          <div className="w-12 h-12 mx-auto mb-2 bg-primary-100 rounded-full flex items-center justify-center">
+            <Users className="w-6 h-6 text-primary-600" />
           </div>
-          <p className="text-2xl font-bold text-purple-400">
+          <p className="text-2xl font-bold text-neutral-800">
             {challenge.participant_count || 0}
           </p>
-          <p className="text-xs text-gray-500">Players</p>
+          <p className="text-xs text-neutral-600">Players</p>
         </div>
         
         <div className="text-center">
-          <div className="flex items-center justify-center mb-1">
-            <Music className="w-4 h-4 text-pink-400" />
+          <div className="w-12 h-12 mx-auto mb-2 bg-purple-100 rounded-full flex items-center justify-center">
+            <Music className="w-6 h-6 text-purple-600" />
           </div>
-          <p className="text-2xl font-bold text-pink-400">
+          <p className="text-2xl font-bold text-neutral-800">
             {challenge.playlists?.length || 0}
           </p>
-          <p className="text-xs text-gray-500">Maps</p>
+          <p className="text-xs text-neutral-600">Maps</p>
         </div>
         
         <div className="text-center">
-          <div className="flex items-center justify-center mb-1">
-            <Calendar className="w-4 h-4 text-green-400" />
+          <div className="w-12 h-12 mx-auto mb-2 bg-green-100 rounded-full flex items-center justify-center">
+            <Calendar className="w-6 h-6 text-green-600" />
           </div>
           {daysRemaining !== null ? (
             <>
-              <p className="text-2xl font-bold text-green-400">{daysRemaining}</p>
-              <p className="text-xs text-gray-500">Days left</p>
+              <p className="text-2xl font-bold text-neutral-800">{daysRemaining}</p>
+              <p className="text-xs text-neutral-600">Days left</p>
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold text-green-400">Active</p>
-              <p className="text-xs text-gray-500">Status</p>
+              <p className="text-sm font-bold text-green-600">Active</p>
+              <p className="text-xs text-neutral-600">Status</p>
             </>
           )}
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-gray-500 pt-4 border-t border-gray-800">
-        <span>
+      <div className="flex items-center justify-between text-xs text-neutral-500 pt-4 border-t border-neutral-200">
+        <span className="font-medium">
           {formatDate(challenge.start_date)} - {formatDate(challenge.end_date)}
         </span>
-        <ChevronRight className="w-4 h-4 text-purple-400" />
+        <ChevronRight className="w-4 h-4 text-primary-500 group-hover:translate-x-1 transition-transform" />
       </div>
     </div>
   );

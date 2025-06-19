@@ -19,6 +19,7 @@ if (typeof window === 'undefined') {
   } catch (error) {
     console.warn('Could not load admin client:', error.message);
   }
+  console.log('admin loaded')
 }
 
 // Helper functions for common queries

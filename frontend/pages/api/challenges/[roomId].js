@@ -23,83 +23,96 @@ export default function ChallengeDetail() {
 
   if (!roomId) return null;
 
+  // Get background image from the first playlist item
+  const backgroundImage = challenge?.playlists?.[0]?.beatmap_cover_url || challenge?.background_image_url;
+
   return (
-    <Layout>
+    <Layout backgroundImage={backgroundImage}>
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Back button */}
-        <Link href="/">
-          <a className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-6 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            Back to challenges
-          </a>
+        <Link 
+          href="/"
+          className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-6 transition-colors font-medium"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to challenges
         </Link>
 
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
           </div>
         ) : error || !challenge ? (
-          <div className="text-center py-12">
-            <p className="text-red-400 mb-4">Failed to load challenge</p>
-            <Link href="/">
-              <a className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors inline-block">
-                Back to challenges
-              </a>
+          <div className="glass-card rounded-2xl p-12 text-center">
+            <p className="text-red-600 mb-4">Failed to load challenge</p>
+            <Link 
+              href="/"
+              className="btn-primary inline-block"
+            >
+              Back to challenges
             </Link>
           </div>
         ) : (
           <>
             {/* Challenge header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold mb-3">{challenge.name}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-gray-400">
-                <span className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  Hosted by {challenge.host}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  {challenge.participant_count} participants
-                </span>
-                <span className="flex items-center gap-1">
-                  <Music className="w-4 h-4" />
-                  {challenge.playlists?.length || 0} maps
-                </span>
-                {challenge.start_date && challenge.end_date && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(challenge.start_date).toLocaleDateString()} - {new Date(challenge.end_date).toLocaleDateString()}
+            <div className="glass-card rounded-2xl p-8 mb-8">
+              <div className="mb-6">
+                <h1 className="text-4xl font-bold mb-3 text-neutral-800">{challenge.name}</h1>
+                <div className="flex flex-wrap items-center gap-6 text-neutral-600">
+                  <span className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary-500" />
+                    Hosted by <span className="font-medium text-neutral-800">{challenge.host}</span>
                   </span>
-                )}
+                  <span className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-purple-500" />
+                    <span className="font-medium text-neutral-800">{challenge.participant_count}</span> participants
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Music className="w-5 h-5 text-orange-500" />
+                    <span className="font-medium text-neutral-800">{challenge.playlists?.length || 0}</span> maps
+                  </span>
+                  {challenge.start_date && challenge.end_date && (
+                    <span className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-green-500" />
+                      <span className="font-medium text-neutral-800">
+                        {new Date(challenge.start_date).toLocaleDateString()} - {new Date(challenge.end_date).toLocaleDateString()}
+                      </span>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Playlists */}
             <div className="space-y-8">
               {challenge.playlists?.map((playlist, index) => (
-                <div key={playlist.id} className="bg-black/30 rounded-xl p-6 border border-purple-500/30">
-                  <div className="mb-4">
-                    <h2 className="text-xl font-bold mb-1">
+                <div key={playlist.id} className="glass-card rounded-2xl overflow-hidden">
+                  <div className="bg-gradient-to-r from-primary-500 to-purple-500 p-6">
+                    <h2 className="text-2xl font-bold mb-1 text-white">
                       {index + 1}. {playlist.beatmap_title}
                     </h2>
-                    <p className="text-gray-400">
+                    <p className="text-white/90">
                       by {playlist.beatmap_artist} • {playlist.beatmap_version}
                     </p>
                   </div>
 
-                  {playlist.scores?.length > 0 ? (
-                    <ScoreTable scores={playlist.scores} />
-                  ) : (
-                    <p className="text-center text-gray-500 py-8">
-                      No scores submitted yet
-                    </p>
-                  )}
+                  <div className="p-6">
+                    {playlist.scores?.length > 0 ? (
+                      <ScoreTable scores={playlist.scores} />
+                    ) : (
+                      <div className="text-center py-8">
+                        <Music className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                        <p className="text-neutral-500">No scores submitted yet</p>
+                        <p className="text-sm text-neutral-400 mt-1">Be the first to set a score!</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
 
             {/* Update indicator */}
-            <div className="mt-8 text-center text-sm text-gray-500">
+            <div className="mt-8 text-center text-sm text-neutral-500">
               Data updates automatically every minute
             </div>
           </>
