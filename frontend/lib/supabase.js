@@ -192,8 +192,59 @@ export const challengeQueries = {
   },
 
   // Get user stats
-  getUserStats: async (userId) => {
-  // Get all user scores for proper rank calculation
+  // Enhanced getUserStats function for lib/supabase.js
+// Replace the existing getUserStats function with this improved version
+
+getUserStats: async (userId) => {
+  try {
+    // Get comprehensive user statistics with a single optimized query
+    const { data: userStats, error: statsError } = await supabase
+      .rpc('get_user_comprehensive_stats', { user_id_param: userId });
+
+    if (statsError) {
+      console.error('Error fetching user stats:', statsError);
+      throw statsError;
+    }
+
+    // Fallback to individual queries if RPC function doesn't exist yet
+    if (!userStats || userStats.length === 0) {
+      console.log('RPC function not available, falling back to individual queries');
+      return await challengeQueries.getUserStatsLegacy(userId);
+    }
+
+    const stats = userStats[0];
+    
+    return {
+      // Basic stats
+      totalChallenges: stats.total_challenges || 0,
+      totalScores: stats.total_scores || 0,
+      
+      // Averages
+      avgAccuracy: stats.avg_accuracy ? parseFloat(stats.avg_accuracy).toFixed(2) : '0.00',
+      avgScore: stats.avg_score ? Math.round(stats.avg_score) : 0,
+      avgRank: stats.avg_rank ? Math.round(stats.avg_rank) : null,
+      
+      // Best/worst stats
+      bestRank: stats.best_rank || null,
+      worstRank: stats.worst_rank || null,
+      bestAccuracy: stats.best_accuracy ? parseFloat(stats.best_accuracy).toFixed(2) : null,
+      highestScore: stats.highest_score || null,
+      
+      // Additional insights
+      participationRate: stats.participation_rate || 0,
+      improvementTrend: stats.improvement_trend || null,
+      lastSubmission: stats.last_submission || null
+    };
+
+  } catch (error) {
+    console.error('Error in getUserStats:', error);
+    throw error;
+  }
+},
+
+// Legacy fallback function (keep existing logic as backup)
+getUserStatsLegacy: async (userId) => {
+  // Your existing getUserStats logic here as fallback
   const { data: allUserScores, error: userScoresError } = await supabase
     .from('scores')
     .select(`
@@ -216,17 +267,21 @@ export const challengeQueries = {
     return {
       totalChallenges: challengeCount || 0,
       avgAccuracy: '0.00',
-      bestRank: null
+      bestRank: null,
+      avgScore: 0,
+      avgRank: null,
+      totalScores: 0
     };
   }
 
   const avgAccuracy = allUserScores.reduce((acc, s) => acc + s.accuracy, 0) / allUserScores.length;
+  const avgScore = allUserScores.reduce((acc, s) => acc + s.score, 0) / allUserScores.length;
 
-  // Calculate actual rank for each user score
   let bestRank = null;
+  let totalRank = 0;
+  let validRanks = 0;
   
-  for (const userScore of allUserScores) {
-    // Get all scores for this playlist, sorted by score
+  for (const userScore of allUserScores.slice(0, 10)) { // Limit to last 10 scores for performance
     const { data: playlistScores, error: playlistError } = await supabase
       .from('scores')
       .select('score, user_id')
@@ -234,10 +289,12 @@ export const challengeQueries = {
       .order('score', { ascending: false });
 
     if (!playlistError && playlistScores) {
-      // Find user's rank in this playlist
       const userRank = playlistScores.findIndex(s => s.user_id === userId) + 1;
       
       if (userRank > 0) {
+        totalRank += userRank;
+        validRanks++;
+        
         if (bestRank === null || userRank < bestRank) {
           bestRank = userRank;
         }
@@ -247,7 +304,10 @@ export const challengeQueries = {
 
   return {
     totalChallenges: challengeCount || 0,
+    totalScores: allUserScores.length,
     avgAccuracy: avgAccuracy.toFixed(2),
+    avgScore: Math.round(avgScore),
+    avgRank: validRanks > 0 ? Math.round(totalRank / validRanks) : null,
     bestRank
   };
 }

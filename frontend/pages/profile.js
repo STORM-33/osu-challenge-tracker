@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Layout from '../components/Layout';
 import UserStats from '../components/UserStats';
 import { auth, challengeQueries, supabase } from '../lib/supabase';
-import { Loader2, Trophy, TrendingUp, Target, Calendar, User, Award, BarChart3, Sparkles } from 'lucide-react';
+import { Loader2, Trophy, TrendingUp, Target, Calendar, User, Award, BarChart3, Sparkles, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -67,6 +67,7 @@ export default function Profile() {
 
       setScores(scoresWithCalculatedRanks);
       setStats(userStats);
+      
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -90,6 +91,32 @@ export default function Profile() {
     if (rank <= 3) return 'text-yellow-600 font-bold';
     if (rank <= 10) return 'text-primary-600 font-semibold';
     return 'text-neutral-600 font-medium';
+  };
+
+  const getImprovementIcon = (trend) => {
+    switch (trend) {
+      case 'improving':
+        return <ArrowUp className="w-4 h-4 text-green-600" />;
+      case 'declining':
+        return <ArrowDown className="w-4 h-4 text-red-600" />;
+      case 'stable':
+        return <Minus className="w-4 h-4 text-neutral-600" />;
+      default:
+        return null;
+    }
+  };
+
+  const getImprovementText = (trend) => {
+    switch (trend) {
+      case 'improving':
+        return 'Improving';
+      case 'declining':
+        return 'Declining';
+      case 'stable':
+        return 'Stable';
+      default:
+        return 'N/A';
+    }
   };
 
   if (loading) {
@@ -162,7 +189,6 @@ export default function Profile() {
                           alt={`${user.country} flag`}
                           className="w-4 h-3 object-cover border border-neutral-400"
                           onError={(e) => {
-                            // Fallback to text if image fails to load
                             e.target.style.display = 'none';
                             e.target.nextSibling.style.display = 'inline';
                           }}
@@ -172,6 +198,12 @@ export default function Profile() {
                         🌍
                       </span>
                       {user.country.toUpperCase()}
+                    </span>
+                  )}
+                  {stats?.improvementTrend && (
+                    <span className="px-3 py-1 bg-white/80 text-neutral-700 text-sm font-medium rounded-full border border-neutral-200 shadow-sm flex items-center gap-2">
+                      {getImprovementIcon(stats.improvementTrend)}
+                      {getImprovementText(stats.improvementTrend)}
                     </span>
                   )}
                 </div>
@@ -187,7 +219,7 @@ export default function Profile() {
               <TrendingUp className="w-8 h-8 text-indigo-600" />
               <Sparkles className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1" />
             </div>
-            <h2 className="text-2xl font-bold text-neutral-800">Average Performance</h2>
+            <h2 className="text-2xl font-bold text-neutral-800">Performance Statistics</h2>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -196,7 +228,9 @@ export default function Profile() {
                 <Target className="w-5 h-5 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-900">Avg. Accuracy</span>
               </div>
-              <p className="text-3xl font-bold text-indigo-900 mb-1">--.--%</p>
+              <p className={`text-3xl font-bold mb-1 ${getAccuracyColor(parseFloat(stats?.avgAccuracy || 0))}`}>
+                {stats?.avgAccuracy ? `${stats.avgAccuracy}%` : '--.--%'}
+              </p>
               <p className="text-sm text-indigo-600">Across all challenges</p>
             </div>
             
@@ -205,7 +239,9 @@ export default function Profile() {
                 <Trophy className="w-5 h-5 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-900">Avg. Rank</span>
               </div>
-              <p className="text-3xl font-bold text-indigo-900 mb-1">#--</p>
+              <p className={`text-3xl font-bold mb-1 ${getRankColor(stats?.avgRank || 0)}`}>
+                {stats?.avgRank ? `#${stats.avgRank}` : '#--'}
+              </p>
               <p className="text-sm text-indigo-600">Average position</p>
             </div>
             
@@ -214,7 +250,9 @@ export default function Profile() {
                 <BarChart3 className="w-5 h-5 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-900">Avg. Score</span>
               </div>
-              <p className="text-3xl font-bold text-indigo-900 mb-1">---,---</p>
+              <p className="text-3xl font-bold text-indigo-900 mb-1">
+                {stats?.avgScore ? stats.avgScore.toLocaleString() : '---,---'}
+              </p>
               <p className="text-sm text-indigo-600">Per challenge</p>
             </div>
             
@@ -223,10 +261,42 @@ export default function Profile() {
                 <Calendar className="w-5 h-5 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-900">Participation</span>
               </div>
-              <p className="text-3xl font-bold text-indigo-900 mb-1">{scores.length}</p>
-              <p className="text-sm text-indigo-600">Challenges completed</p>
+              <p className="text-3xl font-bold text-indigo-900 mb-1">{stats?.totalScores || 0}</p>
+              <p className="text-sm text-indigo-600">Scores submitted</p>
             </div>
           </div>
+
+          {/* Additional comprehensive stats */}
+          {stats && (
+            <div className="mt-6 pt-6 border-t border-indigo-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white/60 rounded-xl p-4 text-center">
+                  <p className="text-sm font-medium text-indigo-900 mb-1">Best Rank</p>
+                  <p className={`text-2xl font-bold ${getRankColor(stats.bestRank)}`}>
+                    {stats.bestRank ? `#${stats.bestRank}` : 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-4 text-center">
+                  <p className="text-sm font-medium text-indigo-900 mb-1">Best Accuracy</p>
+                  <p className={`text-2xl font-bold ${getAccuracyColor(parseFloat(stats.bestAccuracy || 0))}`}>
+                    {stats.bestAccuracy ? `${stats.bestAccuracy}%` : 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-4 text-center">
+                  <p className="text-sm font-medium text-indigo-900 mb-1">Highest Score</p>
+                  <p className="text-2xl font-bold text-indigo-800">
+                    {stats.highestScore ? stats.highestScore.toLocaleString() : 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-4 text-center">
+                  <p className="text-sm font-medium text-indigo-900 mb-1">Participation Rate</p>
+                  <p className="text-2xl font-bold text-indigo-800">
+                    {stats.participationRate ? `${stats.participationRate}%` : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Recent Scores */}
