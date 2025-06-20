@@ -1,6 +1,7 @@
 import apiTracker from '../../lib/api-tracker';
+import { withAPITracking } from '../../middleware';
 
-export default function handler(req, res) {
+function handler(req, res) {
   console.log('🧪 Testing tracking...');
   
   // Manual tracking test
@@ -14,3 +15,5 @@ export default function handler(req, res) {
     hasGlobalTracker: typeof global.vercelApiTracker !== 'undefined'
   });
 }
+
+export default withAPITracking(handler, { memoryMB: 128 });

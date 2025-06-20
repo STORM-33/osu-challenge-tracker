@@ -4,12 +4,13 @@ import Link from 'next/link';
 import Layout from '../components/Layout';
 import UserStats from '../components/UserStats';
 import { auth, challengeQueries, supabase } from '../lib/supabase';
-import { Loader2, Trophy, TrendingUp, Target, Calendar, User, Award, BarChart3, Sparkles, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { Loader2, Trophy, Target, Calendar, User, Award, BarChart3, Sparkles, Flame, Zap } from 'lucide-react';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [scores, setScores] = useState([]);
   const [stats, setStats] = useState(null);
+  const [streaks, setStreaks] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -28,10 +29,11 @@ export default function Profile() {
       
       setUser(currentUser);
 
-      // Load user scores and stats
-      const [userScores, userStats] = await Promise.all([
+      // Load user scores, stats, and streaks
+      const [userScores, userStats, userStreaks] = await Promise.all([
         challengeQueries.getUserScores(currentUser.id),
-        challengeQueries.getUserStats(currentUser.id)
+        challengeQueries.getUserStats(currentUser.id),
+        challengeQueries.getUserStreaks(currentUser.id)
       ]);
 
       // Calculate actual ranks for each score by fetching all scores for each playlist
@@ -67,7 +69,7 @@ export default function Profile() {
 
       setScores(scoresWithCalculatedRanks);
       setStats(userStats);
-      
+      setStreaks(userStreaks);
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -82,41 +84,23 @@ export default function Profile() {
   };
 
   const getAccuracyColor = (accuracy) => {
-    if (accuracy >= 98) return 'text-green-600';
-    if (accuracy >= 95) return 'text-yellow-600';
-    return 'text-neutral-600';
+    if (accuracy >= 95) return 'text-emerald-500';
+    if (accuracy >= 90) return 'text-green-500';
+    if (accuracy >= 80) return 'text-sky-500';
+    if (accuracy >= 70) return 'text-orange-500';
+    return 'text-red-600';
   };
 
   const getRankColor = (rank) => {
-    if (rank <= 3) return 'text-yellow-600 font-bold';
-    if (rank <= 10) return 'text-primary-600 font-semibold';
-    return 'text-neutral-600 font-medium';
+    if (rank === 1) return 'text-yellow-600 font-bold';
+    return 'text-neutral-800 font-medium';
   };
 
-  const getImprovementIcon = (trend) => {
-    switch (trend) {
-      case 'improving':
-        return <ArrowUp className="w-4 h-4 text-green-600" />;
-      case 'declining':
-        return <ArrowDown className="w-4 h-4 text-red-600" />;
-      case 'stable':
-        return <Minus className="w-4 h-4 text-neutral-600" />;
-      default:
-        return null;
-    }
-  };
-
-  const getImprovementText = (trend) => {
-    switch (trend) {
-      case 'improving':
-        return 'Improving';
-      case 'declining':
-        return 'Declining';
-      case 'stable':
-        return 'Stable';
-      default:
-        return 'N/A';
-    }
+  const getStreakColor = (streak) => {
+    if (streak >= 10) return 'text-purple-600';
+    if (streak >= 5) return 'text-orange-600';
+    if (streak >= 3) return 'text-blue-600';
+    return 'text-neutral-600';
   };
 
   if (loading) {
@@ -162,63 +146,106 @@ export default function Profile() {
         
         {/* User Profile Header */}
         <div className="bg-gradient-to-r from-primary-50 to-purple-50 rounded-3xl p-8 mb-12 border border-primary-100 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="relative">
-              {user.avatar_url ? (
-                <img 
-                  src={user.avatar_url} 
-                  alt={user.username}
-                  className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
-                />
-              ) : (
-                <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
-                  <span className="text-3xl font-bold text-white">{user.username[0]}</span>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-                <h1 className="text-3xl font-bold text-neutral-800">{user.username}</h1>
-                <div className="flex items-center gap-3">
-                  {user.country && (
-                    <span className="px-3 py-1 bg-white/80 text-neutral-700 text-sm font-medium rounded-full border border-neutral-200 shadow-sm flex items-center gap-2">
-                      {getCountryFlagUrl(user.country) ? (
-                        <img 
-                          src={getCountryFlagUrl(user.country)} 
-                          alt={`${user.country} flag`}
-                          className="w-4 h-3 object-cover border border-neutral-400"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'inline';
-                          }}
-                        />
-                      ) : null}
-                      <span style={{ display: getCountryFlagUrl(user.country) ? 'none' : 'inline' }}>
-                        🌍
+          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 flex-1">
+              <div className="relative">
+                {user.avatar_url ? (
+                  <img 
+                    src={user.avatar_url} 
+                    alt={user.username}
+                    className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
+                  />
+                ) : (
+                  <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                    <span className="text-3xl font-bold text-white">{user.username[0]}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+                  <h1 className="text-3xl font-bold text-neutral-800">{user.username}</h1>
+                  <div className="flex items-center gap-3">
+                    {user.country && (
+                      <span className="px-3 py-1 bg-white/80 text-neutral-700 text-sm font-medium rounded-full border border-neutral-200 shadow-sm flex items-center gap-2">
+                        {getCountryFlagUrl(user.country) ? (
+                          <img 
+                            src={getCountryFlagUrl(user.country)} 
+                            alt={`${user.country} flag`}
+                            className="w-4 h-3 object-cover border border-neutral-400"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'inline';
+                            }}
+                          />
+                        ) : null}
+                        <span style={{ display: getCountryFlagUrl(user.country) ? 'none' : 'inline' }}>
+                          🌍
+                        </span>
+                        {user.country.toUpperCase()}
                       </span>
-                      {user.country.toUpperCase()}
-                    </span>
-                  )}
-                  {stats?.improvementTrend && (
-                    <span className="px-3 py-1 bg-white/80 text-neutral-700 text-sm font-medium rounded-full border border-neutral-200 shadow-sm flex items-center gap-2">
-                      {getImprovementIcon(stats.improvementTrend)}
-                      {getImprovementText(stats.improvementTrend)}
-                    </span>
-                  )}
+                    )}
+                  </div>
                 </div>
+                
+                {/* Current Streak Display */}
+                {streaks && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-100 to-red-100 rounded-full border border-orange-200">
+                      {streaks.currentStreak > 0 ? (
+                        <>
+                          <Flame className={`w-4 h-4 ${getStreakColor(streaks.currentStreak)}`} />
+                          <span className={`text-sm font-bold ${getStreakColor(streaks.currentStreak)}`}>
+                            {streaks.currentStreak} Challenge Streak
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 text-neutral-500" />
+                          <span className="text-sm font-medium text-neutral-600">
+                            No Active Streak
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+            
+            {/* Longest Streak Display - Right Side */}
+            {streaks && (
+              <div className="bg-white/80 rounded-2xl p-6 border border-purple-200 shadow-sm min-w-[180px]">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="relative">
+                    <Trophy className="w-6 h-6 text-purple-600" />
+                    <Sparkles className="w-3 h-3 text-yellow-500 absolute -top-1 -right-1" />
+                  </div>
+                  <span className="text-sm font-medium text-purple-900">Longest Streak</span>
+                </div>
+                <p className={`text-3xl font-bold mb-1 ${getStreakColor(streaks.longestStreak)}`}>
+                  {streaks.longestStreak}
+                </p>
+                <p className="text-sm text-purple-600">
+                  {streaks.longestStreak === 1 ? 'Challenge' : 'Challenges'}
+                </p>
+                {streaks.lastParticipatedDate && (
+                  <p className="text-xs text-purple-500 mt-2">
+                    Last: {new Date(streaks.lastParticipatedDate).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Average Performance Overview */}
         <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl p-8 mb-12 border border-indigo-100 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
-            <div className="relative">
-              <TrendingUp className="w-8 h-8 text-indigo-600" />
-              <Sparkles className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1" />
-            </div>
             <h2 className="text-2xl font-bold text-neutral-800">Performance Statistics</h2>
           </div>
           
@@ -239,7 +266,7 @@ export default function Profile() {
                 <Trophy className="w-5 h-5 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-900">Avg. Rank</span>
               </div>
-              <p className={`text-3xl font-bold mb-1 ${getRankColor(stats?.avgRank || 0)}`}>
+              <p className="text-3xl font-bold text-neutral-800 mb-1">
                 {stats?.avgRank ? `#${stats.avgRank}` : '#--'}
               </p>
               <p className="text-sm text-indigo-600">Average position</p>
@@ -250,7 +277,7 @@ export default function Profile() {
                 <BarChart3 className="w-5 h-5 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-900">Avg. Score</span>
               </div>
-              <p className="text-3xl font-bold text-indigo-900 mb-1">
+              <p className="text-3xl font-bold text-neutral-800 mb-1">
                 {stats?.avgScore ? stats.avgScore.toLocaleString() : '---,---'}
               </p>
               <p className="text-sm text-indigo-600">Per challenge</p>
@@ -265,38 +292,6 @@ export default function Profile() {
               <p className="text-sm text-indigo-600">Scores submitted</p>
             </div>
           </div>
-
-          {/* Additional comprehensive stats */}
-          {stats && (
-            <div className="mt-6 pt-6 border-t border-indigo-200">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white/60 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-indigo-900 mb-1">Best Rank</p>
-                  <p className={`text-2xl font-bold ${getRankColor(stats.bestRank)}`}>
-                    {stats.bestRank ? `#${stats.bestRank}` : 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-white/60 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-indigo-900 mb-1">Best Accuracy</p>
-                  <p className={`text-2xl font-bold ${getAccuracyColor(parseFloat(stats.bestAccuracy || 0))}`}>
-                    {stats.bestAccuracy ? `${stats.bestAccuracy}%` : 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-white/60 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-indigo-900 mb-1">Highest Score</p>
-                  <p className="text-2xl font-bold text-indigo-800">
-                    {stats.highestScore ? stats.highestScore.toLocaleString() : 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-white/60 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-indigo-900 mb-1">Participation Rate</p>
-                  <p className="text-2xl font-bold text-indigo-800">
-                    {stats.participationRate ? `${stats.participationRate}%` : 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Recent Scores */}

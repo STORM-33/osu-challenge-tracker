@@ -1,4 +1,5 @@
 import { withOptionalAuth } from '../../lib/auth-middleware';
+import { withAPITracking } from '../../middleware';
 import { supabase } from '../../lib/supabase';
 
 async function handler(req, res) {
@@ -129,4 +130,4 @@ async function handler(req, res) {
   }
 }
 
-export default withOptionalAuth(handler);
+export default withAPITracking(withOptionalAuth(handler), { memoryMB: 192 });

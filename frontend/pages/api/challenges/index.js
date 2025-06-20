@@ -1,11 +1,11 @@
-// frontend/pages/api/challenges/index.js
+import { withAPITracking } from '../../../middleware';
 import { supabase } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
 import { trackedFetch } from '../../../lib/api-tracker';
 import apiTracker from '../../../lib/api-tracker';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === 'GET') {
     return handleGetChallenges(req, res);
   } else if (req.method === 'POST') {
@@ -239,3 +239,5 @@ async function handleCreateChallenge(req, res) {
     });
   }
 }
+
+export default withAPITracking(handler, { memoryMB: 256 });

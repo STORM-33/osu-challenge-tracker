@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabase';
+import { withAPITracking } from '../../middleware';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const checks = {
     api: 'ok',
     database: 'unknown',
@@ -40,3 +41,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withAPITracking(handler, { memoryMB: 128 });

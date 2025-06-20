@@ -1,27 +1,93 @@
 import { useState, useEffect, useCallback } from 'react';
 import useSWR from 'swr';
+import apiTracker from '../lib/api-tracker';
 
-// Custom fetcher with error handling
-const fetcher = async (url) => {
-  const res = await fetch(url);
+// Enhanced fetcher with tracking for internal API calls
+const trackedFetcher = async (url) => {
+  const startTime = Date.now();
+  const method = 'GET';
   
-  if (!res.ok) {
-    const error = new Error('API request failed');
-    error.status = res.status;
+  try {
+    const res = await fetch(url);
+    const duration = Date.now() - startTime;
+    const success = res.ok;
     
-    try {
-      const data = await res.json();
-      error.message = data.error?.message || 'An error occurred';
-      error.code = data.error?.code;
-    } catch (e) {
-      // Failed to parse error response
+    // Get response size
+    let responseSize = 0;
+    const contentLength = res.headers.get('content-length');
+    if (contentLength) {
+      responseSize = parseInt(contentLength, 10);
+    }
+    
+    // Track internal API call (only for /api/ routes)
+    if (url.startsWith('/api/')) {
+      const endpoint = new URL(url, window.location.origin).pathname;
+      
+      // Track on client side by sending to tracking endpoint
+      try {
+        // Send tracking data to server (non-blocking)
+        fetch('/api/admin/track-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'internal',
+            endpoint,
+            method,
+            duration,
+            success,
+            responseSize
+          })
+        }).catch(() => {}); // Ignore tracking errors
+      } catch (e) {
+        // Ignore tracking errors on client side
+      }
+    }
+    
+    if (!res.ok) {
+      const error = new Error('API request failed');
+      error.status = res.status;
+      
+      try {
+        const data = await res.json();
+        error.message = data.error?.message || 'An error occurred';
+        error.code = data.error?.code;
+      } catch (e) {
+        // Failed to parse error response
+      }
+      
+      throw error;
+    }
+    
+    const data = await res.json();
+    return data.data || data;
+    
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    
+    // Track failed call
+    if (url.startsWith('/api/')) {
+      const endpoint = new URL(url, window.location.origin).pathname;
+      
+      try {
+        fetch('/api/admin/track-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'internal',
+            endpoint,
+            method,
+            duration,
+            success: false,
+            responseSize: 0
+          })
+        }).catch(() => {});
+      } catch (e) {
+        // Ignore tracking errors
+      }
     }
     
     throw error;
   }
-  
-  const data = await res.json();
-  return data.data || data;
 };
 
 // Custom hook for API calls with loading states
@@ -35,7 +101,7 @@ export function useAPI(endpoint, options = {}) {
 
   const { data, error, mutate, isValidating } = useSWR(
     enabled ? endpoint : null,
-    fetcher,
+    trackedFetcher,
     {
       refreshInterval,
       revalidateOnFocus,
@@ -106,6 +172,7 @@ export function useAPIForm(endpoint, options = {}) {
   const [data, setData] = useState(null);
 
   const submit = useCallback(async (formData) => {
+    const startTime = Date.now();
     setLoading(true);
     setError(null);
     
@@ -118,6 +185,31 @@ export function useAPIForm(endpoint, options = {}) {
         },
         body: JSON.stringify(formData)
       });
+
+      const duration = Date.now() - startTime;
+      const success = response.ok;
+      
+      // Track form submission (internal API call)
+      if (endpoint.startsWith('/api/')) {
+        const endpointPath = new URL(endpoint, window.location.origin).pathname;
+        
+        try {
+          fetch('/api/admin/track-call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'internal',
+              endpoint: endpointPath,
+              method: options.method || 'POST',
+              duration,
+              success,
+              responseSize: 0 // Will be updated by server
+            })
+          }).catch(() => {});
+        } catch (e) {
+          // Ignore tracking errors
+        }
+      }
 
       if (!response.ok) {
         const errorData = await response.json();

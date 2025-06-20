@@ -1,9 +1,9 @@
-// frontend/pages/api/update-challenge.js - Fixed version with proper osu API imports
 import { supabaseAdmin } from '../../lib/supabase-admin';
-import { trackedOsuAPI } from '../../lib/osu-api'; // FIXED: Import the correct export
+import { trackedOsuAPI } from '../../lib/osu-api'; 
 import apiTracker from '../../lib/api-tracker';
+import { withAPITracking } from '../../middleware';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -155,20 +155,20 @@ export default async function handler(req, res) {
 
               // Upsert score
               const { error: scoreError } = await supabaseAdmin
-                .from('scores')
-                .upsert({
-                  playlist_id: playlistData.id,
-                  user_id: userData.id,
-                  score: scoreValue, // FIXED: Now using total_score from API
-                  accuracy: score.accuracy * 100,
-                  max_combo: score.max_combo,
-                  mods: score.mods?.length > 0 ? score.mods.map(m => m.acronym).join('') : 'None',
-                  rank_position: score.position || 999,
-                  submitted_at: score.created_at
-                }, { 
-                  onConflict: 'playlist_id,user_id',
-                  ignoreDuplicates: false 
-                });
+              .from('scores')
+              .upsert({
+                playlist_id: playlistData.id,
+                user_id: userData.id,
+                score: scoreValue,
+                accuracy: score.accuracy * 100,
+                max_combo: score.max_combo,
+                mods: score.mods?.length > 0 ? score.mods.map(m => m.acronym).join('') : 'None',
+                rank_position: score.position || 999,
+                submitted_at: score.ended_at || score.started_at || new Date().toISOString()
+              }, { 
+                onConflict: 'playlist_id,user_id',
+                ignoreDuplicates: false 
+              });
 
               if (scoreError) {
                 console.error(`Score upsert error:`, scoreError);
@@ -260,3 +260,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withAPITracking(handler, { memoryMB: 512 });

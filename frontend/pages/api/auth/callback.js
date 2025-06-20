@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { withAPITracking } from '../../../middleware';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { code, state } = req.query;
   
   console.log('🔑 Auth callback received:', { code: code ? 'present' : 'missing', state });
@@ -120,4 +121,6 @@ export default async function handler(req, res) {
     console.error('🚨 Auth callback error:', error);
     res.redirect('/?error=auth_failed');
   }
+  
 }
+export default withAPITracking(handler, { memoryMB: 256 });

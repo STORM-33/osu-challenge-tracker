@@ -1,4 +1,6 @@
-export default function handler(req, res) {
+import { withAPITracking } from '../../../middleware';
+
+function handler(req, res) {
     const { OSU_CLIENT_ID, OSU_REDIRECT_URI } = process.env;
     
     // Generate a random state for security
@@ -17,3 +19,5 @@ export default function handler(req, res) {
     
     res.redirect(authUrl.toString());
   }
+
+  export default withAPITracking(handler, { memoryMB: 128 });

@@ -57,41 +57,6 @@ export const challengeQueries = {
     return data;
   },
 
-  // Get featured challenges for main page
-  getFeaturedChallenges: async () => {
-    const { data, error } = await supabase
-      .from('challenges')
-      .select(`
-        *,
-        seasons (
-          id,
-          name,
-          start_date,
-          end_date,
-          is_current
-        ),
-        playlists (
-          id,
-          playlist_id,
-          beatmap_title,
-          beatmap_artist,
-          beatmap_version,
-          beatmap_difficulty,
-          beatmap_cover_url,
-          beatmap_card_url,
-          beatmap_list_url,
-          beatmap_slimcover_url
-        )
-      `)
-      .eq('is_active', true)
-      .eq('is_featured', true)
-      .order('created_at', { ascending: false })
-      .limit(3);
-
-    if (error) throw error;
-    return data;
-  },
-
   // Get challenges by season
   getChallengesBySeason: async (seasonId) => {
     const { data, error } = await supabase
@@ -190,6 +155,57 @@ export const challengeQueries = {
     if (error) throw error;
     return data;
   },
+
+  // Get user streak data using the PostgreSQL function
+getUserStreaks: async (userId) => {
+  console.log('🔥 getUserStreaks called with userId:', userId);
+  
+  try {
+    const { data, error } = await supabase
+      .rpc('get_user_streaks_final', { user_id_param: userId });
+
+    if (error) {
+      console.error('❌ Error calling get_user_streaks_final function:', error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      console.log('📈 No streak data returned, returning zeros');
+      return {
+        currentStreak: 0,
+        longestStreak: 0,
+        lastParticipatedDate: null,
+        totalChallengesParticipated: 0,
+        totalChallengesAvailable: 0,
+        missedChallenges: 0
+      };
+    }
+
+    const streakData = data[0];
+    console.log('📈 Streak data from PostgreSQL function:', streakData);
+
+    return {
+      currentStreak: streakData.current_streak || 0,
+      longestStreak: streakData.longest_streak || 0,
+      lastParticipatedDate: streakData.last_participated_date,
+      totalChallengesParticipated: streakData.total_challenges_participated || 0,
+      totalChallengesAvailable: streakData.total_challenges_available || 0,
+      missedChallenges: streakData.missed_challenges || 0
+    };
+
+  } catch (error) {
+    console.error('🚨 Error in getUserStreaks:', error);
+    // Return safe defaults on error
+    return {
+      currentStreak: 0,
+      longestStreak: 0,
+      lastParticipatedDate: null,
+      totalChallengesParticipated: 0,
+      totalChallengesAvailable: 0,
+      missedChallenges: 0
+    };
+  }
+},
 
   // Get user stats
   // Enhanced getUserStats function for lib/supabase.js

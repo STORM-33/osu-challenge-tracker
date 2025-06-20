@@ -1,4 +1,5 @@
 import { withAdminAuth } from '../../../lib/auth-middleware';
+import { withAPITracking } from '../../../middleware'; 
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -67,4 +68,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAdminAuth(handler);
+export default withAPITracking(withAdminAuth(handler), { memoryMB: 192 });
