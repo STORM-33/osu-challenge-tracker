@@ -1,4 +1,4 @@
-// frontend/pages/api/challenges/index.js - Tracked version
+// frontend/pages/api/challenges/index.js
 import { supabase } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
@@ -17,7 +17,6 @@ export default async function handler(req, res) {
 
 async function handleGetChallenges(req, res) {
   try {
-    // Get query parameters
     const { 
       active,
       season_id,
@@ -28,13 +27,9 @@ async function handleGetChallenges(req, res) {
       sortOrder = 'desc'
     } = req.query;
 
-    console.log('=== API DEBUG ===');
-    console.log('Query parameters:', { active, season_id, limit, offset, search, sortBy, sortOrder });
-
     const parsedLimit = Math.min(parseInt(limit) || 50, 100);
     const parsedOffset = parseInt(offset) || 0;
 
-    // Build query with season information and difficulty
     let query = supabase
       .from('challenges')
       .select(`
@@ -60,24 +55,20 @@ async function handleGetChallenges(req, res) {
         )
       `, { count: 'exact' });
 
-    // Filter by active status
     if (active === 'true') {
       query = query.eq('is_active', true);
     } else if (active === 'false') {
       query = query.eq('is_active', false);
     }
 
-    // Filter by season
     if (season_id) {
       query = query.eq('season_id', parseInt(season_id));
     }
 
-    // Search filter
     if (search) {
       query = query.or(`name.ilike.%${search}%,custom_name.ilike.%${search}%,host.ilike.%${search}%`);
     }
 
-    // Sorting
     const validSortFields = ['created_at', 'updated_at', 'name', 'participant_count', 'start_date'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at';
     const ascending = sortOrder === 'asc';
@@ -86,14 +77,7 @@ async function handleGetChallenges(req, res) {
       .order(sortField, { ascending })
       .range(parsedOffset, parsedOffset + parsedLimit - 1);
 
-    console.log('About to execute filtered query...');
     const { data, error, count } = await query;
-
-    console.log('Filtered query result:', { 
-      dataLength: data?.length || 0, 
-      count, 
-      error: error?.message 
-    });
 
     if (error) {
       console.error('Database error:', error);
@@ -104,7 +88,6 @@ async function handleGetChallenges(req, res) {
     }
 
     if (!data || data.length === 0) {
-      console.log('No data found, returning empty result');
       return res.status(200).json({
         success: true,
         challenges: [],
@@ -120,7 +103,6 @@ async function handleGetChallenges(req, res) {
       });
     }
 
-    console.log('Returning challenges:', data);
     res.status(200).json({
       success: true,
       challenges: data,
@@ -152,12 +134,10 @@ async function handleCreateChallenge(req, res) {
       return res.status(400).json({ error: 'Room ID is required' });
     }
 
-    // Validate roomId format
     if (!/^\d+$/.test(roomId)) {
       return res.status(400).json({ error: 'Invalid room ID format' });
     }
 
-    // 🚨 Check API limits before making external calls
     const limitStatus = apiTracker.checkLimits();
     if (limitStatus === 'critical') {
       return res.status(429).json({ 
@@ -166,7 +146,6 @@ async function handleCreateChallenge(req, res) {
       });
     }
 
-    // Check if challenge already exists
     const { data: existingChallenge } = await supabase
       .from('challenges')
       .select('id, room_id, name, custom_name')
@@ -180,10 +159,8 @@ async function handleCreateChallenge(req, res) {
       });
     }
 
-    // Get current season for new challenges
     let currentSeasonId = null;
     try {
-      // 🔄 TRACKED: Internal API call to get current season
       const seasonResponse = await trackedFetch(`${req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL}/api/seasons/current`, {
         method: 'GET',
         headers: {
@@ -201,7 +178,6 @@ async function handleCreateChallenge(req, res) {
       console.warn('Could not fetch current season:', seasonError);
     }
 
-    // Create challenge
     const { data: challenge, error: createError } = await supabaseAdmin
       .from('challenges')
       .insert({
@@ -227,10 +203,7 @@ async function handleCreateChallenge(req, res) {
       });
     }
 
-    // 🔄 TRACKED: Trigger update to fetch data from osu! API
     try {
-      console.log('📊 Triggering challenge update - this will make multiple osu! API calls');
-      
       const updateResponse = await trackedFetch(`${req.headers.origin}/api/update-challenge`, {
         method: 'POST',
         headers: {
@@ -241,16 +214,12 @@ async function handleCreateChallenge(req, res) {
 
       if (!updateResponse.ok) {
         console.error('Failed to trigger challenge update');
-      } else {
-        console.log('✅ Challenge update triggered successfully');
       }
     } catch (updateError) {
       console.error('Error triggering challenge update:', updateError);
     }
 
-    // 📊 Report usage after creation
     const usageStats = apiTracker.getUsageStats();
-    console.log(`📊 Challenge creation complete. API usage: ${usageStats.usage.percentage}%`);
 
     res.status(201).json({
       success: true,

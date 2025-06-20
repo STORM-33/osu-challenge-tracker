@@ -1,6 +1,6 @@
-// frontend/pages/api/update-challenge.js - Tracked version with Vercel limit checking
+// frontend/pages/api/update-challenge.js - Fixed version with proper osu API imports
 import { supabaseAdmin } from '../../lib/supabase-admin';
-import { getOsuClient } from '../../lib/osu-api';
+import { trackedOsuAPI } from '../../lib/osu-api'; // FIXED: Import the correct export
 import apiTracker from '../../lib/api-tracker';
 
 export default async function handler(req, res) {
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     const limitStatus = apiTracker.checkLimits();
     const usageStats = apiTracker.getUsageStats();
     
-    console.log(`📊 Current API usage: ${usageStats.usage.percentage}% (${usageStats.monthly.total}/${usageStats.limits.functions})`);
+    console.log(`📊 Current API usage: ${usageStats.usage?.functions?.percentage || '0'}% (${usageStats.monthly?.total || 0}/${usageStats.limits?.functions || 100000})`);
     
     if (limitStatus === 'critical') {
       console.warn('🚨 API usage is critical! Aborting challenge update to preserve limits.');
@@ -31,16 +31,11 @@ export default async function handler(req, res) {
       console.warn('⚠️ API usage is high - proceeding with caution');
     }
 
+    console.log(`📊 Triggering challenge update - this will make multiple osu! API calls`);
     console.log(`Updating challenge data for room ${roomId}`);
 
-    // Initialize osu! API client (now tracked automatically)
-    const osuClient = getOsuClient();
-    if (!osuClient) {
-      return res.status(500).json({ error: 'Failed to initialize osu! client' });
-    }
-
-    // 🔄 TRACKED: Fetch room details from osu! API
-    const roomData = await osuClient.getRoomInfo(roomId);
+    // 🔄 TRACKED: Fetch room details from osu! API (now automatically tracked)
+    const roomData = await trackedOsuAPI.getRoom(roomId);
     
     if (!roomData || !roomData.id) {
       return res.status(404).json({ error: 'Room not found' });
@@ -85,6 +80,8 @@ export default async function handler(req, res) {
       for (const [index, playlist] of roomData.playlist.entries()) {
         // Check limits before each playlist (since each can make many API calls)
         const currentLimitStatus = apiTracker.checkLimits();
+        const currentUsage = apiTracker.getUsageStats();
+        
         if (currentLimitStatus === 'critical') {
           console.warn(`🚨 Hit critical limit during playlist ${index + 1}/${roomData.playlist.length}. Stopping here.`);
           break;
@@ -119,12 +116,14 @@ export default async function handler(req, res) {
 
         // 🔄 TRACKED: Fetch and process scores for this playlist
         try {
-          console.log(`📊 Before fetching scores for playlist ${index + 1}: Usage at ${apiTracker.getUsageStats().usage.percentage}%`);
+          console.log(`📊 Before fetching scores for playlist ${index + 1}: Usage at ${currentUsage.usage?.functions?.percentage || '0'}%`);
           
-          const scores = await osuClient.getAllPlaylistScores(roomId, playlist.id);
+          // FIXED: Use the correct method name
+          const scores = await trackedOsuAPI.getAllRoomScores(roomId, playlist.id);
           totalApiCallsForPlaylists += Math.ceil(scores.length / 50); // Estimate API calls made
           
-          console.log(`📊 After fetching ${scores.length} scores: Usage at ${apiTracker.getUsageStats().usage.percentage}%`);
+          const afterUsage = apiTracker.getUsageStats();
+          console.log(`📊 After fetching ${scores.length} scores: Usage at ${afterUsage.usage?.functions?.percentage || '0'}%`);
           
           if (scores && scores.length > 0) {
             for (const score of scores) {
@@ -234,15 +233,15 @@ export default async function handler(req, res) {
 
     // 📊 Final usage report
     const finalUsage = apiTracker.getUsageStats();
-    console.log(`✅ Challenge update complete. Final API usage: ${finalUsage.usage.percentage}% (estimated ${totalApiCallsForPlaylists} external API calls made)`);
+    console.log(`✅ Challenge update complete. Final API usage: ${finalUsage.usage?.functions?.percentage || '0'}% (estimated ${totalApiCallsForPlaylists} external API calls made)`);
 
     res.status(200).json({ 
       success: true, 
       challenge,
       message: 'Challenge data updated successfully',
       apiUsage: {
-        percentage: finalUsage.usage.percentage,
-        remaining: finalUsage.usage.remaining,
+        percentage: finalUsage.usage?.functions?.percentage || '0',
+        remaining: finalUsage.usage?.functions?.remaining || 100000,
         estimatedExternalCalls: totalApiCallsForPlaylists
       }
     });
@@ -252,7 +251,7 @@ export default async function handler(req, res) {
     
     // Even on error, report current usage
     const errorUsage = apiTracker.getUsageStats();
-    console.log(`❌ Error occurred at ${errorUsage.usage.percentage}% API usage`);
+    console.log(`❌ Error occurred at ${errorUsage.usage?.functions?.percentage || '0'}% API usage`);
     
     res.status(500).json({ 
       error: 'Internal server error',

@@ -13,7 +13,16 @@ import {
   Server,
   Monitor,
   Zap,
-  BarChart3
+  BarChart3,
+  DollarSign,
+  Globe,
+  Image,
+  Layers,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import { useAPI } from '../hooks/useAPI';
 import { auth } from '../lib/supabase';
@@ -33,7 +42,7 @@ export default function AdminMonitoringPage() {
     refreshInterval: 60000 // Update every minute
   });
 
-  const { data: apiCallData } = useAPI('/api/admin/vercel-usage', {
+  const { data: apiCallData, refresh: refreshUsage } = useAPI('/api/admin/vercel-usage', {
     refreshInterval: 30000 // Update every 30 seconds
   });
 
@@ -86,6 +95,30 @@ export default function AdminMonitoringPage() {
     return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(2)}s`;
   };
 
+  const getUsageColor = (percentage) => {
+    const pct = parseFloat(percentage);
+    if (pct >= 95) return 'text-red-400';
+    if (pct >= 85) return 'text-yellow-400';
+    if (pct >= 70) return 'text-orange-400';
+    return 'text-green-400';
+  };
+
+  const getUsageBgColor = (percentage) => {
+    const pct = parseFloat(percentage);
+    if (pct >= 95) return 'bg-red-900/30 border-red-500/50';
+    if (pct >= 85) return 'bg-yellow-900/30 border-yellow-500/50';
+    if (pct >= 70) return 'bg-orange-900/30 border-orange-500/50';
+    return 'bg-green-900/30 border-green-500/50';
+  };
+
+  const getTrendIcon = (trend) => {
+    switch (trend) {
+      case 'growing': return <ArrowUp className="w-4 h-4 text-red-400" />;
+      case 'declining': return <ArrowDown className="w-4 h-4 text-green-400" />;
+      default: return <Minus className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -101,10 +134,19 @@ export default function AdminMonitoringPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
-          <Monitor className="w-8 h-8 text-purple-400" />
-          Admin Monitoring Dashboard
-        </h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Monitor className="w-8 h-8 text-purple-400" />
+            Admin Monitoring Dashboard
+          </h1>
+          <button
+            onClick={refreshUsage}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+        </div>
 
         {/* System Status Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -186,134 +228,441 @@ export default function AdminMonitoringPage() {
           <div className="bg-black/30 rounded-xl p-6 border border-purple-500/30">
             <div className="flex items-center gap-3 mb-2">
               <Zap className="w-6 h-6 text-purple-400" />
-              <span className="text-gray-400">Total API Calls</span>
+              <span className="text-gray-400">API Calls</span>
             </div>
-            <p className="text-2xl font-bold text-white">{apiCallData?.monthly?.total || 0}</p>
+            <p className="text-2xl font-bold text-white">{apiCallData?.usage?.monthly?.total?.toLocaleString() || 0}</p>
             <p className="text-sm text-gray-400">This month</p>
           </div>
         </div>
 
-        {/* API Call Statistics */}
+        {/* Enhanced API Call Statistics */}
         {apiCallData && (
-          <div className="bg-black/30 rounded-xl p-6 border border-purple-500/30 mb-8">
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-              <BarChart3 className="w-5 h-5 text-purple-400" />
-              Vercel API Usage Statistics
-            </h3>
-
-            {/* API Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-gray-900/50 rounded-lg p-4">
-                <div className="text-sm text-gray-400 mb-1">Monthly Usage</div>
-                <div className="text-xl font-bold text-white">{apiCallData.monthly?.total || 0}</div>
-                <div className="text-xs text-gray-500">of {apiCallData.limits?.functions?.toLocaleString() || '100,000'}</div>
-              </div>
-              <div className="bg-gray-900/50 rounded-lg p-4">
-                <div className="text-sm text-gray-400 mb-1">Usage Percentage</div>
-                <div className="text-xl font-bold text-white">{apiCallData.usage?.percentage || '0.00'}%</div>
-              </div>
-              <div className="bg-gray-900/50 rounded-lg p-4">
-                <div className="text-sm text-gray-400 mb-1">Remaining</div>
-                <div className="text-xl font-bold text-white">{apiCallData.usage?.remaining?.toLocaleString() || '100,000'}</div>
-              </div>
-              <div className="bg-gray-900/50 rounded-lg p-4">
-                <div className="text-sm text-gray-400 mb-1">Days Until Reset</div>
-                <div className="text-xl font-bold text-white">{apiCallData.monthly?.daysUntilReset || 0}</div>
-              </div>
-            </div>
-
-            {/* Internal vs External Calls */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-gray-900/50 rounded-lg p-4">
-                <h4 className="text-lg font-semibold text-white mb-3">Internal API Calls</h4>
-                <div className="text-2xl font-bold text-blue-400 mb-2">{apiCallData.breakdown?.internal?.total || 0}</div>
-                <div className="text-sm text-gray-400">Your Next.js API routes</div>
-              </div>
-              <div className="bg-gray-900/50 rounded-lg p-4">
-                <h4 className="text-lg font-semibold text-white mb-3">External API Calls</h4>
-                <div className="text-2xl font-bold text-green-400 mb-2">{apiCallData.breakdown?.external?.total || 0}</div>
-                <div className="text-sm text-gray-400">osu! API, etc.</div>
-              </div>
-            </div>
-
-            {/* External API Breakdown */}
-            {apiCallData.breakdown?.external?.details && apiCallData.breakdown.external.details.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-lg font-semibold text-white mb-3">External API Breakdown</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-700">
-                        <th className="text-left py-3 px-4 text-gray-400">API</th>
-                        <th className="text-left py-3 px-4 text-gray-400">Endpoint</th>
-                        <th className="text-right py-3 px-4 text-gray-400">Calls</th>
-                        <th className="text-right py-3 px-4 text-gray-400">Avg Duration</th>
-                        <th className="text-left py-3 px-4 text-gray-400">Last Called</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {apiCallData.breakdown.external.details.map((api, index) => (
-                        <tr key={index} className="border-b border-gray-800">
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              api.apiName === 'osu-api' ? 'bg-blue-600 text-blue-100' :
-                              api.apiName === 'osu-auth' ? 'bg-purple-600 text-purple-100' :
-                              'bg-gray-600 text-gray-100'
-                            }`}>
-                              {api.apiName}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 font-mono text-xs text-white">{api.endpoint}</td>
-                          <td className="py-3 px-4 text-right font-semibold text-white">{api.count}</td>
-                          <td className="py-3 px-4 text-right text-gray-400">
-                            {api.totalDuration ? `${Math.round(api.totalDuration / api.count)}ms` : 'N/A'}
-                          </td>
-                          <td className="py-3 px-4 text-xs text-gray-400">
-                            {api.lastCall ? formatDate(api.lastCall, 'relative') : 'Never'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          <div className="space-y-8">
+            {/* Alerts Section */}
+            {apiCallData.alerts && apiCallData.alerts.length > 0 && (
+              <div className="bg-black/30 rounded-xl p-6 border border-red-500/30">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+                  <AlertCircle className="w-5 h-5 text-red-400" />
+                  System Alerts ({apiCallData.alerts.length})
+                </h3>
+                <div className="space-y-3">
+                  {apiCallData.alerts.slice(0, 5).map((alert, index) => (
+                    <div key={index} className={`p-4 rounded-lg border ${
+                      alert.level === 'critical' ? 'bg-red-900/30 border-red-500/50' :
+                      alert.level === 'warning' ? 'bg-yellow-900/30 border-yellow-500/50' :
+                      'bg-blue-900/30 border-blue-500/50'
+                    }`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="font-semibold text-white">{alert.message}</div>
+                          <div className="text-sm text-gray-400 mt-1">{alert.action}</div>
+                          <div className="text-xs text-gray-500 mt-1 capitalize">{alert.type} • {alert.resource?.replace('_', ' ')}</div>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                          alert.level === 'critical' ? 'bg-red-600 text-red-100' :
+                          alert.level === 'warning' ? 'bg-yellow-600 text-yellow-100' :
+                          'bg-blue-600 text-blue-100'
+                        }`}>
+                          {alert.level.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Projections and Warnings */}
-            {apiCallData.projections && (
-              <div className="bg-gray-900/50 rounded-lg p-4">
-                <h4 className="text-lg font-semibold text-white mb-3">Monthly Projection</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-400">Daily Average</div>
-                    <div className="text-lg font-bold text-white">{apiCallData.projections.dailyAverage}</div>
+            {/* Main Usage Statistics */}
+            <div className="bg-black/30 rounded-xl p-6 border border-purple-500/30">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold flex items-center gap-2 text-white">
+                  <BarChart3 className="w-5 h-5 text-purple-400" />
+                  Comprehensive Vercel Usage Analytics
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    apiCallData.status?.limitStatus === 'critical' ? 'bg-red-600 text-red-100' :
+                    apiCallData.status?.limitStatus === 'warning' ? 'bg-yellow-600 text-yellow-100' :
+                    apiCallData.status?.limitStatus === 'caution' ? 'bg-orange-600 text-orange-100' :
+                    'bg-green-600 text-green-100'
+                  }`}>
+                    {apiCallData.status?.limitStatus?.toUpperCase() || 'OK'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Vercel Resource Usage */}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                <div className={`rounded-lg p-4 border ${getUsageBgColor(apiCallData.usage?.functions?.percentage)}`}>
+                  <div className="text-sm text-gray-400 mb-1">Functions</div>
+                  <div className="text-xl font-bold text-white">{apiCallData.usage?.functions?.current?.toLocaleString() || 0}</div>
+                  <div className={`text-xs font-semibold ${getUsageColor(apiCallData.usage?.functions?.percentage)}`}>
+                    {apiCallData.usage?.functions?.percentage || '0'}%
                   </div>
-                  <div>
-                    <div className="text-sm text-gray-400">Projected Monthly</div>
-                    <div className={`text-lg font-bold ${
-                      apiCallData.projections.onTrackToExceed ? 'text-red-400' : 'text-green-400'
-                    }`}>
-                      {apiCallData.projections.projectedMonthly?.toLocaleString()}
+                </div>
+
+                <div className={`rounded-lg p-4 border ${getUsageBgColor(apiCallData.usage?.edgeExecutionUnits?.percentage)}`}>
+                  <div className="text-sm text-gray-400 mb-1">Edge Units</div>
+                  <div className="text-xl font-bold text-white">{apiCallData.usage?.edgeExecutionUnits?.current?.toLocaleString() || 0}</div>
+                  <div className={`text-xs font-semibold ${getUsageColor(apiCallData.usage?.edgeExecutionUnits?.percentage)}`}>
+                    {apiCallData.usage?.edgeExecutionUnits?.percentage || '0'}%
+                  </div>
+                </div>
+
+                <div className={`rounded-lg p-4 border ${getUsageBgColor(apiCallData.usage?.middleware?.percentage)}`}>
+                  <div className="text-sm text-gray-400 mb-1">Middleware</div>
+                  <div className="text-xl font-bold text-white">{apiCallData.usage?.middleware?.current?.toLocaleString() || 0}</div>
+                  <div className={`text-xs font-semibold ${getUsageColor(apiCallData.usage?.middleware?.percentage)}`}>
+                    {apiCallData.usage?.middleware?.percentage || '0'}%
+                  </div>
+                </div>
+
+                <div className={`rounded-lg p-4 border ${getUsageBgColor(apiCallData.usage?.functionDuration?.percentage)}`}>
+                  <div className="text-sm text-gray-400 mb-1">GB-Hours</div>
+                  <div className="text-xl font-bold text-white">{apiCallData.usage?.functionDuration?.current?.toFixed(2) || '0.00'}</div>
+                  <div className={`text-xs font-semibold ${getUsageColor(apiCallData.usage?.functionDuration?.percentage)}`}>
+                    {apiCallData.usage?.functionDuration?.percentage || '0'}%
+                  </div>
+                </div>
+
+                <div className={`rounded-lg p-4 border ${getUsageBgColor(apiCallData.usage?.bandwidth?.percentage)}`}>
+                  <div className="text-sm text-gray-400 mb-1">Bandwidth</div>
+                  <div className="text-xl font-bold text-white">{apiCallData.quickMetrics?.bandwidth || '0 B'}</div>
+                  <div className={`text-xs font-semibold ${getUsageColor(apiCallData.usage?.bandwidth?.percentage)}`}>
+                    {apiCallData.usage?.bandwidth?.percentage || '0'}%
+                  </div>
+                </div>
+
+                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600/50">
+                  <div className="text-sm text-gray-400 mb-1">Reset In</div>
+                  <div className="text-xl font-bold text-white">{apiCallData.usage?.monthly?.daysUntilReset || 0}</div>
+                  <div className="text-xs text-gray-500">Days</div>
+                </div>
+              </div>
+
+              {/* Performance & Cost Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-blue-400" />
+                    Performance
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Avg Response</span>
+                      <span className="text-white">{apiCallData.quickMetrics?.averageResponseTime || 0}ms</span>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-400">Projected Usage</div>
-                    <div className={`text-lg font-bold ${
-                      parseFloat(apiCallData.projections.projectedUsagePercentage) > 80 ? 'text-red-400' : 'text-green-400'
-                    }`}>
-                      {apiCallData.projections.projectedUsagePercentage}%
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Error Rate</span>
+                      <span className={`${parseFloat(apiCallData.quickMetrics?.errorRate || 0) > 5 ? 'text-red-400' : 'text-green-400'}`}>
+                        {apiCallData.quickMetrics?.errorRate || 0}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Requests/Day</span>
+                      <span className="text-white">{apiCallData.efficiency?.requestsPerDay?.toLocaleString() || 0}</span>
                     </div>
                   </div>
                 </div>
-                
-                {apiCallData.projections.onTrackToExceed && (
-                  <div className="mt-4 p-3 bg-red-900/50 border border-red-500/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-red-400">
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="font-semibold">Warning: On track to exceed monthly limit!</span>
+
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-green-400" />
+                    Cost Analysis
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Current</span>
+                      <span className={`${(apiCallData.costs?.estimated || 0) > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        ${apiCallData.costs?.estimated?.toFixed(2) || '0.00'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Projected</span>
+                      <span className={`${(apiCallData.costAnalysis?.projected?.estimated || 0) > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                        ${apiCallData.costAnalysis?.projected?.estimated?.toFixed(2) || '0.00'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Savings</span>
+                      <span className="text-blue-400">${apiCallData.costAnalysis?.optimization?.potentialSavings?.costSavings?.toFixed(2) || '0.00'}</span>
                     </div>
                   </div>
-                )}
+                </div>
+
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-purple-400" />
+                    Growth Trends
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">7-Day Growth</span>
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(apiCallData.trends?.growth?.trend)}
+                        <span className={`font-semibold ${
+                          (apiCallData.trends?.growth?.growth || 0) > 0 ? 'text-yellow-400' : 
+                          (apiCallData.trends?.growth?.growth || 0) < 0 ? 'text-green-400' : 'text-gray-400'
+                        }`}>
+                          {apiCallData.trends?.growth?.growth > 0 ? '+' : ''}{apiCallData.trends?.growth?.growth || 0}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Trend</span>
+                      <span className="text-white capitalize">{apiCallData.trends?.growth?.trend || 'stable'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Top Endpoint</span>
+                      <span className="text-white text-xs font-mono">{apiCallData.quickMetrics?.topEndpoint?.endpoint?.split('/').pop() || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Breakdown Sections */}
+              {/* Internal vs External Calls */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <Server className="w-5 h-5 text-blue-400" />
+                    Internal API Calls
+                  </h4>
+                  <div className="text-2xl font-bold text-blue-400 mb-2">{apiCallData.usage?.breakdown?.internal?.total?.toLocaleString() || 0}</div>
+                  <div className="text-sm text-gray-400 mb-3">Your Next.js API routes</div>
+                  <div className="text-xs text-gray-500">{apiCallData.usage?.breakdown?.internal?.endpoints || 0} unique endpoints</div>
+                </div>
+
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-green-400" />
+                    External API Calls
+                  </h4>
+                  <div className="text-2xl font-bold text-green-400 mb-2">{apiCallData.usage?.breakdown?.external?.total?.toLocaleString() || 0}</div>
+                  <div className="text-sm text-gray-400 mb-3">osu! API, etc.</div>
+                  <div className="text-xs text-gray-500">{apiCallData.usage?.breakdown?.external?.apis || 0} different APIs</div>
+                </div>
+              </div>
+
+              {/* External API Breakdown */}
+              {apiCallData.usage?.breakdown?.external?.details && apiCallData.usage.breakdown.external.details.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-green-400" />
+                    External API Breakdown
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-700">
+                          <th className="text-left py-3 px-4 text-gray-400">API</th>
+                          <th className="text-left py-3 px-4 text-gray-400">Endpoint</th>
+                          <th className="text-right py-3 px-4 text-gray-400">Calls</th>
+                          <th className="text-right py-3 px-4 text-gray-400">Avg Duration</th>
+                          <th className="text-right py-3 px-4 text-gray-400">Error Rate</th>
+                          <th className="text-left py-3 px-4 text-gray-400">Last Called</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {apiCallData.usage.breakdown.external.details.slice(0, 10).map((api, index) => (
+                          <tr key={index} className="border-b border-gray-800">
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                api.apiName === 'osu-api' ? 'bg-blue-600 text-blue-100' :
+                                api.apiName === 'osu-auth' ? 'bg-purple-600 text-purple-100' :
+                                'bg-gray-600 text-gray-100'
+                              }`}>
+                                {api.apiName}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono text-xs text-white">{api.endpoint}</td>
+                            <td className="py-3 px-4 text-right font-semibold text-white">{api.count?.toLocaleString()}</td>
+                            <td className="py-3 px-4 text-right text-gray-400">
+                              {api.totalDuration && api.count ? `${Math.round(api.totalDuration / api.count)}ms` : 'N/A'}
+                            </td>
+                            <td className="py-3 px-4 text-right text-gray-400">
+                              {api.errors && api.count ? `${((api.errors / api.count) * 100).toFixed(1)}%` : '0%'}
+                            </td>
+                            <td className="py-3 px-4 text-xs text-gray-400">
+                              {api.lastCall ? formatDate(api.lastCall, 'relative') : 'Never'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Performance Insights */}
+              {apiCallData.performance?.slowestEndpoints && apiCallData.performance.slowestEndpoints.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-yellow-400" />
+                    Performance Insights
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h5 className="text-sm font-semibold text-gray-300 mb-2">Slowest Endpoints</h5>
+                      <div className="space-y-2">
+                        {apiCallData.performance.slowestEndpoints.slice(0, 5).map((endpoint, index) => (
+                          <div key={index} className="flex justify-between items-center p-2 bg-gray-800/50 rounded">
+                            <span className="text-xs font-mono text-white truncate">{endpoint.endpoint}</span>
+                            <span className="text-sm text-yellow-400">{Math.round(endpoint.avgDuration)}ms</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {apiCallData.performance.peakHours && (
+                      <div>
+                        <h5 className="text-sm font-semibold text-gray-300 mb-2">Peak Hours</h5>
+                        <div className="space-y-2">
+                          {apiCallData.performance.peakHours.slice(0, 5).map((hour, index) => (
+                            <div key={index} className="flex justify-between items-center p-2 bg-gray-800/50 rounded">
+                              <span className="text-sm text-white">{hour.hour}:00</span>
+                              <span className="text-sm text-blue-400">{hour.calls} calls</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {apiCallData.recommendations && apiCallData.recommendations.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-orange-400" />
+                    Optimization Recommendations
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {apiCallData.recommendations.slice(0, 6).map((rec, index) => (
+                      <div key={index} className={`p-4 rounded-lg border ${
+                        rec.type === 'critical' ? 'bg-red-900/20 border-red-500/30' :
+                        rec.type === 'cost' ? 'bg-yellow-900/20 border-yellow-500/30' :
+                        'bg-blue-900/20 border-blue-500/30'
+                      }`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="text-sm font-semibold text-white">{rec.category}</span>
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                            rec.type === 'critical' ? 'bg-red-600 text-red-100' :
+                            rec.type === 'cost' ? 'bg-yellow-600 text-yellow-100' :
+                            'bg-blue-600 text-blue-100'
+                          }`}>
+                            {rec.type.toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-300 mb-2">{rec.message}</p>
+                        {rec.actions && rec.actions.length > 0 && (
+                          <ul className="text-xs text-gray-400 space-y-1">
+                            {rec.actions.slice(0, 3).map((action, actionIndex) => (
+                              <li key={actionIndex} className="flex items-start gap-2">
+                                <span className="text-gray-500">•</span>
+                                <span>{action}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Export Options */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-400">Export Data:</span>
+                  {apiCallData.export && (
+                    <>
+                      <a
+                        href={apiCallData.export.csvUrl}
+                        className="flex items-center gap-2 px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        CSV
+                      </a>
+                      <a
+                        href={apiCallData.export.jsonUrl}
+                        className="flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        JSON
+                      </a>
+                      <a
+                        href={apiCallData.export.reportUrl}
+                        className="flex items-center gap-2 px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Report
+                      </a>
+                    </>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Last updated: {apiCallData.status?.timestamp ? formatDate(apiCallData.status.timestamp, 'time') : 'Never'}
+                </div>
+              </div>
+            </div>
+
+            {/* Daily Trends Chart */}
+            {apiCallData.trends?.daily && apiCallData.trends.daily.length > 0 && (
+              <div className="bg-black/30 rounded-xl p-6 border border-purple-500/30">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+                  <TrendingUp className="w-5 h-5 text-green-400" />
+                  Usage Trends (Last 30 Days)
+                </h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Simple chart representation */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-300 mb-3">Daily Function Calls</h4>
+                    <div className="space-y-1">
+                      {apiCallData.trends.daily.slice(-7).map((day, index) => {
+                        const total = (day.internal || 0) + (day.external || 0);
+                        const maxTotal = Math.max(...apiCallData.trends.daily.map(d => (d.internal || 0) + (d.external || 0)));
+                        const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+                        
+                        return (
+                          <div key={index} className="flex items-center gap-3">
+                            <span className="text-xs text-gray-400 w-16">{formatDate(day.date, 'short')}</span>
+                            <div className="flex-1 bg-gray-800 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-white w-12 text-right">{total.toLocaleString()}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-300 mb-3">Resource Usage Distribution</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-400">Function Calls</span>
+                        <span className="text-sm text-white">{((apiCallData.usage?.functions?.current || 0) / (apiCallData.usage?.monthly?.total || 1) * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-400">Edge Execution</span>
+                        <span className="text-sm text-white">{apiCallData.usage?.edgeExecutionUnits?.percentage || '0'}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-400">Middleware</span>
+                        <span className="text-sm text-white">{apiCallData.usage?.middleware?.percentage || '0'}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-400">Bandwidth</span>
+                        <span className="text-sm text-white">{apiCallData.usage?.bandwidth?.percentage || '0'}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
