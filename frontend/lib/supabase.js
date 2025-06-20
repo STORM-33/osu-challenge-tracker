@@ -42,7 +42,12 @@ export const challengeQueries = {
           playlist_id,
           beatmap_title,
           beatmap_artist,
-          beatmap_version
+          beatmap_version,
+          beatmap_difficulty,
+          beatmap_cover_url,
+          beatmap_card_url,
+          beatmap_list_url,
+          beatmap_slimcover_url
         )
       `)
       .eq('is_active', true)
@@ -70,7 +75,12 @@ export const challengeQueries = {
           playlist_id,
           beatmap_title,
           beatmap_artist,
-          beatmap_version
+          beatmap_version,
+          beatmap_difficulty,
+          beatmap_cover_url,
+          beatmap_card_url,
+          beatmap_list_url,
+          beatmap_slimcover_url
         )
       `)
       .eq('is_active', true)
@@ -100,7 +110,12 @@ export const challengeQueries = {
           playlist_id,
           beatmap_title,
           beatmap_artist,
-          beatmap_version
+          beatmap_version,
+          beatmap_difficulty,
+          beatmap_cover_url,
+          beatmap_card_url,
+          beatmap_list_url,
+          beatmap_slimcover_url
         )
       `)
       .eq('season_id', seasonId)
@@ -178,34 +193,64 @@ export const challengeQueries = {
 
   // Get user stats
   getUserStats: async (userId) => {
-    const { data: scores, error: scoresError } = await supabase
-      .from('scores')
-      .select('accuracy, rank_position')
-      .eq('user_id', userId);
+  // Get all user scores for proper rank calculation
+  const { data: allUserScores, error: userScoresError } = await supabase
+    .from('scores')
+    .select(`
+      accuracy,
+      score,
+      playlist_id
+    `)
+    .eq('user_id', userId);
 
-    if (scoresError) throw scoresError;
+  if (userScoresError) throw userScoresError;
 
-    const { count: challengeCount, error: countError } = await supabase
-      .from('user_challenges')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+  const { count: challengeCount, error: countError } = await supabase
+    .from('user_challenges')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
 
-    if (countError) throw countError;
+  if (countError) throw countError;
 
-    const avgAccuracy = scores.length > 0
-      ? scores.reduce((acc, s) => acc + s.accuracy, 0) / scores.length
-      : 0;
-
-    const bestRank = scores.length > 0
-      ? Math.min(...scores.map(s => s.rank_position))
-      : null;
-
+  if (!allUserScores || allUserScores.length === 0) {
     return {
       totalChallenges: challengeCount || 0,
-      avgAccuracy: avgAccuracy.toFixed(2),
-      bestRank
+      avgAccuracy: '0.00',
+      bestRank: null
     };
   }
+
+  const avgAccuracy = allUserScores.reduce((acc, s) => acc + s.accuracy, 0) / allUserScores.length;
+
+  // Calculate actual rank for each user score
+  let bestRank = null;
+  
+  for (const userScore of allUserScores) {
+    // Get all scores for this playlist, sorted by score
+    const { data: playlistScores, error: playlistError } = await supabase
+      .from('scores')
+      .select('score, user_id')
+      .eq('playlist_id', userScore.playlist_id)
+      .order('score', { ascending: false });
+
+    if (!playlistError && playlistScores) {
+      // Find user's rank in this playlist
+      const userRank = playlistScores.findIndex(s => s.user_id === userId) + 1;
+      
+      if (userRank > 0) {
+        if (bestRank === null || userRank < bestRank) {
+          bestRank = userRank;
+        }
+      }
+    }
+  }
+
+  return {
+    totalChallenges: challengeCount || 0,
+    avgAccuracy: avgAccuracy.toFixed(2),
+    bestRank
+  };
+}
 };
 
 // Season helper functions

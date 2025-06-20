@@ -1,6 +1,9 @@
+// frontend/pages/api/challenges/index.js - Tracked version
 import { supabase } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
+import { trackedFetch } from '../../../lib/api-tracker';
+import apiTracker from '../../../lib/api-tracker';
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -31,7 +34,7 @@ async function handleGetChallenges(req, res) {
     const parsedLimit = Math.min(parseInt(limit) || 50, 100);
     const parsedOffset = parseInt(offset) || 0;
 
-    // Build query with season information
+    // Build query with season information and difficulty
     let query = supabase
       .from('challenges')
       .select(`
@@ -49,7 +52,11 @@ async function handleGetChallenges(req, res) {
           beatmap_title,
           beatmap_artist,
           beatmap_version,
-          beatmap_cover_url
+          beatmap_difficulty,
+          beatmap_cover_url,
+          beatmap_card_url,
+          beatmap_list_url,
+          beatmap_slimcover_url
         )
       `, { count: 'exact' });
 
@@ -150,6 +157,15 @@ async function handleCreateChallenge(req, res) {
       return res.status(400).json({ error: 'Invalid room ID format' });
     }
 
+    // 🚨 Check API limits before making external calls
+    const limitStatus = apiTracker.checkLimits();
+    if (limitStatus === 'critical') {
+      return res.status(429).json({ 
+        error: 'API usage critical - temporarily limiting requests',
+        usage: apiTracker.getUsageStats().usage
+      });
+    }
+
     // Check if challenge already exists
     const { data: existingChallenge } = await supabase
       .from('challenges')
@@ -167,7 +183,14 @@ async function handleCreateChallenge(req, res) {
     // Get current season for new challenges
     let currentSeasonId = null;
     try {
-      const seasonResponse = await fetch(`${req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL}/api/seasons/current`);
+      // 🔄 TRACKED: Internal API call to get current season
+      const seasonResponse = await trackedFetch(`${req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL}/api/seasons/current`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }, 'internal-api');
+
       if (seasonResponse.ok) {
         const seasonData = await seasonResponse.json();
         if (seasonData.success && seasonData.season) {
@@ -178,7 +201,7 @@ async function handleCreateChallenge(req, res) {
       console.warn('Could not fetch current season:', seasonError);
     }
 
-    // Create challenge - removed is_featured field
+    // Create challenge
     const { data: challenge, error: createError } = await supabaseAdmin
       .from('challenges')
       .insert({
@@ -204,27 +227,39 @@ async function handleCreateChallenge(req, res) {
       });
     }
 
-    // Trigger update to fetch data from osu! API
+    // 🔄 TRACKED: Trigger update to fetch data from osu! API
     try {
-      const updateResponse = await fetch(`${req.headers.origin}/api/update-challenge`, {
+      console.log('📊 Triggering challenge update - this will make multiple osu! API calls');
+      
+      const updateResponse = await trackedFetch(`${req.headers.origin}/api/update-challenge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ roomId: roomId.toString() })
-      });
+      }, 'internal-api');
 
       if (!updateResponse.ok) {
         console.error('Failed to trigger challenge update');
+      } else {
+        console.log('✅ Challenge update triggered successfully');
       }
     } catch (updateError) {
       console.error('Error triggering challenge update:', updateError);
     }
 
+    // 📊 Report usage after creation
+    const usageStats = apiTracker.getUsageStats();
+    console.log(`📊 Challenge creation complete. API usage: ${usageStats.usage.percentage}%`);
+
     res.status(201).json({
       success: true,
       challenge,
-      message: 'Challenge created successfully. Data will be updated shortly.'
+      message: 'Challenge created successfully. Data will be updated shortly.',
+      apiUsage: {
+        percentage: usageStats.usage.percentage,
+        remaining: usageStats.usage.remaining
+      }
     });
 
   } catch (error) {

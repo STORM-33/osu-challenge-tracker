@@ -79,10 +79,11 @@ export default async function handler(req, res) {
         global_rank: osuUser.statistics?.global_rank,
         country_rank: osuUser.statistics?.country_rank,
         pp: osuUser.statistics?.pp,
-        admin: false, // Default to false, manually set in DB if needed
+        // DON'T include admin field - let it keep existing value or DB default
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'osu_id',
+        ignoreDuplicates: false // This ensures updates happen for existing users
       })
       .select()
       .single();

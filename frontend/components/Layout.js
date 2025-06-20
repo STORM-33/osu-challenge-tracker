@@ -8,40 +8,26 @@ export default function Layout({ children, backgroundImage }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [debugInfo, setDebugInfo] = useState('');
-  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
 
-  // Handle client-side hydration
   useEffect(() => {
-    setIsClient(true);
     checkUser();
   }, []);
 
   const checkUser = async () => {
     try {
-      console.log('🔍 Checking user authentication...');
-      setDebugInfo('Checking auth...');
-      
       const userData = await auth.getCurrentUser();
-      console.log('👤 User data received:', userData);
       
       if (userData) {
         setUser(userData);
         setIsAdmin(userData?.admin || false);
-        setDebugInfo(`Logged in as: ${userData.username} (Admin: ${userData.admin})`);
-        console.log('✅ User authenticated:', userData.username, 'Admin:', userData.admin);
       } else {
         setUser(null);
         setIsAdmin(false);
-        setDebugInfo('No user found');
-        console.log('❌ No user authenticated');
       }
     } catch (error) {
-      console.error('🚨 Error checking user:', error);
       setUser(null);
       setIsAdmin(false);
-      setDebugInfo(`Auth error: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -49,36 +35,17 @@ export default function Layout({ children, backgroundImage }) {
 
   const handleLogout = async () => {
     try {
-      console.log('🚪 Logging out...');
       await auth.signOut();
       setUser(null);
       setIsAdmin(false);
-      setDebugInfo('Logged out');
       router.push('/');
     } catch (error) {
-      console.error('🚨 Logout error:', error);
+      console.error('Logout error:', error);
     }
   };
 
-  // Debug: Log current state
-  console.log('🎭 Layout render state:', { 
-    user: user?.username || 'none', 
-    isAdmin, 
-    loading,
-    isClient
-  });
-
   return (
     <div className="min-h-screen bg-map-placeholder relative">
-      {/* Debug info - only show after hydration */}
-      {process.env.NODE_ENV === 'development' && isClient && (
-        <div className="fixed top-0 right-0 bg-black text-white p-2 text-xs z-50 max-w-xs">
-          Debug: {debugInfo}
-          <br />
-          Cookie: {document.cookie.includes('osu_session') ? '✅' : '❌'}
-        </div>
-      )}
-
       {/* Background image layer */}
       {backgroundImage && (
         <div 

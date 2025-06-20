@@ -1,5 +1,6 @@
-// osu! API client for Next.js server-side
+// frontend/lib/osu-api.js - Tracked version for Vercel usage monitoring
 import { supabase } from './supabase';
+import { trackedFetch } from './api-tracker';
 
 class OsuAPIClient {
   constructor() {
@@ -24,7 +25,8 @@ class OsuAPIClient {
     console.log('Authenticating with osu! API...');
     
     try {
-      const response = await fetch('https://osu.ppy.sh/oauth/token', {
+      // 🔄 TRACKED: OAuth token request
+      const response = await trackedFetch('https://osu.ppy.sh/oauth/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,7 +38,7 @@ class OsuAPIClient {
           grant_type: 'client_credentials',
           scope: 'public'
         }),
-      });
+      }, 'osu-auth'); // API name for tracking
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -73,13 +75,14 @@ class OsuAPIClient {
     console.log(`Making osu! API request: ${url.pathname}${url.search}`);
 
     try {
-      const response = await fetch(url.toString(), {
+      // 🔄 TRACKED: Main API request
+      const response = await trackedFetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-      });
+      }, 'osu-api'); // API name for tracking
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -93,14 +96,14 @@ class OsuAPIClient {
           
           const reauth = await this.authenticate();
           if (reauth) {
-            // Retry the request with new token
-            const retryResponse = await fetch(url.toString(), {
+            // 🔄 TRACKED: Retry request with new token
+            const retryResponse = await trackedFetch(url.toString(), {
               headers: {
                 'Authorization': `Bearer ${this.accessToken}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
               },
-            });
+            }, 'osu-api-retry'); // Different tracking name for retries
             
             if (retryResponse.ok) {
               return await retryResponse.json();
@@ -190,7 +193,7 @@ class OsuAPIClient {
       }
     }
 
-    console.log(`Finished fetching scores: ${allScores.length} total`);
+    console.log(`Finished fetching scores: ${allScores.length} total (${requestCount} API calls made)`);
     return allScores;
   }
 

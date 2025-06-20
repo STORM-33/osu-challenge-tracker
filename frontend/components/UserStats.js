@@ -6,22 +6,28 @@ export default function UserStats({ stats }) {
       title: 'Total Challenges',
       value: stats.totalChallenges,
       icon: Activity,
-      color: 'text-purple-400',
-      bgColor: 'from-purple-900/20 to-purple-800/20',
+      color: 'text-purple-700',
+      bgColor: 'from-purple-50 to-purple-100',
+      borderColor: 'border-purple-200',
+      hoverBorder: 'hover:border-purple-300',
     },
     {
       title: 'Best Rank',
       value: stats.bestRank ? `#${stats.bestRank}` : 'N/A',
       icon: Star,
-      color: 'text-yellow-400',
-      bgColor: 'from-yellow-900/20 to-orange-900/20',
+      color: 'text-yellow-700',
+      bgColor: 'from-yellow-50 to-orange-100',
+      borderColor: 'border-yellow-200',
+      hoverBorder: 'hover:border-yellow-300',
     },
     {
       title: 'Avg Accuracy',
       value: `${stats.avgAccuracy}%`,
       icon: TrendingUp,
-      color: 'text-green-400',
-      bgColor: 'from-green-900/20 to-emerald-900/20',
+      color: 'text-green-700',
+      bgColor: 'from-green-50 to-emerald-100',
+      borderColor: 'border-green-200',
+      hoverBorder: 'hover:border-green-300',
     },
   ];
 
@@ -30,10 +36,10 @@ export default function UserStats({ stats }) {
       {statCards.map((stat, index) => (
         <div
           key={index}
-          className={`bg-gradient-to-br ${stat.bgColor} border border-purple-500/30 rounded-xl p-6 hover:border-purple-400/50 transition-all`}
+          className={`bg-gradient-to-br ${stat.bgColor} border ${stat.borderColor} rounded-xl p-6 ${stat.hoverBorder} transition-all shadow-sm hover:shadow-md`}
         >
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold">{stat.title}</h3>
+            <h3 className="text-lg font-semibold text-neutral-800">{stat.title}</h3>
             <stat.icon className={`w-5 h-5 ${stat.color}`} />
           </div>
           <p className={`text-3xl font-bold ${stat.color}`}>

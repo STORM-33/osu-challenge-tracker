@@ -1,5 +1,7 @@
+// frontend/pages/api/update-challenge.js - Tracked version with Vercel limit checking
 import { supabaseAdmin } from '../../lib/supabase-admin';
 import { getOsuClient } from '../../lib/osu-api';
+import apiTracker from '../../lib/api-tracker';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,15 +15,31 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Room ID is required' });
     }
 
+    // 🚨 CRITICAL: Check Vercel API limits before proceeding
+    const limitStatus = apiTracker.checkLimits();
+    const usageStats = apiTracker.getUsageStats();
+    
+    console.log(`📊 Current API usage: ${usageStats.usage.percentage}% (${usageStats.monthly.total}/${usageStats.limits.functions})`);
+    
+    if (limitStatus === 'critical') {
+      console.warn('🚨 API usage is critical! Aborting challenge update to preserve limits.');
+      return res.status(429).json({ 
+        error: 'API usage critical - temporarily limiting requests',
+        usage: usageStats.usage
+      });
+    } else if (limitStatus === 'warning') {
+      console.warn('⚠️ API usage is high - proceeding with caution');
+    }
+
     console.log(`Updating challenge data for room ${roomId}`);
 
-    // Initialize osu! API client
+    // Initialize osu! API client (now tracked automatically)
     const osuClient = getOsuClient();
     if (!osuClient) {
       return res.status(500).json({ error: 'Failed to initialize osu! client' });
     }
 
-    // Fetch room details from osu! API
+    // 🔄 TRACKED: Fetch room details from osu! API
     const roomData = await osuClient.getRoomInfo(roomId);
     
     if (!roomData || !roomData.id) {
@@ -60,9 +78,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to update challenge' });
     }
 
+    let totalApiCallsForPlaylists = 0;
+
     // Process playlists
     if (roomData.playlist && roomData.playlist.length > 0) {
-      for (const playlist of roomData.playlist) {
+      for (const [index, playlist] of roomData.playlist.entries()) {
+        // Check limits before each playlist (since each can make many API calls)
+        const currentLimitStatus = apiTracker.checkLimits();
+        if (currentLimitStatus === 'critical') {
+          console.warn(`🚨 Hit critical limit during playlist ${index + 1}/${roomData.playlist.length}. Stopping here.`);
+          break;
+        }
+
         // Extract beatmap cover images
         const covers = playlist.beatmap?.beatmapset?.covers || {};
         
@@ -90,9 +117,14 @@ export default async function handler(req, res) {
           continue;
         }
 
-        // Fetch and process scores for this playlist
+        // 🔄 TRACKED: Fetch and process scores for this playlist
         try {
+          console.log(`📊 Before fetching scores for playlist ${index + 1}: Usage at ${apiTracker.getUsageStats().usage.percentage}%`);
+          
           const scores = await osuClient.getAllPlaylistScores(roomId, playlist.id);
+          totalApiCallsForPlaylists += Math.ceil(scores.length / 50); // Estimate API calls made
+          
+          console.log(`📊 After fetching ${scores.length} scores: Usage at ${apiTracker.getUsageStats().usage.percentage}%`);
           
           if (scores && scores.length > 0) {
             for (const score of scores) {
@@ -200,17 +232,32 @@ export default async function handler(req, res) {
       console.error('Participation update error:', participationError);
     }
 
+    // 📊 Final usage report
+    const finalUsage = apiTracker.getUsageStats();
+    console.log(`✅ Challenge update complete. Final API usage: ${finalUsage.usage.percentage}% (estimated ${totalApiCallsForPlaylists} external API calls made)`);
+
     res.status(200).json({ 
       success: true, 
       challenge,
-      message: 'Challenge data updated successfully' 
+      message: 'Challenge data updated successfully',
+      apiUsage: {
+        percentage: finalUsage.usage.percentage,
+        remaining: finalUsage.usage.remaining,
+        estimatedExternalCalls: totalApiCallsForPlaylists
+      }
     });
 
   } catch (error) {
     console.error('Update challenge error:', error);
+    
+    // Even on error, report current usage
+    const errorUsage = apiTracker.getUsageStats();
+    console.log(`❌ Error occurred at ${errorUsage.usage.percentage}% API usage`);
+    
     res.status(500).json({ 
       error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      apiUsage: errorUsage.usage
     });
   }
 }
