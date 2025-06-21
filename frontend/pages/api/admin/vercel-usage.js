@@ -24,18 +24,43 @@ async function handler(req, res) {
     
     if (isProduction && process.env.VERCEL_API_TOKEN) {
       try {
-        const vercelResponse = await fetch('https://api.vercel.com/v2/teams/usage', {
-          headers: {
-            'Authorization': `Bearer ${process.env.VERCEL_API_TOKEN}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        console.log('🌐 Attempting Vercel API call...');
         
-        if (vercelResponse.ok) {
-          realVercelData = await vercelResponse.json();
+        // Try different endpoints based on account type
+        const endpoints = [
+          'https://api.vercel.com/v2/user/usage',           // Personal account
+          'https://api.vercel.com/v2/teams/usage',         // Team account  
+          'https://api.vercel.com/v1/integrations/usage'   // Alternative
+        ];
+        
+        for (const endpoint of endpoints) {
+          console.log(`🔍 Trying endpoint: ${endpoint}`);
+          
+          const vercelResponse = await fetch(endpoint, {
+            headers: {
+              'Authorization': `Bearer ${process.env.VERCEL_API_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          console.log(`📊 Response status for ${endpoint}: ${vercelResponse.status}`);
+          
+          if (vercelResponse.ok) {
+            realVercelData = await vercelResponse.json();
+            console.log('✅ Successfully fetched Vercel usage data from:', endpoint);
+            break;
+          } else {
+            const errorText = await vercelResponse.text();
+            console.warn(`❌ Failed ${endpoint}:`, errorText.substring(0, 200));
+          }
         }
+        
+        if (!realVercelData) {
+          console.error('❌ All Vercel API endpoints failed');
+        }
+        
       } catch (vercelError) {
-        console.warn('Could not fetch real Vercel usage:', vercelError.message);
+        console.error('🚨 Vercel API error:', vercelError.message);
       }
     }
     
