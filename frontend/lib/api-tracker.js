@@ -486,141 +486,245 @@ class ProductionAPITracker {
     }
   }
 
-  getUsageStats() {
-    const VERCEL_LIMITS = {
-      hobby: {
-        functions: 100000,
-        edgeExecutionUnits: 500000,
-        middlewareInvocations: 1000000,
-        functionDuration: 100,
-        imageOptimization: 1000,
-        bandwidth: 100 * 1024 * 1024 * 1024
+getUsageStats() {
+  const VERCEL_LIMITS = {
+    hobby: {
+      functions: 100000,
+      edgeExecutionUnits: 500000,
+      middlewareInvocations: 1000000,
+      functionDuration: 100,
+      imageOptimization: 1000,
+      bandwidth: 100 * 1024 * 1024 * 1024
+    }
+  };
+
+  // Convert daily Map to array for trends
+  const dailyTrends = [];
+  const sortedDays = Array.from(this.memoryCache.daily.keys()).sort();
+  sortedDays.forEach(date => {
+    const dayData = this.memoryCache.daily.get(date);
+    dailyTrends.push({ date, ...dayData });
+  });
+
+  // Calculate projections
+  const now = new Date();
+  const startOfMonth = new Date(this.memoryCache.monthly.startDate);
+  const daysElapsed = Math.max(1, Math.ceil((now - startOfMonth) / (1000 * 60 * 60 * 24)));
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  
+  const dailyAverages = {
+    functions: Math.ceil(this.memoryCache.monthly.total / daysElapsed),
+    edgeExecutionUnits: Math.ceil(this.memoryCache.monthly.edgeExecutionUnits / daysElapsed),
+    middleware: Math.ceil(this.memoryCache.monthly.middlewareInvocations / daysElapsed),
+    functionDuration: this.memoryCache.monthly.functionDurationGBHours / daysElapsed,
+    images: Math.ceil(this.memoryCache.monthly.imageOptimizations / daysElapsed),
+    bandwidth: this.memoryCache.monthly.bandwidth / daysElapsed
+  };
+  
+  const projectedMonthly = {
+    functions: dailyAverages.functions * daysInMonth,
+    edgeExecutionUnits: dailyAverages.edgeExecutionUnits * daysInMonth,
+    middleware: dailyAverages.middleware * daysInMonth,
+    functionDuration: dailyAverages.functionDuration * daysInMonth,
+    images: dailyAverages.images * daysInMonth,
+    bandwidth: dailyAverages.bandwidth * daysInMonth
+  };
+
+  // ✅ Calculate actual performance metrics
+  const calculatePerformanceMetrics = () => {
+    let totalDuration = 0;
+    let totalCalls = 0;
+    const slowestEndpoints = [];
+    const errorRates = [];
+    const hourlyStats = new Map();
+
+    // Process internal endpoints
+    for (const [key, stats] of this.memoryCache.internal.entries()) {
+      totalDuration += stats.totalDuration;
+      totalCalls += stats.count;
+
+      // Calculate average duration for this endpoint
+      const avgDuration = stats.count > 0 ? stats.totalDuration / stats.count : 0;
+      
+      slowestEndpoints.push({
+        endpoint: stats.endpoint,
+        method: stats.method,
+        count: stats.count,
+        totalDuration: stats.totalDuration,
+        avgDuration: avgDuration,
+        callCount: stats.count
+      });
+
+      // Calculate error rate
+      if (stats.count > 0) {
+        errorRates.push({
+          endpoint: stats.endpoint,
+          method: stats.method,
+          totalRequests: stats.count,
+          errorCount: stats.errors,
+          errorRate: (stats.errors / stats.count) * 100
+        });
       }
-    };
 
-    // Convert daily Map to array for trends
-    const dailyTrends = [];
-    const sortedDays = Array.from(this.memoryCache.daily.keys()).sort();
-    sortedDays.forEach(date => {
-      const dayData = this.memoryCache.daily.get(date);
-      dailyTrends.push({ date, ...dayData });
-    });
+      // Process recent calls for hourly stats
+      if (stats.recentCalls && stats.recentCalls.length > 0) {
+        stats.recentCalls.forEach(call => {
+          if (call.timestamp) {
+            const hour = new Date(call.timestamp).getHours();
+            if (!hourlyStats.has(hour)) {
+              hourlyStats.set(hour, { hour, calls: 0 });
+            }
+            hourlyStats.get(hour).calls++;
+          }
+        });
+      }
+    }
 
-    // Calculate projections
-    const now = new Date();
-    const startOfMonth = new Date(this.memoryCache.monthly.startDate);
-    const daysElapsed = Math.max(1, Math.ceil((now - startOfMonth) / (1000 * 60 * 60 * 24)));
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    
-    const dailyAverages = {
-      functions: Math.ceil(this.memoryCache.monthly.total / daysElapsed),
-      edgeExecutionUnits: Math.ceil(this.memoryCache.monthly.edgeExecutionUnits / daysElapsed),
-      middleware: Math.ceil(this.memoryCache.monthly.middlewareInvocations / daysElapsed),
-      functionDuration: this.memoryCache.monthly.functionDurationGBHours / daysElapsed,
-      images: Math.ceil(this.memoryCache.monthly.imageOptimizations / daysElapsed),
-      bandwidth: this.memoryCache.monthly.bandwidth / daysElapsed
-    };
-    
-    const projectedMonthly = {
-      functions: dailyAverages.functions * daysInMonth,
-      edgeExecutionUnits: dailyAverages.edgeExecutionUnits * daysInMonth,
-      middleware: dailyAverages.middleware * daysInMonth,
-      functionDuration: dailyAverages.functionDuration * daysInMonth,
-      images: dailyAverages.images * daysInMonth,
-      bandwidth: dailyAverages.bandwidth * daysInMonth
-    };
+    // Process external endpoints
+    for (const [key, stats] of this.memoryCache.external.entries()) {
+      totalDuration += stats.totalDuration;
+      totalCalls += stats.count;
+
+      const avgDuration = stats.count > 0 ? stats.totalDuration / stats.count : 0;
+      
+      slowestEndpoints.push({
+        endpoint: `${stats.apiName}: ${stats.endpoint}`,
+        method: stats.method,
+        count: stats.count,
+        totalDuration: stats.totalDuration,
+        avgDuration: avgDuration,
+        callCount: stats.count
+      });
+
+      if (stats.count > 0) {
+        errorRates.push({
+          endpoint: `${stats.apiName}: ${stats.endpoint}`,
+          method: stats.method,
+          totalRequests: stats.count,
+          errorCount: stats.errors,
+          errorRate: (stats.errors / stats.count) * 100
+        });
+      }
+    }
+
+    // Calculate overall average response time
+    const averageResponseTime = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
+
+    // Sort and limit results
+    const sortedSlowestEndpoints = slowestEndpoints
+      .sort((a, b) => b.avgDuration - a.avgDuration)
+      .slice(0, 10);
+
+    const sortedErrorRates = errorRates
+      .filter(e => e.errorRate > 0)
+      .sort((a, b) => b.errorRate - a.errorRate)
+      .slice(0, 10);
+
+    const peakHours = Array.from(hourlyStats.values())
+      .sort((a, b) => b.calls - a.calls)
+      .slice(0, 5);
 
     return {
-      monthly: {
-        ...this.memoryCache.monthly,
-        daysUntilReset: Math.ceil((new Date(this.memoryCache.monthly.resetDate) - new Date()) / (1000 * 60 * 60 * 24))
-      },
-      limits: VERCEL_LIMITS.hobby,
-      usage: {
-        functions: {
-          current: this.memoryCache.monthly.total,
-          limit: VERCEL_LIMITS.hobby.functions,
-          percentage: (this.memoryCache.monthly.total / VERCEL_LIMITS.hobby.functions * 100).toFixed(2),
-          remaining: VERCEL_LIMITS.hobby.functions - this.memoryCache.monthly.total
-        },
-        edgeExecutionUnits: {
-          current: this.memoryCache.monthly.edgeExecutionUnits,
-          limit: VERCEL_LIMITS.hobby.edgeExecutionUnits,
-          percentage: (this.memoryCache.monthly.edgeExecutionUnits / VERCEL_LIMITS.hobby.edgeExecutionUnits * 100).toFixed(2),
-          remaining: VERCEL_LIMITS.hobby.edgeExecutionUnits - this.memoryCache.monthly.edgeExecutionUnits
-        },
-        middleware: {
-          current: this.memoryCache.monthly.middlewareInvocations,
-          limit: VERCEL_LIMITS.hobby.middlewareInvocations,
-          percentage: (this.memoryCache.monthly.middlewareInvocations / VERCEL_LIMITS.hobby.middlewareInvocations * 100).toFixed(2),
-          remaining: VERCEL_LIMITS.hobby.middlewareInvocations - this.memoryCache.monthly.middlewareInvocations
-        },
-        functionDuration: {
-          current: this.memoryCache.monthly.functionDurationGBHours,
-          limit: VERCEL_LIMITS.hobby.functionDuration,
-          percentage: (this.memoryCache.monthly.functionDurationGBHours / VERCEL_LIMITS.hobby.functionDuration * 100).toFixed(2),
-          remaining: VERCEL_LIMITS.hobby.functionDuration - this.memoryCache.monthly.functionDurationGBHours
-        },
-        imageOptimization: {
-          current: this.memoryCache.monthly.imageOptimizations,
-          limit: VERCEL_LIMITS.hobby.imageOptimization,
-          percentage: (this.memoryCache.monthly.imageOptimizations / VERCEL_LIMITS.hobby.imageOptimization * 100).toFixed(2),
-          remaining: VERCEL_LIMITS.hobby.imageOptimization - this.memoryCache.monthly.imageOptimizations
-        },
-        bandwidth: {
-          current: this.memoryCache.monthly.bandwidth,
-          limit: VERCEL_LIMITS.hobby.bandwidth,
-          percentage: (this.memoryCache.monthly.bandwidth / VERCEL_LIMITS.hobby.bandwidth * 100).toFixed(2),
-          remaining: VERCEL_LIMITS.hobby.bandwidth - this.memoryCache.monthly.bandwidth
-        }
-      },
-      breakdown: {
-        internal: {
-          total: this.memoryCache.monthly.internal,
-          endpoints: this.memoryCache.internal.size,
-          details: Array.from(this.memoryCache.internal.values()).sort((a, b) => b.count - a.count)
-        },
-        external: {
-          total: this.memoryCache.monthly.external,
-          apis: this.memoryCache.external.size,
-          details: Array.from(this.memoryCache.external.values()).sort((a, b) => b.count - a.count)
-        }
-      },
-      performance: {
-        slowestEndpoints: this.memoryCache.performance.slowestEndpoints.slice(0, 10),
-        errorRates: [],
-        peakHours: [],
-        averageResponseTime: 0
-      },
-      trends: dailyTrends,
-      projections: {
-        dailyAverages,
-        projectedMonthly,
-        projectedUsagePercentages: {
-          functions: ((projectedMonthly.functions / VERCEL_LIMITS.hobby.functions) * 100).toFixed(2),
-          edgeExecutionUnits: ((projectedMonthly.edgeExecutionUnits / VERCEL_LIMITS.hobby.edgeExecutionUnits) * 100).toFixed(2),
-          middlewareInvocations: ((projectedMonthly.middleware / VERCEL_LIMITS.hobby.middlewareInvocations) * 100).toFixed(2),
-          functionDuration: ((projectedMonthly.functionDuration / VERCEL_LIMITS.hobby.functionDuration) * 100).toFixed(2),
-          imageOptimization: ((projectedMonthly.images / VERCEL_LIMITS.hobby.imageOptimization) * 100).toFixed(2),
-          bandwidth: ((projectedMonthly.bandwidth / VERCEL_LIMITS.hobby.bandwidth) * 100).toFixed(2)
-        },
-        willExceedLimits: {
-          functions: projectedMonthly.functions > VERCEL_LIMITS.hobby.functions,
-          edgeExecutionUnits: projectedMonthly.edgeExecutionUnits > VERCEL_LIMITS.hobby.edgeExecutionUnits,
-          middlewareInvocations: projectedMonthly.middleware > VERCEL_LIMITS.hobby.middlewareInvocations,
-          functionDuration: projectedMonthly.functionDuration > VERCEL_LIMITS.hobby.functionDuration,
-          imageOptimization: projectedMonthly.images > VERCEL_LIMITS.hobby.imageOptimization,
-          bandwidth: projectedMonthly.bandwidth > VERCEL_LIMITS.hobby.bandwidth
-        },
-        daysElapsed
-      },
-      costs: {
-        estimated: 0,
-        breakdown: { functions: 0, bandwidth: 0 },
-        overages: { functions: 0, bandwidth: 0 }
-      }
+      averageResponseTime,
+      slowestEndpoints: sortedSlowestEndpoints,
+      errorRates: sortedErrorRates,
+      peakHours
     };
-  }
+  };
+
+  const performanceMetrics = calculatePerformanceMetrics();
+
+  return {
+    monthly: {
+      ...this.memoryCache.monthly,
+      daysUntilReset: Math.ceil((new Date(this.memoryCache.monthly.resetDate) - new Date()) / (1000 * 60 * 60 * 24))
+    },
+    limits: VERCEL_LIMITS.hobby,
+    usage: {
+      functions: {
+        current: this.memoryCache.monthly.total,
+        limit: VERCEL_LIMITS.hobby.functions,
+        percentage: (this.memoryCache.monthly.total / VERCEL_LIMITS.hobby.functions * 100).toFixed(2),
+        remaining: VERCEL_LIMITS.hobby.functions - this.memoryCache.monthly.total
+      },
+      edgeExecutionUnits: {
+        current: this.memoryCache.monthly.edgeExecutionUnits,
+        limit: VERCEL_LIMITS.hobby.edgeExecutionUnits,
+        percentage: (this.memoryCache.monthly.edgeExecutionUnits / VERCEL_LIMITS.hobby.edgeExecutionUnits * 100).toFixed(2),
+        remaining: VERCEL_LIMITS.hobby.edgeExecutionUnits - this.memoryCache.monthly.edgeExecutionUnits
+      },
+      middleware: {
+        current: this.memoryCache.monthly.middlewareInvocations,
+        limit: VERCEL_LIMITS.hobby.middlewareInvocations,
+        percentage: (this.memoryCache.monthly.middlewareInvocations / VERCEL_LIMITS.hobby.middlewareInvocations * 100).toFixed(2),
+        remaining: VERCEL_LIMITS.hobby.middlewareInvocations - this.memoryCache.monthly.middlewareInvocations
+      },
+      functionDuration: {
+        current: this.memoryCache.monthly.functionDurationGBHours,
+        limit: VERCEL_LIMITS.hobby.functionDuration,
+        percentage: (this.memoryCache.monthly.functionDurationGBHours / VERCEL_LIMITS.hobby.functionDuration * 100).toFixed(2),
+        remaining: VERCEL_LIMITS.hobby.functionDuration - this.memoryCache.monthly.functionDurationGBHours
+      },
+      imageOptimization: {
+        current: this.memoryCache.monthly.imageOptimizations,
+        limit: VERCEL_LIMITS.hobby.imageOptimization,
+        percentage: (this.memoryCache.monthly.imageOptimizations / VERCEL_LIMITS.hobby.imageOptimization * 100).toFixed(2),
+        remaining: VERCEL_LIMITS.hobby.imageOptimization - this.memoryCache.monthly.imageOptimizations
+      },
+      bandwidth: {
+        current: this.memoryCache.monthly.bandwidth,
+        limit: VERCEL_LIMITS.hobby.bandwidth,
+        percentage: (this.memoryCache.monthly.bandwidth / VERCEL_LIMITS.hobby.bandwidth * 100).toFixed(2),
+        remaining: VERCEL_LIMITS.hobby.bandwidth - this.memoryCache.monthly.bandwidth
+      }
+    },
+    breakdown: {
+      internal: {
+        total: this.memoryCache.monthly.internal,
+        endpoints: this.memoryCache.internal.size,
+        details: Array.from(this.memoryCache.internal.values()).sort((a, b) => b.count - a.count)
+      },
+      external: {
+        total: this.memoryCache.monthly.external,
+        apis: this.memoryCache.external.size,
+        details: Array.from(this.memoryCache.external.values()).sort((a, b) => b.count - a.count)
+      }
+    },
+    performance: {
+      slowestEndpoints: performanceMetrics.slowestEndpoints,
+      errorRates: performanceMetrics.errorRates,
+      peakHours: performanceMetrics.peakHours,
+      averageResponseTime: performanceMetrics.averageResponseTime // ✅ Now calculated correctly!
+    },
+    trends: dailyTrends,
+    projections: {
+      dailyAverages,
+      projectedMonthly,
+      projectedUsagePercentages: {
+        functions: ((projectedMonthly.functions / VERCEL_LIMITS.hobby.functions) * 100).toFixed(2),
+        edgeExecutionUnits: ((projectedMonthly.edgeExecutionUnits / VERCEL_LIMITS.hobby.edgeExecutionUnits) * 100).toFixed(2),
+        middlewareInvocations: ((projectedMonthly.middleware / VERCEL_LIMITS.hobby.middlewareInvocations) * 100).toFixed(2),
+        functionDuration: ((projectedMonthly.functionDuration / VERCEL_LIMITS.hobby.functionDuration) * 100).toFixed(2),
+        imageOptimization: ((projectedMonthly.images / VERCEL_LIMITS.hobby.imageOptimization) * 100).toFixed(2),
+        bandwidth: ((projectedMonthly.bandwidth / VERCEL_LIMITS.hobby.bandwidth) * 100).toFixed(2)
+      },
+      willExceedLimits: {
+        functions: projectedMonthly.functions > VERCEL_LIMITS.hobby.functions,
+        edgeExecutionUnits: projectedMonthly.edgeExecutionUnits > VERCEL_LIMITS.hobby.edgeExecutionUnits,
+        middlewareInvocations: projectedMonthly.middleware > VERCEL_LIMITS.hobby.middlewareInvocations,
+        functionDuration: projectedMonthly.functionDuration > VERCEL_LIMITS.hobby.functionDuration,
+        imageOptimization: projectedMonthly.images > VERCEL_LIMITS.hobby.imageOptimization,
+        bandwidth: projectedMonthly.bandwidth > VERCEL_LIMITS.hobby.bandwidth
+      },
+      daysElapsed
+    },
+    costs: {
+      estimated: 0,
+      breakdown: { functions: 0, bandwidth: 0 },
+      overages: { functions: 0, bandwidth: 0 }
+    }
+  };
+}
 
   checkLimits() {
     const stats = this.getUsageStats();
