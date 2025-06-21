@@ -4,15 +4,41 @@ import useSWR from 'swr';
 import Layout from '../../components/Layout';
 import ScoreTable from '../../components/ScoreTable';
 import { challengeQueries } from '../../lib/supabase';
-import { ArrowLeft, Loader2, Users, Calendar, Music } from 'lucide-react';
+import { useAutoUpdateChallenge } from '../../hooks/useAPI';
+import { ArrowLeft, Loader2, Users, Calendar, Music, RefreshCw } from 'lucide-react';
 
 const fetcher = (roomId) => challengeQueries.getChallengeDetails(roomId);
+
+// Fixed UTC time formatting function
+const formatUTCDateTime = (utcDateString) => {
+  if (!utcDateString) return 'N/A';
+  
+  // Ensure the string is treated as UTC by appending 'Z' if not present
+  const utcString = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
+  const date = new Date(utcString);
+  
+  return date.toLocaleString(undefined, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
+// Helper to get UTC timestamp from UTC string
+const getUTCTimestamp = (utcDateString) => {
+  if (!utcDateString) return null;
+  const utcString = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
+  return new Date(utcString).getTime();
+}
 
 export default function ChallengeDetail() {
   const router = useRouter();
   const { roomId } = router.query;
   
-  const { data: challenge, error, isLoading } = useSWR(
+  const { data: challenge, error, isLoading, mutate } = useSWR(
     roomId ? ['challenge', roomId] : null,
     () => fetcher(roomId),
     {
@@ -20,6 +46,22 @@ export default function ChallengeDetail() {
       revalidateOnFocus: false,
     }
   );
+
+  // Auto-update hook with proper mutate callback
+  const { isUpdating } = useAutoUpdateChallenge(challenge, {
+    autoUpdate: true,
+    delay: 2000,
+    onUpdate: (updatedData) => {
+      console.log('Before update - updated_at:', challenge?.updated_at);
+      console.log('After update - updated_at:', updatedData?.updated_at);
+      // Force refresh after update to get latest data including updated_at
+      mutate();
+    }
+  });
+
+  // Fixed stale data detection using proper UTC comparison
+  const isDataStale = challenge && challenge.updated_at && challenge.is_active &&
+    (Date.now() - getUTCTimestamp(challenge.updated_at)) > 10 * 60 * 1000;
 
   if (!roomId) return null;
 
@@ -34,6 +76,16 @@ export default function ChallengeDetail() {
           <ArrowLeft className="w-4 h-4" />
           Back to challenges
         </Link>
+
+        {/* Auto-update status indicator */}
+        {isUpdating && (
+          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-6">
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+              <span className="text-blue-700">🔄 Refreshing challenge data...</span>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
@@ -54,7 +106,10 @@ export default function ChallengeDetail() {
             {/* Challenge header */}
             <div className="glass-card rounded-2xl p-8 mb-8">
               <div className="mb-6">
-                <h1 className="text-4xl font-bold mb-3 text-neutral-800">{challenge.name}</h1>
+                <div className="flex justify-between items-start mb-3">
+                  <h1 className="text-4xl font-bold text-neutral-800">{challenge.name}</h1>
+                </div>
+                
                 <div className="flex flex-wrap items-center gap-6 text-neutral-600">
                   <span className="flex items-center gap-2">
                     <Users className="w-5 h-5 text-primary-500" />
@@ -72,10 +127,37 @@ export default function ChallengeDetail() {
                     <span className="flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-green-500" />
                       <span className="font-medium text-neutral-800">
-                        {new Date(challenge.start_date).toLocaleDateString()} - {new Date(challenge.end_date).toLocaleDateString()}
+                        {new Date(challenge.start_date).toLocaleDateString(undefined, {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })} - {new Date(challenge.end_date).toLocaleDateString(undefined, {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
                       </span>
                     </span>
                   )}
+                </div>
+
+                {/* Fixed data freshness indicator */}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-block w-2 h-2 rounded-full ${
+                      challenge.is_active ? 'bg-green-400' : 'bg-gray-400'
+                    }`}></span>
+                    <span className="text-sm text-gray-600">
+                      {challenge.is_active ? 'Active Challenge' : 'Inactive Challenge'}
+                    </span>
+                  </div>
+                  
+                  <div className="text-xs text-gray-500">
+                    Last updated: {formatUTCDateTime(challenge.updated_at)}
+                    {isDataStale && (
+                      <span className="text-yellow-600 ml-2">⚠️ Data may be outdated</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -110,7 +192,7 @@ export default function ChallengeDetail() {
 
             {/* Update indicator */}
             <div className="mt-8 text-center text-sm text-neutral-500">
-              Data updates automatically every minute
+              Data updates automatically when you visit this page
             </div>
           </>
         )}

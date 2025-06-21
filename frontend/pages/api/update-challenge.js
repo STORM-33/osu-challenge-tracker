@@ -4,6 +4,14 @@ import apiTracker from '../../lib/api-tracker';
 import { withAPITracking } from '../../middleware';
 
 async function handler(req, res) {
+
+  console.log('🚨 /api/update-challenge called!');
+  console.log('🚨 Request body:', req.body);
+  console.log('🚨 Referrer:', req.headers.referer || 'No referrer');
+  console.log('🚨 User-Agent:', req.headers['user-agent'] || 'No user agent');
+  console.log('🚨 Headers:', Object.keys(req.headers));
+  console.log('🚨 All headers:', req.headers);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

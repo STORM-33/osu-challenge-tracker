@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import UserStats from '../components/UserStats';
+import { useAutoUpdateActiveChallenges } from '../hooks/useAPI';
 import { auth, challengeQueries, supabase } from '../lib/supabase';
 import { Loader2, Trophy, Target, Calendar, User, Award, BarChart3, Sparkles, Flame, Zap } from 'lucide-react';
 
@@ -67,7 +67,7 @@ export default function Profile() {
         })
       );
 
-      setScores(scoresWithCalculatedRanks);
+      setScores(scoresWithCalculatedRanks.slice(0, 5));
       setStats(userStats);
       setStreaks(userStreaks);
     } catch (error) {

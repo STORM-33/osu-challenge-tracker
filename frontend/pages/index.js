@@ -3,8 +3,9 @@ import Link from 'next/link';
 import Layout from '../components/Layout';
 import ChallengeCard from '../components/ChallengeCard';
 import SeasonSelector from '../components/SeasonSelector';
-import { Loader2, Trophy, History, Calendar, Sparkles } from 'lucide-react';
+import { Loader2, Trophy, History, Calendar, Sparkles, RefreshCw } from 'lucide-react';
 import { seasonUtils } from '../lib/seasons';
+import { useAutoUpdateActiveChallenges } from '../hooks/useAPI';
 
 export default function Home() {
   const [activeChallenges, setActiveChallenges] = useState([]);
@@ -13,6 +14,14 @@ export default function Home() {
   const [currentSeason, setCurrentSeason] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Auto-update hook for active challenges
+  const { isUpdating } = useAutoUpdateActiveChallenges(activeChallenges, {
+    autoUpdate: true,
+    delay: 3000,
+    maxUpdates: 3,
+    loading: loading // Pass the loading state
+  });
 
   useEffect(() => {
     fetchInitialData();
@@ -90,7 +99,13 @@ export default function Home() {
     return mapCount === 1 ? 'weekly' : 'monthly';
   };
 
-  // No background image for the page itself
+  // Helper to count challenges that need updating
+  const needsUpdateCount = activeChallenges.filter(challenge => {
+    if (!challenge.updated_at) return true;
+    const lastUpdated = new Date(challenge.updated_at).getTime();
+    return Date.now() - lastUpdated > 5 * 60 * 1000; // 5 minutes
+  }).length;
+
   const backgroundImage = null;
 
   return (
@@ -116,6 +131,21 @@ export default function Home() {
           <p className="text-neutral-600 text-lg mb-10 max-w-2xl">
             Jump into any of our currently active challenges and compete with players worldwide for the top spots!
           </p>
+
+          {/* Auto-update status indicator */}
+          {isUpdating && (
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-6">
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-600 mr-3"></div>
+                <div>
+                  <p className="text-amber-800 font-medium">🔄 Refreshing challenge data...</p>
+                  <p className="text-amber-600 text-sm">
+                    Updating {needsUpdateCount} challenges that haven't been refreshed recently
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center h-80 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-3xl border border-neutral-200">
@@ -157,6 +187,7 @@ export default function Home() {
                       size="large"
                       challengeType={getChallengeType(challenge)}
                       showBackground={true}
+                      onUpdate={fetchInitialData}
                     />
                   </div>
                 </Link>

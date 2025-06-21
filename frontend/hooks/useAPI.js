@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import useSWR from 'swr';
 import apiTracker from '../lib/api-tracker';
 
-// Enhanced fetcher with tracking for internal API calls
+const challengeUpdateCache = {};
+
 const trackedFetcher = async (url) => {
   const startTime = Date.now();
   const method = 'GET';
@@ -12,20 +13,16 @@ const trackedFetcher = async (url) => {
     const duration = Date.now() - startTime;
     const success = res.ok;
     
-    // Get response size
     let responseSize = 0;
     const contentLength = res.headers.get('content-length');
     if (contentLength) {
       responseSize = parseInt(contentLength, 10);
     }
     
-    // Track internal API call (only for /api/ routes)
     if (url.startsWith('/api/')) {
       const endpoint = new URL(url, window.location.origin).pathname;
       
-      // Track on client side by sending to tracking endpoint
       try {
-        // Send tracking data to server (non-blocking)
         fetch('/api/admin/track-call', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -37,10 +34,8 @@ const trackedFetcher = async (url) => {
             success,
             responseSize
           })
-        }).catch(() => {}); // Ignore tracking errors
-      } catch (e) {
-        // Ignore tracking errors on client side
-      }
+        }).catch(() => {});
+      } catch (e) {}
     }
     
     if (!res.ok) {
@@ -51,9 +46,7 @@ const trackedFetcher = async (url) => {
         const data = await res.json();
         error.message = data.error?.message || 'An error occurred';
         error.code = data.error?.code;
-      } catch (e) {
-        // Failed to parse error response
-      }
+      } catch (e) {}
       
       throw error;
     }
@@ -64,7 +57,6 @@ const trackedFetcher = async (url) => {
   } catch (error) {
     const duration = Date.now() - startTime;
     
-    // Track failed call
     if (url.startsWith('/api/')) {
       const endpoint = new URL(url, window.location.origin).pathname;
       
@@ -81,16 +73,13 @@ const trackedFetcher = async (url) => {
             responseSize: 0
           })
         }).catch(() => {});
-      } catch (e) {
-        // Ignore tracking errors
-      }
+      } catch (e) {}
     }
     
     throw error;
   }
 };
 
-// Custom hook for API calls with loading states
 export function useAPI(endpoint, options = {}) {
   const {
     refreshInterval = null,
@@ -125,7 +114,6 @@ export function useAPI(endpoint, options = {}) {
   };
 }
 
-// Hook for paginated data
 export function usePaginatedAPI(baseEndpoint, options = {}) {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(options.defaultLimit || 50);
@@ -165,7 +153,6 @@ export function usePaginatedAPI(baseEndpoint, options = {}) {
   };
 }
 
-// Hook for form submissions
 export function useAPIForm(endpoint, options = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -189,7 +176,6 @@ export function useAPIForm(endpoint, options = {}) {
       const duration = Date.now() - startTime;
       const success = response.ok;
       
-      // Track form submission (internal API call)
       if (endpoint.startsWith('/api/')) {
         const endpointPath = new URL(endpoint, window.location.origin).pathname;
         
@@ -203,12 +189,10 @@ export function useAPIForm(endpoint, options = {}) {
               method: options.method || 'POST',
               duration,
               success,
-              responseSize: 0 // Will be updated by server
+              responseSize: 0
             })
           }).catch(() => {});
-        } catch (e) {
-          // Ignore tracking errors
-        }
+        } catch (e) {}
       }
 
       if (!response.ok) {
@@ -252,14 +236,12 @@ export function useAPIForm(endpoint, options = {}) {
   };
 }
 
-// Hook for real-time data updates
 export function useRealtimeAPI(endpoint, options = {}) {
   const { data, error, loading, refresh } = useAPI(endpoint, {
     ...options,
-    refreshInterval: options.refreshInterval || 60000 // Default 1 minute
+    refreshInterval: options.refreshInterval || 60000
   });
 
-  // Optional: Add WebSocket support for real-time updates
   useEffect(() => {
     if (!options.websocket) return;
 
@@ -276,4 +258,229 @@ export function useRealtimeAPI(endpoint, options = {}) {
   }, [options.websocket, refresh]);
 
   return { data, error, loading, refresh };
+}
+
+export function useChallengeAutoUpdate() {
+  const instanceId = Math.random().toString(36).substr(2, 9);
+  console.log('🏭 NEW useChallengeAutoUpdate instance:', instanceId);
+  
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [lastUpdateCheck, setLastUpdateCheck] = useState(null);
+
+  const shouldUpdateChallenge = useCallback((challenge) => {
+    console.log('🔍 shouldUpdateChallenge called for:', challenge?.room_id);
+    if (!challenge || !challenge.is_active) return false;
+    
+    const now = Date.now();
+    const lastUpdated = Math.max(
+      challenge.updated_at ? new Date(challenge.updated_at).getTime() : 0,
+      challengeUpdateCache[challenge.room_id] || 0
+    );
+    
+    console.log(`🕐 Challenge ${challenge.room_id}: Last updated ${new Date(lastUpdated).toISOString()}, ${Math.floor((now - lastUpdated) / 60000)} minutes ago`);
+    
+    return now - lastUpdated > 5 * 60 * 1000;
+  }, []);
+
+  const updateChallenge = useCallback(async (roomId) => {
+    console.log('🔄 updateChallenge called from:', new Error().stack);
+    
+    const now = Date.now();
+    if (challengeUpdateCache[roomId] && now - challengeUpdateCache[roomId] < 5 * 60 * 1000) {
+      console.log(`♻️ Challenge ${roomId} updated recently, skipping`);
+      return { success: true, skipped: true, reason: 'Recently updated' };
+    }
+    
+    if (isUpdating) return { success: false, skipped: true, reason: 'Already updating' };
+    
+    setIsUpdating(true);
+    
+    try {
+      console.log(`🔄 Auto-updating challenge ${roomId}`);
+      
+      const response = await fetch('/api/update-challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log(`✅ Challenge ${roomId} updated successfully`);
+        challengeUpdateCache[roomId] = Date.now();
+      } else {
+        console.warn(`⚠️ Challenge ${roomId} update failed:`, result.error);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error(`❌ Error updating challenge ${roomId}:`, error);
+      return { success: false, error: error.message };
+    } finally {
+      setIsUpdating(false);
+      setLastUpdateCheck(Date.now());
+    }
+  }, [isUpdating]);
+
+  const smartUpdateChallenge = useCallback(async (challenge, force = false) => {
+    if (!force && !shouldUpdateChallenge(challenge)) {
+      return { success: true, skipped: true, reason: 'Recently updated' };
+    }
+    
+    return updateChallenge(challenge.room_id);
+  }, [shouldUpdateChallenge, updateChallenge]);
+
+  const updateActiveChallenges = useCallback(async (challenges, options = {}) => {
+    const { force = false, maxUpdates = 5 } = options;
+    
+    if (isUpdating) return { success: false, error: 'Already updating' };
+    
+    const challengesToUpdate = challenges
+      .filter(c => c.is_active)
+      .map(c => ({
+        ...c,
+        lastUpdated: Math.max(
+          c.updated_at ? new Date(c.updated_at).getTime() : 0,
+          challengeUpdateCache[c.room_id] || 0
+        )
+      }))
+      .filter(c => force || shouldUpdateChallenge(c))
+      .sort((a, b) => a.lastUpdated - b.lastUpdated)
+      .slice(0, maxUpdates);
+    
+    if (challengesToUpdate.length === 0) {
+      console.log('📝 No active challenges need updating');
+      return { 
+        success: true, 
+        total: challenges.length,
+        updated: 0, 
+        skipped: challenges.filter(c => c.is_active).length,
+        message: 'All challenges up to date'
+      };
+    }
+
+    console.log(`📊 Auto-updating ${challengesToUpdate.length} of ${challenges.length} challenges`);
+    setIsUpdating(true);
+    
+    const results = [];
+    let updateCount = 0;
+    
+    try {
+      for (const challenge of challengesToUpdate) {
+        const result = await updateChallenge(challenge.room_id);
+        results.push({ roomId: challenge.room_id, ...result });
+        
+        if (result.success && !result.skipped) {
+          updateCount++;
+        }
+        
+        if (challengesToUpdate.length > 1) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+      }
+      
+      return {
+        success: true,
+        total: challenges.length,
+        updated: updateCount,
+        skipped: challenges.length - challengesToUpdate.length,
+        results
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        results
+      };
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [isUpdating, shouldUpdateChallenge, updateChallenge]);
+
+  return {
+    updateChallenge,
+    smartUpdateChallenge,
+    updateActiveChallenges,
+    shouldUpdateChallenge,
+    isUpdating,
+    lastUpdateCheck
+  };
+}
+
+export function useAutoUpdateActiveChallenges(challenges, options = {}) {
+  const { autoUpdate = true, delay = 3000, maxUpdates = 3, loading = false } = options;
+  const { updateActiveChallenges, isUpdating } = useChallengeAutoUpdate();
+  const [hasTriggered, setHasTriggered] = useState(false);
+
+  console.log('🔍 useAutoUpdateActiveChallenges called with:', {
+    challengesCount: challenges?.length,
+    autoUpdate,
+    hasTriggered,
+    challenges: challenges?.map(c => ({ 
+      id: c.room_id, 
+      updated_at: c.updated_at, 
+      last_cached: challengeUpdateCache[c.room_id] || 'never',
+      is_active: c.is_active 
+    }))
+  });
+
+  useEffect(() => {
+    if (!challenges || challenges.length === 0 || !autoUpdate || hasTriggered || loading) {
+      console.log('🚫 Skipping auto-update because:', {
+        noChallenges: !challenges || challenges.length === 0,
+        autoUpdateOff: !autoUpdate,
+        alreadyTriggered: hasTriggered,
+        stillLoading: loading
+      });
+      return;
+    }
+
+    console.log('⏰ Setting timer for auto-update...');
+    
+    const timer = setTimeout(() => {
+      console.log('🚀 Timer triggered, calling updateActiveChallenges...');
+      updateActiveChallenges(challenges, { maxUpdates }).then(() => {
+        setHasTriggered(true);
+      });
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [challenges, autoUpdate, delay, maxUpdates, updateActiveChallenges, hasTriggered, loading]);
+
+  useEffect(() => {
+    setHasTriggered(false);
+  }, [challenges?.length]);
+
+  return { isUpdating };
+}
+
+export function useAutoUpdateChallenge(challenge, options = {}) {
+  const { autoUpdate = true, delay = 2000, onUpdate } = options;
+  const { smartUpdateChallenge, isUpdating } = useChallengeAutoUpdate();
+
+  useEffect(() => {
+    if (!challenge || !autoUpdate || !challenge.room_id) return;
+
+    const lastUpdated = challengeUpdateCache[challenge.room_id] || 0;
+    const shouldUpdate = Date.now() - lastUpdated > 5 * 60 * 1000;
+
+    if (!shouldUpdate) {
+      console.log(`⏭️ Skipping auto-update for ${challenge.room_id}, recently updated`);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const result = await smartUpdateChallenge(challenge);
+      
+      if (result.success && !result.skipped && onUpdate) {
+        console.log('🔄 Calling onUpdate callback to refresh UI...');
+        onUpdate(result);
+      }
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [challenge, autoUpdate, delay, smartUpdateChallenge, onUpdate]);
+
+  return { isUpdating };
 }
