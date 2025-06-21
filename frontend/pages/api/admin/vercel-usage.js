@@ -12,62 +12,22 @@ async function handler(req, res) {
   }
 
   try {
-    // Get comprehensive usage statistics
+    // Get comprehensive usage statistics from custom tracking
     const usageStats = apiTracker.getUsageStats();
     const limitStatus = apiTracker.checkLimits();
     const recommendations = apiTracker.generateRecommendations();
     
-    // Try to get real Vercel usage data (when deployed)
-    let realVercelData = null;
+    // Note: Vercel doesn't provide public API endpoints for usage data
+    // We'll rely on custom tracking only
     const isProduction = process.env.NODE_ENV === 'production';
     const isLocal = !isProduction;
     
-    if (isProduction && process.env.VERCEL_API_TOKEN) {
-      try {
-        console.log('🌐 Attempting Vercel API call...');
-        
-        // Try different endpoints based on account type
-        const endpoints = [
-          'https://api.vercel.com/v2/user/usage',           // Personal account
-          'https://api.vercel.com/v2/teams/usage',         // Team account  
-          'https://api.vercel.com/v1/integrations/usage'   // Alternative
-        ];
-        
-        for (const endpoint of endpoints) {
-          console.log(`🔍 Trying endpoint: ${endpoint}`);
-          
-          const vercelResponse = await fetch(endpoint, {
-            headers: {
-              'Authorization': `Bearer ${process.env.VERCEL_API_TOKEN}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          console.log(`📊 Response status for ${endpoint}: ${vercelResponse.status}`);
-          
-          if (vercelResponse.ok) {
-            realVercelData = await vercelResponse.json();
-            console.log('✅ Successfully fetched Vercel usage data from:', endpoint);
-            break;
-          } else {
-            const errorText = await vercelResponse.text();
-            console.warn(`❌ Failed ${endpoint}:`, errorText.substring(0, 200));
-          }
-        }
-        
-        if (!realVercelData) {
-          console.error('❌ All Vercel API endpoints failed');
-        }
-        
-      } catch (vercelError) {
-        console.error('🚨 Vercel API error:', vercelError.message);
-      }
-    }
+    console.log('📊 Usage tracking - using custom tracking only');
     
-    // Merge real Vercel data with custom tracking
-    const mergedUsageStats = mergeUsageData(usageStats, realVercelData, isLocal);
+    // Use custom tracking data
+    const mergedUsageStats = enhanceUsageData(usageStats, isLocal);
     
-    // Generate alerts based on current usage
+    // Generate alerts based on current usage (without Vercel API warnings)
     const alerts = generateAlerts(mergedUsageStats, limitStatus, isLocal);
     
     // Calculate efficiency metrics
@@ -83,11 +43,11 @@ async function handler(req, res) {
       nextCheck: new Date(Date.now() + 30000).toISOString(),
       isHealthy: limitStatus === 'ok' || limitStatus === 'caution',
       environment: isLocal ? 'local' : 'production',
-      dataSource: realVercelData ? 'vercel_api' : (isLocal ? 'local_tracking' : 'custom_tracking')
+      dataSource: isLocal ? 'local_tracking' : 'custom_tracking'
     };
 
     const responseData = {
-      // Core usage data (now potentially merged with real Vercel data)
+      // Core usage data from custom tracking
       usage: mergedUsageStats,
       
       // Status and health
@@ -120,8 +80,8 @@ async function handler(req, res) {
       // Debug info for troubleshooting
       debug: {
         isLocal,
-        hasVercelToken: !!process.env.VERCEL_API_TOKEN,
-        realVercelDataAvailable: !!realVercelData,
+        trackingMethod: 'custom_only',
+        note: 'Vercel does not provide public usage APIs. Using custom tracking.',
         customTracking: {
           internal: usageStats.monthly.internal,
           external: usageStats.monthly.external,
@@ -147,64 +107,36 @@ async function handler(req, res) {
   }
 }
 
-// Merge custom tracking with real Vercel data
-function mergeUsageData(customStats, vercelData, isLocal) {
+// Enhanced usage data with custom tracking only
+function enhanceUsageData(customStats, isLocal) {
+  const enhanced = JSON.parse(JSON.stringify(customStats));
+  
   if (isLocal) {
-    // Add local development indicators
-    return {
-      ...customStats,
-      usage: {
-        ...customStats.usage,
-        functions: {
-          ...customStats.usage.functions,
-          current: customStats.monthly.total, // Use your custom tracking
-          note: 'Local development - using custom tracking'
-        }
-      },
-      environment: 'local'
+    enhanced.usage = {
+      ...enhanced.usage,
+      functions: {
+        ...enhanced.usage.functions,
+        current: enhanced.monthly.total,
+        note: 'Local development - using custom tracking'
+      }
     };
-  }
-  
-  if (!vercelData) {
-    // Production but no real Vercel data
-    return {
-      ...customStats,
-      usage: {
-        ...customStats.usage,
-        functions: {
-          ...customStats.usage.functions,
-          current: customStats.monthly.total,
-          note: 'Production - using custom tracking (add VERCEL_API_TOKEN for real data)'
-        }
-      },
-      environment: 'production_custom_only'
+    enhanced.environment = 'local';
+  } else {
+    enhanced.usage = {
+      ...enhanced.usage,
+      functions: {
+        ...enhanced.usage.functions,
+        current: enhanced.monthly.total,
+        note: 'Production - custom tracking (Vercel does not provide usage APIs)'
+      }
     };
+    enhanced.environment = 'production_custom_tracking';
   }
   
-  // Production with real Vercel data - merge both
-  const merged = JSON.parse(JSON.stringify(customStats));
-  
-  // Override with real Vercel usage where available
-  if (vercelData.usage?.functions) {
-    merged.usage.functions.current = vercelData.usage.functions.used || 0;
-    merged.usage.functions.percentage = ((vercelData.usage.functions.used || 0) / merged.limits.functions * 100).toFixed(2);
-  }
-  
-  if (vercelData.usage?.bandwidth) {
-    merged.usage.bandwidth.current = vercelData.usage.bandwidth.used || 0;
-    merged.usage.bandwidth.percentage = ((vercelData.usage.bandwidth.used || 0) / merged.limits.bandwidth * 100).toFixed(2);
-  }
-  
-  if (vercelData.usage?.edgeExecutions) {
-    merged.usage.edgeExecutionUnits.current = vercelData.usage.edgeExecutions.used || 0;
-    merged.usage.edgeExecutionUnits.percentage = ((vercelData.usage.edgeExecutions.used || 0) / merged.limits.edgeExecutionUnits * 100).toFixed(2);
-  }
-  
-  merged.environment = 'production_merged';
-  return merged;
+  return enhanced;
 }
 
-// Enhanced alerts that understand environment
+// Updated alerts without Vercel API warnings
 function generateAlerts(stats, limitStatus, isLocal) {
   const alerts = [];
   
@@ -215,21 +147,21 @@ function generateAlerts(stats, limitStatus, isLocal) {
       type: 'environment',
       resource: 'development',
       message: 'Running in local development mode',
-      action: 'Deploy to Vercel to see real usage metrics',
+      action: 'Deploy to Vercel to see production usage metrics',
       priority: 3
     });
-  } else if (stats.environment === 'production_custom_only') {
+  } else {
     alerts.push({
-      level: 'warning',
-      type: 'configuration',
-      resource: 'vercel_api',
-      message: 'Using custom tracking only. Real Vercel usage may differ.',
-      action: 'Add VERCEL_API_TOKEN environment variable for accurate data',
-      priority: 2
+      level: 'info',
+      type: 'tracking',
+      resource: 'usage_data',
+      message: 'Using custom tracking for usage monitoring',
+      action: 'Monitor usage through this dashboard for accurate local tracking',
+      priority: 3
     });
   }
   
-  // Continue with existing alert logic
+  // Usage-based alerts
   Object.entries(stats.usage || {}).forEach(([resource, data]) => {
     const percentage = parseFloat(data.percentage);
     
@@ -253,9 +185,6 @@ function generateAlerts(stats, limitStatus, isLocal) {
       });
     }
   });
-  
-  // Add more alerts from your existing generateAlerts function...
-  // (keeping the rest of your existing alert logic)
   
   return alerts.sort((a, b) => a.priority - b.priority);
 }
@@ -397,5 +326,4 @@ function formatBytes(bytes) {
   return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 }
 
-// IMPORTANT: Add the tracking wrapper!
 export default withAPITracking(withAdminAuth(handler), { memoryMB: 256 });
