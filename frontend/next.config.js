@@ -1,13 +1,4 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-    reactStrictMode: true,
-    images: {
-      domains: ['a.ppy.sh', 'assets.ppy.sh'],
-    },
-  }
-  
-  module.exports = nextConfig
-  
 const securityHeaders = [
   {
     key: 'X-Content-Type-Options',
@@ -23,7 +14,11 @@ const securityHeaders = [
   }
 ];
 
-module.exports = {
+const nextConfig = {
+  reactStrictMode: true,
+  images: {
+    domains: ['a.ppy.sh', 'assets.ppy.sh'],
+  },
   async headers() {
     return [
       {
@@ -33,3 +28,5 @@ module.exports = {
     ];
   },
 };
+
+module.exports = nextConfig;
