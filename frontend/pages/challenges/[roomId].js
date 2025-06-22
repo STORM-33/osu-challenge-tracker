@@ -5,7 +5,7 @@ import Layout from '../../components/Layout';
 import ScoreTable from '../../components/ScoreTable';
 import { challengeQueries } from '../../lib/supabase';
 import { useAutoUpdateChallenge } from '../../hooks/useAPI';
-import { ArrowLeft, Loader2, Users, Calendar, Music, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, Users, Calendar, Music, Star } from 'lucide-react';
 
 const fetcher = (roomId) => challengeQueries.getChallengeDetails(roomId);
 
@@ -33,6 +33,21 @@ const getUTCTimestamp = (utcDateString) => {
   const utcString = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
   return new Date(utcString).getTime();
 }
+
+// Difficulty color function matching osu! colors
+const getDifficultyColor = (difficulty) => {
+  // Use osu!'s difficulty ranges but map to Tailwind classes
+  if (difficulty < 1.25) return 'text-blue-700 bg-blue-100 border-blue-200'; // Easy (Blue)
+  if (difficulty < 2.0) return 'text-cyan-700 bg-cyan-100 border-cyan-200'; // Easy-Normal (Cyan)
+  if (difficulty < 2.5) return 'text-green-700 bg-green-100 border-green-200'; // Normal (Green)
+  if (difficulty < 3.3) return 'text-lime-700 bg-lime-100 border-lime-200'; // Normal-Hard (Lime)
+  if (difficulty < 4.2) return 'text-yellow-700 bg-yellow-100 border-yellow-200'; // Hard (Yellow)
+  if (difficulty < 4.9) return 'text-orange-700 bg-orange-100 border-orange-200'; // Hard-Insane (Orange)
+  if (difficulty < 5.8) return 'text-red-700 bg-red-100 border-red-200'; // Insane (Red)
+  if (difficulty < 6.7) return 'text-pink-700 bg-pink-100 border-pink-200'; // Insane-Expert (Pink/Purple)
+  if (difficulty < 7.7) return 'text-purple-700 bg-purple-100 border-purple-200'; // Expert (Purple)
+  return 'text-indigo-700 bg-indigo-100 border-indigo-200'; // Expert+ (Dark Blue)
+};
 
 export default function ChallengeDetail() {
   const router = useRouter();
@@ -166,13 +181,72 @@ export default function ChallengeDetail() {
             <div className="space-y-8">
               {challenge.playlists?.map((playlist, index) => (
                 <div key={playlist.id} className="glass-card rounded-2xl overflow-hidden">
-                  <div className="bg-gradient-to-r from-primary-500 to-purple-500 p-6">
-                    <h2 className="text-2xl font-bold mb-1 text-white">
-                      {index + 1}. {playlist.beatmap_title}
-                    </h2>
-                    <p className="text-white/90">
-                      by {playlist.beatmap_artist} • {playlist.beatmap_version}
-                    </p>
+                  {/* Enhanced Map Header */}
+                  <div className="relative overflow-hidden">
+                    {/* Background with map cover */}
+                    <div className="absolute inset-0">
+                      {playlist.beatmap_cover_url && (
+                        <>
+                          <div 
+                            className="absolute inset-0 opacity-20"
+                            style={{
+                              backgroundImage: `url(${playlist.beatmap_cover_url})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              filter: 'blur(8px)',
+                              transform: 'scale(1.1)' // Prevent blur edges from showing
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary-500/90 via-primary-500/80 to-purple-500/90" />
+                        </>
+                      )}
+                      {!playlist.beatmap_cover_url && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-purple-500" />
+                      )}
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="relative z-10 p-6 flex items-center justify-between">
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-bold mb-1 text-white">
+                          {index + 1}. {playlist.beatmap_title}
+                        </h2>
+                        <p className="text-white/90 mb-2">
+                          by {playlist.beatmap_artist}
+                        </p>
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <span className="text-white/80 font-medium">
+                            [{playlist.beatmap_version}]
+                          </span>
+                          {playlist.beatmap_difficulty && (
+                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold transition-all duration-300 ${getDifficultyColor(playlist.beatmap_difficulty)}`}>
+                              <Star className="w-4 h-4 fill-current" />
+                              <span>{playlist.beatmap_difficulty.toFixed(2)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Map thumbnail on the right for larger screens */}
+                      {playlist.beatmap_cover_url && (
+                        <div className="hidden md:block ml-6 flex-shrink-0">
+                          <div className="relative group">
+                            <img 
+                              src={playlist.beatmap_list_url || playlist.beatmap_card_url || playlist.beatmap_cover_url}
+                              alt={`${playlist.beatmap_title} cover`}
+                              className="w-40 h-28 object-cover rounded-lg shadow-lg transition-transform duration-300 group-hover:scale-105"
+                              onError={(e) => {
+                                // Fallback to cover URL if list/card URLs fail
+                                if (e.target.src !== playlist.beatmap_cover_url) {
+                                  e.target.src = playlist.beatmap_cover_url;
+                                }
+                              }}
+                            />
+                            <div className="absolute inset-0 rounded-lg ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-300" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="p-6">
