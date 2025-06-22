@@ -144,10 +144,7 @@ export default function Layout({ children, backgroundImage }) {
                 </Link>
               ) : (
                 <div className="flex items-center gap-4 ml-4">
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                  >
+                  <div className="flex items-center gap-2">
                     {user.avatar_url ? (
                       <img 
                         src={user.avatar_url} 
@@ -163,7 +160,7 @@ export default function Layout({ children, backgroundImage }) {
                       {user.username}
                       {isAdmin && <span className="ml-1 text-xs text-primary-600">(Admin)</span>}
                     </span>
-                  </Link>
+                  </div>
                   <button
                     onClick={handleLogout}
                     className="text-neutral-500 hover:text-neutral-700 transition-colors"
