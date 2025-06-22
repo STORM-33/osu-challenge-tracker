@@ -69,17 +69,6 @@ export default function Layout({ children, backgroundImage }) {
               href="/"
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
-              {/* Try to load logo first, fallback to Trophy icon */}
-              <img 
-                src="/logo.png" 
-                alt="osu! Challengers Nexus" 
-                className="h-10 w-auto"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'block';
-                }}
-              />
-              <Trophy className="w-10 h-10 text-primary-600 hidden" />
               <div>
                 <h1 className="text-xl font-bold text-neutral-800">
                   osu!Challengers
