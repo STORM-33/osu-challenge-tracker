@@ -23,12 +23,17 @@ export default function ChallengeCard({
   };
 
   const getDifficultyColor = (difficulty) => {
-    if (difficulty < 2) return 'text-green-600 bg-green-100';
-    if (difficulty < 2.7) return 'text-blue-600 bg-blue-100';
-    if (difficulty < 4) return 'text-yellow-600 bg-yellow-100';
-    if (difficulty < 5.3) return 'text-orange-600 bg-orange-100';
-    if (difficulty < 6.5) return 'text-red-600 bg-red-100';
-    return 'text-purple-600 bg-purple-100';
+    // Use osu!'s difficulty ranges but map to Tailwind classes
+    if (difficulty < 1.25) return 'text-blue-700 bg-blue-100 border-blue-200'; // Easy (Blue)
+    if (difficulty < 2.0) return 'text-cyan-700 bg-cyan-100 border-cyan-200'; // Easy-Normal (Cyan)
+    if (difficulty < 2.5) return 'text-green-700 bg-green-100 border-green-200'; // Normal (Green)
+    if (difficulty < 3.3) return 'text-lime-700 bg-lime-100 border-lime-200'; // Normal-Hard (Lime)
+    if (difficulty < 4.2) return 'text-yellow-700 bg-yellow-100 border-yellow-200'; // Hard (Yellow)
+    if (difficulty < 4.9) return 'text-orange-700 bg-orange-100 border-orange-200'; // Hard-Insane (Orange)
+    if (difficulty < 5.8) return 'text-red-700 bg-red-100 border-red-200'; // Insane (Red)
+    if (difficulty < 6.7) return 'text-pink-700 bg-pink-100 border-pink-200'; // Insane-Expert (Pink/Purple)
+    if (difficulty < 7.7) return 'text-purple-700 bg-purple-100 border-purple-200'; // Expert (Purple)
+    return 'text-indigo-700 bg-indigo-100 border-indigo-200'; // Expert+ (Dark Blue)
   };
 
   const daysRemaining = getDaysRemaining(challenge.end_date);
@@ -80,37 +85,65 @@ export default function ChallengeCard({
   const config = sizeConfig[size];
 
   return (
-    <div className={`group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl ${config.cardClass}`}>
+    <div 
+      className={`group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl ${config.cardClass}`}
+      style={{
+        // Force hardware acceleration and proper clipping
+        transform: 'translateZ(0)',
+        willChange: 'transform',
+        // CSS mask to ensure perfect rounded corner clipping
+        WebkitMask: 'radial-gradient(circle at center, white 100%, transparent 100%)',
+        mask: 'radial-gradient(circle at center, white 100%, transparent 100%)',
+        WebkitMaskComposite: 'intersect',
+        maskComposite: 'intersect'
+      }}
+    >
       
-      {/* Background Layer */}
-      <div className="absolute inset-0">
+      {/* Background Layer - properly clipped */}
+      <div 
+        className="absolute inset-0 rounded-2xl"
+        style={{
+          // Additional clipping insurance
+          clipPath: 'inset(0 round 1rem)',
+          // Prevent any overflow
+          contain: 'layout style paint'
+        }}
+      >
         {/* Base gradient */}
-        <div className={`absolute inset-0 ${
+        <div className={`absolute inset-0 rounded-2xl ${
           challengeType === 'weekly' 
             ? 'bg-gradient-to-br from-blue-50 via-white to-blue-100' 
             : 'bg-gradient-to-br from-purple-50 via-white to-purple-100'
         }`} />
         
-        {/* Weekly challenge background with map image*/}
+        {/* Weekly challenge background with map image - FIXED */}
         {size === 'large' && challengeType === 'weekly' && weeklyBackgroundImage && (
           <>
             <div 
-              className="absolute right-0 top-0 w-1/2 h-full bg-cover bg-center opacity-90 group-hover:opacity-100 transition-opacity duration-500"
+              className="absolute right-0 top-0 w-1/2 h-full opacity-90 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-r-2xl"
               style={{ 
                 backgroundImage: `url(${weeklyBackgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                // Additional clipping for the background image specifically
+                clipPath: 'inset(0 0 0 0 round 0 1rem 1rem 0)',
+                // Ensure it doesn't exceed bounds
+                maxWidth: '50%',
+                maxHeight: '100%'
               }}
             />
             {/* Softer gradient overlay for better blending */}
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent rounded-2xl" />
           </>
         )}
         
-        {/* Glass overlay*/}
-        <div className="absolute inset-0 backdrop-blur-sm bg-white/30" />
+        {/* Glass overlay */}
+        <div className="absolute inset-0 backdrop-blur-sm bg-white/30 transition-all duration-300 ease-out group-hover:bg-white/20 rounded-2xl" />
         
         {/* Decorative elements */}
-        <div className="absolute top-4 right-4 w-20 h-20 rounded-full bg-gradient-to-br from-white/20 to-transparent" />
-        <div className="absolute bottom-4 left-4 w-12 h-12 rounded-full bg-gradient-to-tr from-white/10 to-transparent" />
+        <div className="absolute top-4 right-4 w-20 h-20 rounded-full bg-gradient-to-br from-white/20 to-transparent transition-all duration-300 ease-out group-hover:scale-110 group-hover:from-white/30" />
+        <div className="absolute bottom-4 left-4 w-12 h-12 rounded-full bg-gradient-to-tr from-white/10 to-transparent transition-all duration-300 ease-out group-hover:scale-110 group-hover:from-white/20" />
       </div>
 
       {/* Content */}
@@ -120,7 +153,7 @@ export default function ChallengeCard({
         <div className="flex justify-between items-start mb-0">
           <div className="flex-1 pr-3">
             <div className={`${config.titleHeight} flex items-start mb-0`}>
-              <h3 className={`${config.titleClass} font-bold text-neutral-800 line-clamp-2 group-hover:text-primary-600 transition-colors leading-tight`}>
+              <h3 className={`${config.titleClass} font-bold text-neutral-800 line-clamp-2 group-hover:text-primary-600 transition-colors duration-300 leading-tight`}>
                 {displayName}
               </h3>
             </div>
@@ -128,18 +161,18 @@ export default function ChallengeCard({
             {/* Integrated map info for large weekly challenges */}
             {size === 'large' && challengeType === 'weekly' && weeklyMapInfo && (
               <div className="space-y-1 -mt-8">
-                <p className="text-base font-semibold text-neutral-700">
+                <p className="text-base font-semibold text-neutral-700 transition-colors duration-300 group-hover:text-neutral-800">
                   <Music className="w-4 h-4 inline-block mr-1 text-blue-500" />
                   {weeklyMapInfo.beatmap_title}
                 </p>
-                <div className="flex items-center gap-3 text-sm text-neutral-600">
+                <div className="flex items-center gap-3 text-sm text-neutral-600 transition-colors duration-300 group-hover:text-neutral-700">
                   <span>by {weeklyMapInfo.beatmap_artist}</span>
                   <span className="text-neutral-400">•</span>
                   <span>[{weeklyMapInfo.beatmap_version}]</span>
                   {weeklyMapInfo.beatmap_difficulty && (
                     <>
                       <span className="text-neutral-400">•</span>
-                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${getDifficultyColor(weeklyMapInfo.beatmap_difficulty)}`}>
+                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-all duration-300 ${getDifficultyColor(weeklyMapInfo.beatmap_difficulty)}`}>
                         <Star className="w-3 h-3 fill-current" />
                         <span>{weeklyMapInfo.beatmap_difficulty.toFixed(2)}</span>
                       </div>
@@ -152,17 +185,17 @@ export default function ChallengeCard({
           
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
             {/* Challenge type badge */}
-            <span className={`text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm ${
+            <span className={`text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm transition-all duration-300 group-hover:shadow-md ${
               challengeType === 'weekly' 
-                ? 'text-blue-700 bg-blue-200 border border-blue-300'
-                : 'text-purple-700 bg-purple-200 border border-purple-300'
+                ? 'text-blue-700 bg-blue-200 border border-blue-300 group-hover:bg-blue-300'
+                : 'text-purple-700 bg-purple-200 border border-purple-300 group-hover:bg-purple-300'
             }`}>
               {challengeType === 'weekly' ? 'Weekly' : 'Monthly'}
             </span>
             
             {/* Season badge */}
             {showSeasonBadge && challenge.seasons && size !== 'small' && (
-              <span className="text-xs text-neutral-600 bg-neutral-200 px-2 py-1 rounded-full font-medium border border-neutral-300">
+              <span className="text-xs text-neutral-600 bg-neutral-200 px-2 py-1 rounded-full font-medium border border-neutral-300 transition-all duration-300 group-hover:bg-neutral-300">
                 {challenge.seasons.name}
               </span>
             )}
@@ -172,7 +205,7 @@ export default function ChallengeCard({
         {/* Weekly Map Info Card for medium size*/}
         {challengeType === 'weekly' && weeklyMapInfo && size === 'medium' && (
           <div className="mb-4 flex-shrink-0">
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-blue-200/50 shadow-sm">
+            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-blue-200/50 shadow-sm transition-all duration-300 group-hover:bg-white/70 group-hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-neutral-800 truncate mb-1">
@@ -204,7 +237,7 @@ export default function ChallengeCard({
         {/* Stats Grid */}
         <div className={`grid ${config.statsGrid} gap-3 mb-4 flex-shrink-0`}>
           <div className="text-center">
-            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center shadow-sm ${size === 'large' ? 'w-12 h-12' : ''}`}>
+            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 ${size === 'large' ? 'w-12 h-12' : ''}`}>
               <Users className={`${config.iconSize} text-primary-600`} />
             </div>
             <p className={`${config.numberSize} font-bold text-neutral-800`}>
@@ -214,7 +247,7 @@ export default function ChallengeCard({
           </div>
           
           <div className="text-center">
-            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm ${size === 'large' ? 'w-12 h-12' : ''}`}>
+            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 ${size === 'large' ? 'w-12 h-12' : ''}`}>
               <Music className={`${config.iconSize} text-purple-600`} />
             </div>
             <p className={`${config.numberSize} font-bold text-neutral-800`}>
@@ -226,7 +259,7 @@ export default function ChallengeCard({
           {/* Days remaining*/}
           {config.showDays && (
             <div className="text-center">
-              <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm ${size === 'large' ? 'w-12 h-12' : ''}`}>
+              <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 ${size === 'large' ? 'w-12 h-12' : ''}`}>
                 <Calendar className={`${config.iconSize} text-green-600`} />
               </div>
               {daysRemaining !== null && daysRemaining > 0 ? (
@@ -244,20 +277,6 @@ export default function ChallengeCard({
               )}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-neutral-500 pt-3 border-t border-white/50 flex-shrink-0">
-          <span className="font-medium">
-            {size === 'small' 
-              ? formatDate(challenge.start_date)
-              : `${formatDate(challenge.start_date)} - ${formatDate(challenge.end_date)}`
-            }
-          </span>
-          <div className="flex items-center gap-1 text-primary-500 group-hover:text-primary-600 transition-colors">
-            <span className="text-xs font-medium">View</span>
-            <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-          </div>
         </div>
       </div>
     </div>

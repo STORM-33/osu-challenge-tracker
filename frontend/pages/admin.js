@@ -1,9 +1,34 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Plus, Loader2, CheckCircle, AlertCircle, Edit3, Settings, RefreshCw, Zap } from 'lucide-react';
+import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music } from 'lucide-react';
 import { auth } from '../lib/supabase';
 import { useChallengeAutoUpdate } from '../hooks/useAPI';
 import { useRouter } from 'next/router';
+
+// Fixed UTC time formatting function (same as challenge detail page)
+const formatUTCDateTime = (utcDateString) => {
+  if (!utcDateString) return 'N/A';
+  
+  // Ensure the string is treated as UTC by appending 'Z' if not present
+  const utcString = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
+  const date = new Date(utcString);
+  
+  return date.toLocaleString(undefined, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
+// Helper to get UTC timestamp from UTC string (same as challenge detail page)
+const getUTCTimestamp = (utcDateString) => {
+  if (!utcDateString) return null;
+  const utcString = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
+  return new Date(utcString).getTime();
+}
 
 export default function Admin() {
   const [roomId, setRoomId] = useState('');
@@ -14,6 +39,7 @@ export default function Admin() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeChallenges, setActiveChallenges] = useState([]); 
   const [updateResults, setUpdateResults] = useState(null);
+  const [updatingChallenges, setUpdatingChallenges] = useState(new Set());
   const router = useRouter();
 
   // Get the auto-update functions
@@ -52,7 +78,7 @@ export default function Admin() {
     }
   };
 
-  // Function to load active challenges
+  // Function to load active challenges with proper refresh
   const loadActiveChallenges = async () => {
     try {
       const response = await fetch('/api/challenges?active=true');
@@ -80,14 +106,17 @@ export default function Admin() {
     
     setUpdateResults(result);
     
-    // Refresh the challenges list after update
+    // Force refresh the challenges list after update (similar to challenge detail page)
     setTimeout(() => {
       loadActiveChallenges();
     }, 2000);
   };
 
-  // Function to update a single challenge
+  // Function to update a single challenge with proper refresh
   const handleUpdateSingleChallenge = async (roomId) => {
+    // Add challenge to updating set
+    setUpdatingChallenges(prev => new Set(prev).add(roomId));
+    
     try {
       const response = await fetch('/api/update-challenge', {
         method: 'POST',
@@ -98,11 +127,6 @@ export default function Admin() {
       const result = await response.json();
       
       if (result.success) {
-        // Refresh the challenges list
-        setTimeout(() => {
-          loadActiveChallenges();
-        }, 1000);
-        
         setUpdateResults({
           success: true,
           message: `Successfully updated challenge ${roomId}`,
@@ -110,6 +134,11 @@ export default function Admin() {
           total: 1,
           skipped: 0
         });
+        
+        // Force refresh the challenges list immediately after update
+        setTimeout(() => {
+          loadActiveChallenges();
+        }, 1000);
       } else {
         setUpdateResults({
           success: false,
@@ -120,6 +149,13 @@ export default function Admin() {
       setUpdateResults({
         success: false,
         error: error.message
+      });
+    } finally {
+      // Remove challenge from updating set
+      setUpdatingChallenges(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(roomId);
+        return newSet;
       });
     }
   };
@@ -188,7 +224,7 @@ export default function Admin() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8"> {/* Changed from max-w-4xl to max-w-6xl */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
@@ -199,101 +235,6 @@ export default function Admin() {
             Welcome, {user?.username}! Manage challenges and seasons from here.
           </p>
         </div>
-
-        {/* ADD THIS: Challenge Management Section */}
-        {activeChallenges.length > 0 && (
-          <div className="mb-8">
-            <div className="glass-card rounded-xl p-6 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-neutral-800 flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-blue-600" />
-                  Active Challenge Management
-                </h2>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
-                    {activeChallenges.length} Active
-                  </span>
-                  <button
-                    onClick={handleUpdateAllActive}
-                    disabled={isUpdating || activeChallenges.length === 0}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    {isUpdating ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Updating...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4" />
-                        Update All
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-              
-              {updateResults && (
-                <div className={`mb-4 p-3 rounded-lg ${
-                  updateResults.success 
-                    ? 'bg-green-100 border border-green-200' 
-                    : 'bg-red-100 border border-red-200'
-                }`}>
-                  <p className={`text-sm font-medium ${
-                    updateResults.success ? 'text-green-800' : 'text-red-800'
-                  }`}>
-                    {updateResults.success 
-                      ? `✅ Updated ${updateResults.updated} of ${updateResults.total} challenges (${updateResults.skipped} skipped)`
-                      : `❌ ${updateResults.error}`
-                    }
-                  </p>
-                </div>
-              )}
-
-              <div className="grid gap-3 max-h-64 overflow-y-auto">
-                {activeChallenges.map(challenge => {
-                  const lastUpdated = challenge.updated_at ? new Date(challenge.updated_at).getTime() : 0;
-                  const isStale = Date.now() - lastUpdated > 10 * 60 * 1000; // 10 minutes
-                  const needsUpdate = Date.now() - lastUpdated > 5 * 60 * 1000; // 5 minutes
-                  
-                  return (
-                    <div key={challenge.id} className="flex items-center justify-between p-3 bg-white/80 rounded-lg border border-neutral-200">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-neutral-800">{challenge.name}</h4>
-                        <div className="flex items-center gap-4 text-sm text-neutral-600">
-                          <span>Room ID: {challenge.room_id}</span>
-                          <span>Host: {challenge.host}</span>
-                          <span className={`${
-                            isStale ? 'text-yellow-600' : needsUpdate ? 'text-blue-600' : 'text-green-600'
-                          }`}>
-                            {isStale ? '⚠️ Stale' : needsUpdate ? '🔄 Can update' : '✅ Fresh'}
-                          </span>
-                        </div>
-                        <div className="text-xs text-neutral-500 mt-1">
-                          Last updated: {new Date(challenge.updated_at).toLocaleString()}
-                        </div>
-                      </div>
-                      
-                      <button
-                        onClick={() => handleUpdateSingleChallenge(challenge.room_id)}
-                        disabled={isUpdating}
-                        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                          isStale 
-                            ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' 
-                            : needsUpdate
-                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        } disabled:opacity-50`}
-                      >
-                        {isUpdating ? '⏳' : '🔄'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
@@ -390,56 +331,90 @@ export default function Admin() {
             )}
           </div>
 
-          {/* Quick Actions Section */}
-          <div className="space-y-6">
-            
-            {/* Example Rooms */}
-            <div className="glass-card rounded-xl p-6 border border-neutral-200">
-              <h3 className="text-lg font-semibold mb-4 text-neutral-800">Example Rooms</h3>
-              <p className="text-sm text-neutral-600 mb-4">
-                Click on any room ID to try it:
-              </p>
-              <div className="space-y-2">
-                {[
-                  { id: '1392361', name: 'osu!Challengers CE' },
-                  { id: '1392360', name: 'Weekly Challenge' },
-                  { id: '1392359', name: 'Monthly Tournament' }
-                ].map((room) => (
-                  <button
-                    key={room.id}
-                    onClick={() => setRoomId(room.id)}
-                    className="w-full text-left p-3 bg-neutral-50 hover:bg-neutral-100 rounded-lg transition-colors"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-primary-600 font-mono font-medium">{room.id}</span>
-                      <span className="text-sm text-neutral-600">{room.name}</span>
-                    </div>
-                  </button>
-                ))}
+          {/* Active Challenge Management Section */}
+          <div className="glass-card rounded-xl p-6 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Zap className="w-5 h-5 text-blue-600" />
+                <h2 className="text-xl font-semibold text-neutral-800">Active Challenge Management</h2>
               </div>
+              <button
+                onClick={handleUpdateAllActive}
+                disabled={isUpdating || activeChallenges.length === 0}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Updating...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Update All</span>
+                  </>
+                )}
+              </button>
             </div>
-
-            {/* Quick Stats */}
-            <div className="glass-card rounded-xl p-6 border border-neutral-200">
-              <h3 className="text-lg font-semibold mb-4 text-neutral-800">Quick Admin Actions</h3>
+            {activeChallenges.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                <p className="text-neutral-500">No active challenges</p>
+                <p className="text-sm text-neutral-400 mt-1">Add a new challenge to get started!</p>
+              </div>
+            ) : (
               <div className="space-y-3">
-                <button className="w-full flex items-center gap-3 p-3 text-left bg-neutral-50 hover:bg-neutral-100 rounded-lg transition-colors">
-                  <Edit3 className="w-5 h-5 text-neutral-600" />
-                  <div>
-                    <p className="font-medium text-neutral-800">Manage Challenges</p>
-                    <p className="text-sm text-neutral-600">Edit existing challenges</p>
-                  </div>
-                </button>
-                
-                <button className="w-full flex items-center gap-3 p-3 text-left bg-neutral-50 hover:bg-neutral-100 rounded-lg transition-colors">
-                  <Settings className="w-5 h-5 text-neutral-600" />
-                  <div>
-                    <p className="font-medium text-neutral-800">Season Management</p>
-                    <p className="text-sm text-neutral-600">Create and manage seasons</p>
-                  </div>
-                </button>
+                {activeChallenges.map(challenge => {
+                  // Fixed stale data detection using proper UTC comparison
+                  const lastUpdated = getUTCTimestamp(challenge.updated_at);
+                  const isStale = lastUpdated && (Date.now() - lastUpdated) > 10 * 60 * 1000; // 10 minutes
+                  const needsUpdate = lastUpdated && (Date.now() - lastUpdated) > 5 * 60 * 1000; // 5 minutes
+                  
+                  return (
+                    <div key={challenge.id} className="p-3 bg-white/80 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-2 mb-1">
+                            <h4 className="font-medium text-neutral-800 text-sm flex-1 leading-tight">{challenge.name}</h4>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-neutral-600">
+                            <span>Room ID: <span className="font-mono">{challenge.room_id}</span></span>
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {challenge.host}
+                            </span>
+                            <span>{challenge.participant_count || 0} participants</span>
+                            <span>{challenge.playlists?.length || 0} maps</span>
+                          </div>
+                          <div className="text-xs text-neutral-500 mt-1">
+                            Last updated: {formatUTCDateTime(challenge.updated_at)}
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={() => handleUpdateSingleChallenge(challenge.room_id)}
+                          disabled={isUpdating || updatingChallenges.has(challenge.room_id)}
+                          className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border flex items-center gap-1 ${
+                            isStale 
+                              ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' 
+                              : needsUpdate
+                              ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                              : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {updatingChallenges.has(challenge.room_id) ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-3 h-3" />
+                          )}
+                          <span>Update</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
