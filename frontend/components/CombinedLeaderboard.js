@@ -144,30 +144,30 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
   const getRankStyle = (rank) => {
     switch (rank) {
         case 1:
-        return {
-            row: 'bg-gradient-to-r from-blue-400 via-blue-200 to-transparent border-l-4 border-blue-600',
+            return {
+            row: 'bg-gradient-to-r from-blue-500 via-blue-300 to-transparent border-l-4 border-l-blue-600 border-b-blue-300',
             rank: 'text-blue-900 text-2xl font-black',
             icon: ''
-        };
+            };
         case 2:
-        return {
-            row: 'bg-gradient-to-r from-purple-400 via-purple-200 to-transparent border-l-4 border-purple-600',
+            return {
+            row: 'bg-gradient-to-r from-purple-400 via-purple-200 to-transparent border-l-4 border-purple-600 border-b-purple-300',
             rank: 'text-purple-900 text-xl font-black',
             icon: ''
-        };
+            };
         case 3:
-        return {
-            row: 'bg-gradient-to-r from-red-400 via-red-200 to-transparent border-l-4 border-red-600',
+            return {
+            row: 'bg-gradient-to-r from-red-400 via-red-200 to-transparent border-l-4 border-red-600 border-b-red-300',
             rank: 'text-red-900 text-lg font-bold',
             icon: ''
-        };
+            };
         default:
-        return {
+            return {
             row: '',
             rank: 'text-gray-700 font-bold',
             icon: ''
-        };
-    }
+            };
+        }
     };
 
   const getParticipationColor = (mapsPlayed) => {
