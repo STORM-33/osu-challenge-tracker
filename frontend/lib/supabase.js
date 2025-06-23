@@ -131,6 +131,14 @@ export const challengeQueries = {
     return data;
   },
 
+  getChallengeLeaderboard: async (challengeId) => {
+    const { data, error } = await supabase
+      .rpc('get_challenge_leaderboard', { challenge_id: challengeId });
+
+    if (error) throw error;
+    return data || [];
+  },
+
   // Get user scores
   getUserScores: async (userId) => {
     const { data, error } = await supabase

@@ -1,4 +1,3 @@
-// frontend/pages/monitoring-admin.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { 
@@ -38,9 +37,22 @@ export default function AdminMonitoringPage() {
     refreshInterval: 30000 // Check every 30 seconds
   });
 
-  const { data: stats } = useAPI('/api/stats', {
+  const { data: statsResponse } = useAPI('/api/stats', {
     refreshInterval: 60000 // Update every minute
   });
+
+  // Extract the actual stats data from the API response
+  const stats = statsResponse?.success ? statsResponse.data : statsResponse;
+
+  useEffect(() => {
+    console.log('=== STATS DEBUG ===');
+    console.log('Raw stats response:', statsResponse);
+    console.log('Extracted stats object:', stats);
+    console.log('Recent activity exists:', !!stats?.recentActivity);
+    console.log('Recent activity length:', stats?.recentActivity?.length);
+    console.log('First activity item:', stats?.recentActivity?.[0]);
+    console.log('==================');
+  }, [statsResponse, stats]);
 
   const { data: apiCallData, refresh: refreshUsage } = useAPI('/api/admin/vercel-usage', {
     refreshInterval: 30000 // Update every 30 seconds

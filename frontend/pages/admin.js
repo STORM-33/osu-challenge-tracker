@@ -1,15 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
-import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music } from 'lucide-react';
+import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play } from 'lucide-react';
 import { auth } from '../lib/supabase';
-import { useChallengeAutoUpdate } from '../hooks/useAPI';
 import { useRouter } from 'next/router';
 
-// Fixed UTC time formatting function (same as challenge detail page)
+// Fixed UTC time formatting function
 const formatUTCDateTime = (utcDateString) => {
   if (!utcDateString) return 'N/A';
   
-  // Ensure the string is treated as UTC by appending 'Z' if not present
   const utcString = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
   const date = new Date(utcString);
   
@@ -23,7 +21,6 @@ const formatUTCDateTime = (utcDateString) => {
   });
 }
 
-// Helper to get UTC timestamp from UTC string (same as challenge detail page)
 const getUTCTimestamp = (utcDateString) => {
   if (!utcDateString) return null;
   const utcString = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
@@ -38,18 +35,25 @@ export default function Admin() {
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeChallenges, setActiveChallenges] = useState([]); 
-  const [updateResults, setUpdateResults] = useState(null);
   const [updatingChallenges, setUpdatingChallenges] = useState(new Set());
+  
+  // 🚀 NEW: Non-blocking bulk update state
+  const [bulkUpdateState, setBulkUpdateState] = useState({
+    isRunning: false,
+    isPaused: false,
+    progress: { current: 0, total: 0 },
+    results: [],
+    currentChallenge: null,
+    canCancel: false
+  });
+  
+  const bulkUpdateController = useRef(null);
   const router = useRouter();
-
-  // Get the auto-update functions
-  const { updateActiveChallenges, isUpdating } = useChallengeAutoUpdate();
 
   useEffect(() => {
     checkAdminAccess();
   }, []);
 
-  // Load active challenges for admin management
   useEffect(() => {
     if (user?.admin) {
       loadActiveChallenges();
@@ -78,7 +82,6 @@ export default function Admin() {
     }
   };
 
-  // Function to load active challenges with proper refresh
   const loadActiveChallenges = async () => {
     try {
       const response = await fetch('/api/challenges?active=true');
@@ -92,29 +95,187 @@ export default function Admin() {
     }
   };
 
-  // Function to update all active challenges
+  // 🚀 NEW: Non-blocking bulk update with progress tracking
   const handleUpdateAllActive = async () => {
     if (activeChallenges.length === 0) {
-      setUpdateResults({ success: false, error: 'No active challenges to update' });
+      setResult({ success: false, error: 'No active challenges to update' });
       return;
     }
 
-    const result = await updateActiveChallenges(activeChallenges, { 
-      force: true, // Force update even if recently updated
-      maxUpdates: 10
+    // Create abort controller for cancellation
+    bulkUpdateController.current = new AbortController();
+    
+    setBulkUpdateState({
+      isRunning: true,
+      isPaused: false,
+      progress: { current: 0, total: activeChallenges.length },
+      results: [],
+      currentChallenge: null,
+      canCancel: true
     });
     
-    setUpdateResults(result);
-    
-    // Force refresh the challenges list after update (similar to challenge detail page)
-    setTimeout(() => {
-      loadActiveChallenges();
-    }, 2000);
+    try {
+      let updated = 0;
+      let failed = 0;
+      const results = [];
+      
+      console.log(`🔄 Starting non-blocking bulk update of ${activeChallenges.length} challenges`);
+      
+      for (let i = 0; i < activeChallenges.length; i++) {
+        const challenge = activeChallenges[i];
+        
+        // Check if cancelled
+        if (bulkUpdateController.current?.signal.aborted) {
+          console.log('🛑 Bulk update cancelled by user');
+          break;
+        }
+        
+        // Update current challenge
+        setBulkUpdateState(prev => ({
+          ...prev,
+          currentChallenge: challenge,
+          progress: { current: i, total: activeChallenges.length }
+        }));
+        
+        // Wait for pause if needed
+        while (bulkUpdateState.isPaused && !bulkUpdateController.current?.signal.aborted) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        try {
+          console.log(`🚀 Updating challenge ${challenge.room_id} (${i + 1}/${activeChallenges.length})`);
+          
+          const response = await fetch('/api/update-challenge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId: challenge.room_id }),
+            signal: bulkUpdateController.current?.signal
+          });
+          
+          const result = await response.json();
+          
+          const challengeResult = {
+            roomId: challenge.room_id,
+            name: challenge.name,
+            success: result.success,
+            error: result.error,
+            timestamp: new Date().toISOString()
+          };
+          
+          if (result.success) {
+            updated++;
+            console.log(`✅ Challenge ${challenge.room_id} updated successfully`);
+          } else {
+            failed++;
+            console.error(`❌ Challenge ${challenge.room_id} failed:`, result.error);
+          }
+          
+          results.push(challengeResult);
+          
+          // Update progress in real-time
+          setBulkUpdateState(prev => ({
+            ...prev,
+            results: [...prev.results, challengeResult],
+            progress: { current: i + 1, total: activeChallenges.length }
+          }));
+          
+          // Non-blocking delay - allows UI to remain responsive
+          if (i < activeChallenges.length - 1) { // Don't delay after last item
+            for (let delay = 0; delay < 2000; delay += 100) {
+              if (bulkUpdateController.current?.signal.aborted) break;
+              
+              // Check for pause during delay
+              if (!bulkUpdateState.isPaused) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+              }
+            }
+          }
+          
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            console.log('🛑 Challenge update aborted');
+            break;
+          }
+          
+          failed++;
+          console.error(`❌ Error updating challenge ${challenge.room_id}:`, error);
+          
+          const errorResult = {
+            roomId: challenge.room_id,
+            name: challenge.name,
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          };
+          
+          results.push(errorResult);
+          
+          setBulkUpdateState(prev => ({
+            ...prev,
+            results: [...prev.results, errorResult]
+          }));
+        }
+      }
+      
+      // Final state update
+      setBulkUpdateState(prev => ({
+        ...prev,
+        isRunning: false,
+        currentChallenge: null,
+        canCancel: false
+      }));
+      
+      // Set final result
+      setResult({
+        success: updated > 0,
+        updated,
+        failed,
+        total: activeChallenges.length,
+        cancelled: bulkUpdateController.current?.signal.aborted,
+        message: bulkUpdateController.current?.signal.aborted 
+          ? `Update cancelled. Processed ${updated + failed}/${activeChallenges.length} challenges`
+          : `Updated ${updated}/${activeChallenges.length} challenges successfully`,
+        results
+      });
+      
+      // Refresh the challenges list after updates
+      if (updated > 0) {
+        setTimeout(() => {
+          loadActiveChallenges();
+        }, 2000);
+      }
+      
+    } catch (error) {
+      setBulkUpdateState(prev => ({
+        ...prev,
+        isRunning: false,
+        currentChallenge: null,
+        canCancel: false
+      }));
+      
+      setResult({
+        success: false,
+        error: error.message
+      });
+    }
   };
 
-  // Function to update a single challenge with proper refresh
+  // 🚀 NEW: Pause/Resume functionality
+  const toggleBulkUpdatePause = () => {
+    setBulkUpdateState(prev => ({
+      ...prev,
+      isPaused: !prev.isPaused
+    }));
+  };
+
+  // 🚀 NEW: Cancel functionality
+  const cancelBulkUpdate = () => {
+    if (bulkUpdateController.current) {
+      bulkUpdateController.current.abort();
+    }
+  };
+
   const handleUpdateSingleChallenge = async (roomId) => {
-    // Add challenge to updating set
     setUpdatingChallenges(prev => new Set(prev).add(roomId));
     
     try {
@@ -127,7 +288,7 @@ export default function Admin() {
       const result = await response.json();
       
       if (result.success) {
-        setUpdateResults({
+        setResult({
           success: true,
           message: `Successfully updated challenge ${roomId}`,
           updated: 1,
@@ -135,23 +296,21 @@ export default function Admin() {
           skipped: 0
         });
         
-        // Force refresh the challenges list immediately after update
         setTimeout(() => {
           loadActiveChallenges();
         }, 1000);
       } else {
-        setUpdateResults({
+        setResult({
           success: false,
           error: result.error || 'Update failed'
         });
       }
     } catch (error) {
-      setUpdateResults({
+      setResult({
         success: false,
         error: error.message
       });
     } finally {
-      // Remove challenge from updating set
       setUpdatingChallenges(prev => {
         const newSet = new Set(prev);
         newSet.delete(roomId);
@@ -192,7 +351,6 @@ export default function Admin() {
         setRoomId('');
         setCustomName('');
         
-        // Refresh active challenges list
         setTimeout(() => {
           loadActiveChallenges();
         }, 1000);
@@ -326,6 +484,17 @@ export default function Admin() {
                       <p className="text-green-600 font-medium">✅ Active Challenge</p>
                     </div>
                   )}
+                  {result.updated !== undefined && (
+                    <div className="mt-2 text-sm text-neutral-600">
+                      <p>Updated: {result.updated} challenges</p>
+                      {result.failed > 0 && (
+                        <p>Failed: {result.failed} challenges</p>
+                      )}
+                      {result.cancelled && (
+                        <p className="text-orange-600 font-medium">⏸️ Operation was cancelled</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -338,24 +507,90 @@ export default function Admin() {
                 <Zap className="w-5 h-5 text-blue-600" />
                 <h2 className="text-xl font-semibold text-neutral-800">Active Challenge Management</h2>
               </div>
-              <button
-                onClick={handleUpdateAllActive}
-                disabled={isUpdating || activeChallenges.length === 0}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
-              >
-                {isUpdating ? (
+              
+              {/* 🚀 NEW: Enhanced bulk update controls */}
+              <div className="flex items-center gap-2">
+                {bulkUpdateState.isRunning && (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Updating...</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    <span>Update All</span>
+                    <button
+                      onClick={toggleBulkUpdatePause}
+                      className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {bulkUpdateState.isPaused ? (
+                        <>
+                          <Play className="w-3 h-3" />
+                          Resume
+                        </>
+                      ) : (
+                        <>
+                          <Pause className="w-3 h-3" />
+                          Pause
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={cancelBulkUpdate}
+                      className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                      Cancel
+                    </button>
                   </>
                 )}
-              </button>
+                
+                <button
+                  onClick={handleUpdateAllActive}
+                  disabled={bulkUpdateState.isRunning || activeChallenges.length === 0}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
+                >
+                  {bulkUpdateState.isRunning ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>
+                        {bulkUpdateState.isPaused ? 'Paused' : 'Updating'} 
+                        ({bulkUpdateState.progress.current}/{bulkUpdateState.progress.total})
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Update All</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* 🚀 NEW: Progress indicator for bulk updates */}
+            {bulkUpdateState.isRunning && (
+              <div className="mb-4 p-4 bg-blue-100 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-800">
+                    {bulkUpdateState.isPaused ? '⏸️ Paused' : '🔄 Updating Challenges'}
+                  </span>
+                  <span className="text-sm text-blue-600">
+                    {bulkUpdateState.progress.current}/{bulkUpdateState.progress.total}
+                  </span>
+                </div>
+                
+                {/* Progress bar */}
+                <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${(bulkUpdateState.progress.current / bulkUpdateState.progress.total) * 100}%` 
+                    }}
+                  ></div>
+                </div>
+                
+                {bulkUpdateState.currentChallenge && (
+                  <p className="text-xs text-blue-700">
+                    Current: {bulkUpdateState.currentChallenge.name} (Room {bulkUpdateState.currentChallenge.room_id})
+                  </p>
+                )}
+              </div>
+            )}
+
             {activeChallenges.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
@@ -365,10 +600,9 @@ export default function Admin() {
             ) : (
               <div className="space-y-3">
                 {activeChallenges.map(challenge => {
-                  // Fixed stale data detection using proper UTC comparison
                   const lastUpdated = getUTCTimestamp(challenge.updated_at);
-                  const isStale = lastUpdated && (Date.now() - lastUpdated) > 10 * 60 * 1000; // 10 minutes
-                  const needsUpdate = lastUpdated && (Date.now() - lastUpdated) > 5 * 60 * 1000; // 5 minutes
+                  const isStale = lastUpdated && (Date.now() - lastUpdated) > 10 * 60 * 1000;
+                  const needsUpdate = lastUpdated && (Date.now() - lastUpdated) > 5 * 60 * 1000;
                   
                   return (
                     <div key={challenge.id} className="p-3 bg-white/80 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-colors">
@@ -393,7 +627,7 @@ export default function Admin() {
                         
                         <button
                           onClick={() => handleUpdateSingleChallenge(challenge.room_id)}
-                          disabled={isUpdating || updatingChallenges.has(challenge.room_id)}
+                          disabled={bulkUpdateState.isRunning || updatingChallenges.has(challenge.room_id)}
                           className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border flex items-center gap-1 ${
                             isStale 
                               ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' 
@@ -423,11 +657,12 @@ export default function Admin() {
           <h4 className="font-medium text-neutral-800 mb-2">Important Notes:</h4>
           <ul className="text-sm text-neutral-600 space-y-1">
             <li>• Only public multiplayer rooms can be tracked</li>
-            <li>• Data updates automatically when users view challenges (5-minute cooldown)</li>
-            <li>• Use "Update All" to force refresh all active challenges</li>
+            <li>• Data updates automatically when users view challenges (4-minute cooldown)</li>
+            <li>• Use "Update All" to force refresh all active challenges (can be paused/cancelled)</li>
             <li>• Custom names will override the original room name for display</li>
             <li>• New challenges are automatically assigned to the current season (6-month cycles)</li>
             <li>• Challenge data includes scores, rankings, and participant information</li>
+            <li>• 🚀 NEW: Bulk updates are now non-blocking and can be paused or cancelled</li>
           </ul>
         </div>
       </div>

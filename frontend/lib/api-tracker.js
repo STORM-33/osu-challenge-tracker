@@ -1,16 +1,14 @@
-// lib/api-tracker.js - Complete Fixed Version with Simple Singleton
+import { supabaseAdmin as supabase } from './supabase-admin';
 
-import { supabase } from './supabase';
-
-class ProductionAPITracker {
+class MemoryManagedAPITracker {
   constructor() {
-    console.log('📊 Creating NEW tracker instance');
+    console.log('📊 Creating memory-managed tracker instance');
     
     // Only initialize in server environment
     this.isServer = typeof window === 'undefined' && typeof global !== 'undefined';
     this.isInitializing = false;
     
-    // Memory cache for fast access
+    // Memory cache with size limits
     this.memoryCache = {
       internal: new Map(),
       external: new Map(),
@@ -36,7 +34,16 @@ class ProductionAPITracker {
       initialized: false
     };
     
-    // Batch changes for efficient database writes (only on server)
+    // Cache size limits to prevent memory leaks
+    this.limits = {
+      maxEndpoints: 1000, // Maximum number of unique endpoints to track
+      maxDailyEntries: 30, // Keep only last 30 days
+      maxRecentCalls: 10,  // Recent calls per endpoint
+      maxSlowEndpoints: 20, // Track top 20 slowest endpoints
+      maxErrorRates: 50    // Track error rates for 50 endpoints
+    };
+    
+    // Batch changes for efficient database writes
     this.pendingWrites = {
       monthly: false,
       daily: false,
@@ -44,14 +51,13 @@ class ProductionAPITracker {
     };
     
     this.syncTimer = null;
+    this.cleanupTimer = null;
     
     // Only initialize database operations on server
     if (this.isServer) {
-      // Initialize data loading
       this.initializeData();
-      
-      // Setup periodic database sync (every 30 seconds)
       this.setupPeriodicSync();
+      this.setupMemoryCleanup();
     } else {
       // On client side, mark as initialized immediately
       this.memoryCache.initialized = true;
@@ -70,6 +76,142 @@ class ProductionAPITracker {
 
   getCurrentDate() {
     return new Date().toISOString().split('T')[0]; // "2025-01-20"
+  }
+
+  // Memory cleanup to prevent leaks
+  setupMemoryCleanup() {
+    if (!this.isServer) return;
+    
+    // Clean up every 10 minutes
+    this.cleanupTimer = setInterval(() => {
+      this.performMemoryCleanup();
+    }, 10 * 60 * 1000);
+
+    // Setup process exit handlers
+    if (typeof process !== 'undefined' && process.on) {
+      try {
+        const cleanup = () => {
+          if (this.syncTimer) clearInterval(this.syncTimer);
+          if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+          this.syncToDatabase();
+        };
+        
+        process.on('SIGTERM', cleanup);
+        process.on('SIGINT', cleanup);
+        process.on('exit', cleanup);
+      } catch (error) {
+        console.warn('Could not setup process exit handlers:', error.message);
+      }
+    }
+  }
+
+  // Perform memory cleanup
+  performMemoryCleanup() {
+    console.log('🧹 Performing memory cleanup...');
+    
+    const before = {
+      internal: this.memoryCache.internal.size,
+      external: this.memoryCache.external.size,
+      daily: this.memoryCache.daily.size
+    };
+    
+    // Clean up old internal endpoints (keep only most active)
+    if (this.memoryCache.internal.size > this.limits.maxEndpoints) {
+      const sortedInternal = Array.from(this.memoryCache.internal.entries())
+        .sort(([, a], [, b]) => b.count - a.count)
+        .slice(0, this.limits.maxEndpoints);
+      
+      this.memoryCache.internal.clear();
+      sortedInternal.forEach(([key, value]) => {
+        this.memoryCache.internal.set(key, value);
+      });
+    }
+    
+    // Clean up old external endpoints
+    if (this.memoryCache.external.size > this.limits.maxEndpoints) {
+      const sortedExternal = Array.from(this.memoryCache.external.entries())
+        .sort(([, a], [, b]) => b.count - a.count)
+        .slice(0, this.limits.maxEndpoints);
+      
+      this.memoryCache.external.clear();
+      sortedExternal.forEach(([key, value]) => {
+        this.memoryCache.external.set(key, value);
+      });
+    }
+    
+    // Clean up old daily entries (keep only last 30 days)
+    if (this.memoryCache.daily.size > this.limits.maxDailyEntries) {
+      const sortedDates = Array.from(this.memoryCache.daily.keys()).sort();
+      const toKeep = sortedDates.slice(-this.limits.maxDailyEntries);
+      
+      this.memoryCache.daily.clear();
+      toKeep.forEach(date => {
+        this.memoryCache.daily.set(date, {
+          internal: 0,
+          external: 0,
+          edge: 0,
+          middleware: 0,
+          bandwidth: 0,
+          errors: 0
+        });
+      });
+    }
+    
+    // Clean up recent calls in endpoints to prevent memory growth
+    for (const [key, stats] of this.memoryCache.internal.entries()) {
+      if (stats.recentCalls && stats.recentCalls.length > this.limits.maxRecentCalls) {
+        stats.recentCalls = stats.recentCalls.slice(-this.limits.maxRecentCalls);
+      }
+    }
+    
+    for (const [key, stats] of this.memoryCache.external.entries()) {
+      if (stats.recentCalls && stats.recentCalls.length > this.limits.maxRecentCalls) {
+        stats.recentCalls = stats.recentCalls.slice(-this.limits.maxRecentCalls);
+      }
+    }
+    
+    // Clean up performance tracking
+    if (this.memoryCache.performance.slowestEndpoints.length > this.limits.maxSlowEndpoints) {
+      this.memoryCache.performance.slowestEndpoints = 
+        this.memoryCache.performance.slowestEndpoints.slice(0, this.limits.maxSlowEndpoints);
+    }
+    
+    if (this.memoryCache.performance.errorRates.size > this.limits.maxErrorRates) {
+      const sortedErrors = Array.from(this.memoryCache.performance.errorRates.entries())
+        .sort(([, a], [, b]) => b.errorRate - a.errorRate)
+        .slice(0, this.limits.maxErrorRates);
+      
+      this.memoryCache.performance.errorRates.clear();
+      sortedErrors.forEach(([key, value]) => {
+        this.memoryCache.performance.errorRates.set(key, value);
+      });
+    }
+    
+    const after = {
+      internal: this.memoryCache.internal.size,
+      external: this.memoryCache.external.size,
+      daily: this.memoryCache.daily.size
+    };
+    
+    console.log('🧹 Memory cleanup completed:', {
+      before,
+      after,
+      freed: {
+        internal: before.internal - after.internal,
+        external: before.external - after.external,
+        daily: before.daily - after.daily
+      }
+    });
+    
+    // Force garbage collection if available (Node.js with --expose-gc)
+    if (typeof global !== 'undefined' && global.gc) {
+      try {
+        global.gc();
+        console.log('🗑️ Forced garbage collection');
+      } catch (e) {
+        // Ignore if GC not available
+      }
+    }
   }
 
   async initializeData() {
@@ -118,19 +260,28 @@ class ProductionAPITracker {
           resetDate: monthlyData.reset_date || this.getNextResetDate(),
           startDate: monthlyData.created_at || new Date().toISOString()
         };
-        console.log('📊 Loaded monthly data from database:', this.memoryCache.monthly);
+        console.log('📊 Loaded monthly data from database');
       }
 
-      // Load endpoint data
+      // Load endpoint data (with limit to prevent memory issues)
       const { data: endpointData } = await supabase
         .from('api_endpoint_performance')
         .select('*')
-        .eq('month', currentMonth);
+        .eq('month', currentMonth)
+        .order('call_count', { ascending: false })
+        .limit(this.limits.maxEndpoints);
 
       if (endpointData && endpointData.length > 0) {
         console.log(`📊 Loading ${endpointData.length} endpoint records from database`);
         endpointData.forEach(endpoint => {
-          const key = `${endpoint.method}:${endpoint.endpoint}`;
+          // FIXED: Generate keys consistently
+          let key;
+          if (endpoint.type === 'internal') {
+            key = `${endpoint.method}:${endpoint.endpoint}`;
+          } else {
+            key = `${endpoint.api_name}:${endpoint.method}:${endpoint.endpoint}`;
+          }
+          
           const stats = {
             endpoint: endpoint.endpoint,
             method: endpoint.method,
@@ -138,7 +289,7 @@ class ProductionAPITracker {
             errors: endpoint.error_count || 0,
             totalDuration: endpoint.total_duration || 0,
             lastCall: endpoint.last_called,
-            recentCalls: []
+            recentCalls: [] // Start fresh for recent calls
           };
 
           if (endpoint.type === 'internal') {
@@ -159,27 +310,12 @@ class ProductionAPITracker {
   }
 
   setupPeriodicSync() {
-    if (typeof window === 'undefined' && typeof global !== 'undefined') {
-      // Save to database every 30 seconds (more frequent for testing)
-      this.syncTimer = setInterval(async () => {
-        await this.syncToDatabase();
-      }, 30000);
-
-      if (typeof process !== 'undefined' && process.on && typeof process.on === 'function') {
-        try {
-          process.on('SIGTERM', () => {
-            if (this.syncTimer) clearInterval(this.syncTimer);
-            this.syncToDatabase();
-          });
-          process.on('SIGINT', () => {
-            if (this.syncTimer) clearInterval(this.syncTimer);
-            this.syncToDatabase();
-          });
-        } catch (error) {
-          console.warn('Could not setup process exit handlers:', error.message);
-        }
-      }
-    }
+    if (!this.isServer) return;
+    
+    // Save to database every 30 seconds
+    this.syncTimer = setInterval(async () => {
+      await this.syncToDatabase();
+    }, 30000);
   }
 
   async syncToDatabase() {
@@ -191,6 +327,7 @@ class ProductionAPITracker {
     }
 
     console.log('💾 Syncing data to database...');
+    console.log(`📝 Pending endpoints: ${this.pendingWrites.endpoints.size}`);
 
     try {
       const currentMonth = this.getCurrentMonth();
@@ -212,8 +349,6 @@ class ProductionAPITracker {
           updated_at: new Date().toISOString()
         };
 
-        console.log('💾 Saving monthly data:', monthlyData);
-        
         const { error: monthlyError } = await supabase
           .from('api_usage_monthly')
           .upsert(monthlyData, { onConflict: 'month' });
@@ -239,8 +374,6 @@ class ProductionAPITracker {
           errors: todayData.errors
         };
 
-        console.log('💾 Saving daily data:', dailyData);
-
         const { error: dailyError } = await supabase
           .from('api_daily_stats')
           .upsert(dailyData, { onConflict: 'date' });
@@ -253,47 +386,65 @@ class ProductionAPITracker {
         }
       }
 
-      // Update endpoint performance data
+      // FIXED: Process endpoint performance data with proper key handling
       if (this.pendingWrites.endpoints.size > 0) {
-        const endpointUpdates = [];
+        console.log(`💾 Processing ${this.pendingWrites.endpoints.size} endpoint updates`);
         
-        for (const endpointKey of this.pendingWrites.endpoints) {
-          const internal = this.memoryCache.internal.get(endpointKey);
-          const external = this.memoryCache.external.get(endpointKey);
-          const endpoint = internal || external;
+        const processedKeys = new Set();
+        let successCount = 0;
+        let errorCount = 0;
+        
+        // Process internal endpoints
+        for (const [memoryKey, stats] of this.memoryCache.internal.entries()) {
+          if (!this.pendingWrites.endpoints.has(memoryKey)) continue;
           
-          if (endpoint) {
-            endpointUpdates.push({
-              month: currentMonth,
-              endpoint: endpoint.endpoint,
-              method: endpoint.method,
-              type: internal ? 'internal' : 'external',
-              api_name: external?.apiName || null,
-              call_count: endpoint.count,
-              total_duration: endpoint.totalDuration,
-              error_count: endpoint.errors,
-              last_called: endpoint.lastCall,
-              updated_at: new Date().toISOString()
-            });
+          try {
+            await this.syncSingleEndpoint({
+              ...stats,
+              type: 'internal',
+              api_name: null // Important: internal endpoints have null api_name
+            }, currentMonth);
+            
+            processedKeys.add(memoryKey);
+            successCount++;
+            console.log(`✅ Synced internal: ${stats.endpoint}`);
+            
+          } catch (error) {
+            console.error(`❌ Failed to sync internal endpoint ${stats.endpoint}:`, error);
+            errorCount++;
           }
         }
-
-        if (endpointUpdates.length > 0) {
-          console.log(`💾 Saving ${endpointUpdates.length} endpoint records`);
-
-          const { error: endpointError } = await supabase
-            .from('api_endpoint_performance')
-            .upsert(endpointUpdates, { onConflict: 'endpoint,method,type,month' });
         
-          if (endpointError) {
-            console.error('❌ Endpoint sync error:', endpointError);
-          } else {
-            console.log('✅ Endpoint data synced');
-            this.pendingWrites.endpoints.clear();
+        // Process external endpoints
+        for (const [memoryKey, stats] of this.memoryCache.external.entries()) {
+          if (!this.pendingWrites.endpoints.has(memoryKey)) continue;
+          
+          try {
+            await this.syncSingleEndpoint({
+              ...stats,
+              type: 'external',
+              api_name: stats.apiName // External endpoints have api_name
+            }, currentMonth);
+            
+            processedKeys.add(memoryKey);
+            successCount++;
+            console.log(`✅ Synced external: ${stats.apiName}:${stats.endpoint}`);
+            
+          } catch (error) {
+            console.error(`❌ Failed to sync external endpoint ${stats.apiName}:${stats.endpoint}:`, error);
+            errorCount++;
           }
         }
+        
+        // Remove successfully processed keys from pending writes
+        for (const key of processedKeys) {
+          this.pendingWrites.endpoints.delete(key);
+        }
+        
+        console.log(`📊 Endpoint sync completed: ${successCount} success, ${errorCount} errors`);
       }
 
+      this.memoryCache.lastSyncTime = Date.now();
       console.log('💾 Database sync completed');
       
     } catch (error) {
@@ -301,17 +452,114 @@ class ProductionAPITracker {
     }
   }
 
-  // Enhanced tracking methods
+  async syncSingleEndpoint(stats, month) {
+    const recordData = {
+      month: month,
+      endpoint: stats.endpoint,
+      method: stats.method,
+      type: stats.type,
+      api_name: stats.api_name, // null for internal, string for external
+      call_count: stats.count,
+      total_duration: stats.totalDuration,
+      error_count: stats.errors,
+      last_called: stats.lastCall,
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      // FIXED: Build the correct query based on whether it's internal or external
+      let query = supabase
+        .from('api_endpoint_performance')
+        .select('id, call_count, total_duration, error_count')
+        .eq('endpoint', stats.endpoint)
+        .eq('method', stats.method)
+        .eq('type', stats.type)
+        .eq('month', month);
+
+      // Handle the conditional api_name constraint properly
+      if (stats.type === 'internal') {
+        query = query.is('api_name', null);
+      } else {
+        query = query.eq('api_name', stats.api_name);
+      }
+
+      const { data: existing, error: selectError } = await query.maybeSingle();
+      
+      if (selectError) {
+        console.error(`Query error for ${stats.endpoint}:`, selectError);
+        throw selectError;
+      }
+
+      if (existing) {
+        // Update existing record - add to existing counts
+        const { error: updateError } = await supabase
+          .from('api_endpoint_performance')
+          .update({
+            call_count: existing.call_count + recordData.call_count,
+            total_duration: (existing.total_duration || 0) + (recordData.total_duration || 0),
+            error_count: (existing.error_count || 0) + (recordData.error_count || 0),
+            last_called: recordData.last_called,
+            updated_at: recordData.updated_at
+          })
+          .eq('id', existing.id);
+
+        if (updateError) {
+          console.error(`Update error for ${stats.endpoint}:`, updateError);
+          throw updateError;
+        }
+
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('api_endpoint_performance')
+          .insert([{
+            ...recordData,
+            created_at: new Date().toISOString()
+          }]);
+
+        if (insertError) {
+          console.error(`Insert error for ${stats.endpoint}:`, insertError);
+          throw insertError;
+        }
+      }
+
+    } catch (error) {
+      console.error(`Sync error for endpoint ${stats.endpoint}:`, error);
+      throw error;
+    }
+  }
+
+  // Enhanced tracking methods with memory limits
   async trackInternal(endpoint, method = 'GET', duration = 0, success = true, memoryMB = 128, responseSize = 0) {
     if (!this.memoryCache.initialized) {
       await this.initializeData();
     }
+    
+    // Check if initialized after attempting to load data
+    if (!this.memoryCache.initialized) {
+      console.warn("API tracker not initialized, skipping internal tracking.");
+      return 0;
+    }
 
     this.checkMonthlyReset();
     
+    // FIXED: Use consistent key format that matches sync logic
     const key = `${method}:${endpoint}`;
     const timestamp = new Date().toISOString();
     
+    // Check if we're at capacity before adding new endpoints
+    if (!this.memoryCache.internal.has(key) && this.memoryCache.internal.size >= this.limits.maxEndpoints) {
+      // Remove least used endpoint to make room
+      const leastUsed = Array.from(this.memoryCache.internal.entries())
+        .sort(([, a], [, b]) => a.count - b.count)[0];
+      
+      if (leastUsed) {
+        this.memoryCache.internal.delete(leastUsed[0]);
+        console.log(`🗑️ Removed least used endpoint: ${leastUsed[0]}`);
+      }
+    }
+    
+    // Initialize endpoint stats if it doesn't exist
     if (!this.memoryCache.internal.has(key)) {
       this.memoryCache.internal.set(key, {
         endpoint,
@@ -327,6 +575,7 @@ class ProductionAPITracker {
       });
     }
 
+    // Get and update endpoint stats
     const stats = this.memoryCache.internal.get(key);
     stats.count++;
     stats.lastCall = timestamp;
@@ -334,11 +583,21 @@ class ProductionAPITracker {
     stats.totalMemoryUsage += memoryMB;
     stats.totalResponseSize += responseSize;
     
-    if (!success) stats.errors++;
+    if (!success) {
+      stats.errors++;
+    }
 
-    stats.recentCalls.push({ timestamp, duration, success, memoryMB, responseSize });
-    if (stats.recentCalls.length > 10) {
-      stats.recentCalls = stats.recentCalls.slice(-10);
+    // Limit recent calls to prevent memory growth
+    stats.recentCalls.push({ 
+      timestamp, 
+      duration, 
+      success, 
+      memoryMB, 
+      responseSize 
+    });
+    
+    if (stats.recentCalls.length > this.limits.maxRecentCalls) {
+      stats.recentCalls = stats.recentCalls.slice(-this.limits.maxRecentCalls);
     }
 
     // Update monthly counters
@@ -346,19 +605,22 @@ class ProductionAPITracker {
     this.memoryCache.monthly.total++;
     this.memoryCache.monthly.bandwidth += responseSize;
     
-    const gbHours = (memoryMB / 1024) * (duration / 3600000);
+    // Calculate GB-Hours: (memoryMB / 1024) * (duration in hours)
+    const gbHours = (memoryMB / 1024) * (duration / 3600000); // duration is in ms, convert to hours
     this.memoryCache.monthly.functionDurationGBHours += gbHours;
     
     // Update daily stats
     this.updateDailyStats('internal', 1);
     this.updateDailyStats('bandwidth', responseSize);
     
-    // Mark for database sync
+    if (!success) {
+      this.updateDailyStats('errors', 1);
+    }
+    
+    // Mark for database sync using the same key format
     this.pendingWrites.monthly = true;
     this.pendingWrites.daily = true;
     this.pendingWrites.endpoints.add(key);
-
-    console.log(`📊 Tracked internal call: ${method} ${endpoint} (${this.memoryCache.monthly.total} total calls)`);
 
     return stats.count;
   }
@@ -367,12 +629,31 @@ class ProductionAPITracker {
     if (!this.memoryCache.initialized) {
       await this.initializeData();
     }
+    
+    // Check if initialized after attempting to load data
+    if (!this.memoryCache.initialized) {
+      console.warn("API tracker not initialized, skipping external tracking.");
+      return 0;
+    }
 
     this.checkMonthlyReset();
     
+    // FIXED: Use consistent key format - this should match what you already have
     const key = `${apiName}:${method}:${endpoint}`;
     const timestamp = new Date().toISOString();
     
+    // Check capacity for external endpoints too
+    if (!this.memoryCache.external.has(key) && this.memoryCache.external.size >= this.limits.maxEndpoints) {
+      const leastUsed = Array.from(this.memoryCache.external.entries())
+        .sort(([, a], [, b]) => a.count - b.count)[0];
+      
+      if (leastUsed) {
+        this.memoryCache.external.delete(leastUsed[0]);
+        console.log(`🗑️ Removed least used external endpoint: ${leastUsed[0]}`);
+      }
+    }
+    
+    // Initialize endpoint stats if it doesn't exist
     if (!this.memoryCache.external.has(key)) {
       this.memoryCache.external.set(key, {
         apiName,
@@ -388,17 +669,27 @@ class ProductionAPITracker {
       });
     }
 
+    // Get and update endpoint stats
     const stats = this.memoryCache.external.get(key);
     stats.count++;
     stats.lastCall = timestamp;
     stats.totalDuration += duration;
     stats.totalResponseSize += responseSize;
     
-    if (!success) stats.errors++;
+    if (!success) {
+      stats.errors++;
+    }
 
-    stats.recentCalls.push({ timestamp, duration, success, responseSize });
-    if (stats.recentCalls.length > 10) {
-      stats.recentCalls = stats.recentCalls.slice(-10);
+    // Limit recent calls to prevent memory growth
+    stats.recentCalls.push({ 
+      timestamp, 
+      duration, 
+      success, 
+      responseSize 
+    });
+    
+    if (stats.recentCalls.length > this.limits.maxRecentCalls) {
+      stats.recentCalls = stats.recentCalls.slice(-this.limits.maxRecentCalls);
     }
 
     // Update monthly counters
@@ -409,13 +700,15 @@ class ProductionAPITracker {
     // Update daily stats
     this.updateDailyStats('external', 1);
     this.updateDailyStats('bandwidth', responseSize);
+    
+    if (!success) {
+      this.updateDailyStats('errors', 1);
+    }
 
-    // Mark for database sync
+    // Mark for database sync using the same key format
     this.pendingWrites.monthly = true;
     this.pendingWrites.daily = true;
     this.pendingWrites.endpoints.add(key);
-
-    console.log(`📊 Tracked external call: ${apiName} ${method} ${endpoint} (${this.memoryCache.monthly.external} external calls)`);
 
     return stats.count;
   }
@@ -432,6 +725,12 @@ class ProductionAPITracker {
     this.updateDailyStats('edge', executionUnits);
     this.pendingWrites.monthly = true;
     this.pendingWrites.daily = true;
+  }
+  
+  // New method to track image optimizations
+  trackImageOptimization(count = 1) {
+    this.memoryCache.monthly.imageOptimizations += count;
+    this.pendingWrites.monthly = true;
   }
 
   updateDailyStats(type, value = 1) {
@@ -452,7 +751,7 @@ class ProductionAPITracker {
     dayStats[type] += value;
     
     // Keep only last 30 days
-    if (this.memoryCache.daily.size > 30) {
+    if (this.memoryCache.daily.size > this.limits.maxDailyEntries) {
       const oldestDate = Array.from(this.memoryCache.daily.keys()).sort()[0];
       this.memoryCache.daily.delete(oldestDate);
     }
@@ -463,6 +762,8 @@ class ProductionAPITracker {
     const resetDate = new Date(this.memoryCache.monthly.resetDate);
     
     if (now >= resetDate) {
+      console.log('🔄 Monthly API tracking reset');
+      
       // Reset monthly counters but keep daily history
       this.memoryCache.monthly = {
         internal: 0,
@@ -481,250 +782,297 @@ class ProductionAPITracker {
       this.memoryCache.internal.clear();
       this.memoryCache.external.clear();
       
+      // Also clear performance tracking for the new month
+      this.memoryCache.performance.slowestEndpoints = [];
+      this.memoryCache.performance.errorRates.clear();
+      this.memoryCache.performance.peakHours.clear();
+
       this.pendingWrites.monthly = true;
-      console.log('🔄 Monthly API tracking reset');
     }
   }
 
-getUsageStats() {
-  const VERCEL_LIMITS = {
-    hobby: {
-      functions: 100000,
-      edgeExecutionUnits: 500000,
-      middlewareInvocations: 1000000,
-      functionDuration: 100,
-      imageOptimization: 1000,
-      bandwidth: 100 * 1024 * 1024 * 1024
-    }
-  };
+  getUsageStats() {
+    const VERCEL_LIMITS = {
+      hobby: {
+        functions: 100000,
+        edgeExecutionUnits: 500000,
+        middlewareInvocations: 1000000,
+        functionDuration: 100, // GB-Hours
+        imageOptimization: 1000,
+        bandwidth: 100 * 1024 * 1024 * 1024 // 100 GB in bytes
+      }
+    };
 
-  // Convert daily Map to array for trends
-  const dailyTrends = [];
-  const sortedDays = Array.from(this.memoryCache.daily.keys()).sort();
-  sortedDays.forEach(date => {
-    const dayData = this.memoryCache.daily.get(date);
-    dailyTrends.push({ date, ...dayData });
-  });
+    // Vercel Hobby plan pricing (as of a hypothetical future date, adjust as needed)
+    // This is where you would define your custom cost calculations.
+    const VERCEL_PRICING = {
+      functionsPerMillion: 20, // $/million invocations beyond free tier
+      edgeExecutionUnitsPerMillion: 0.5, // $/million units beyond free tier
+      middlewareInvocationsPerMillion: 0.5, // $/million invocations beyond free tier
+      functionDurationPerGBHour: 0.0000025, // $/GB-Hour beyond free tier (example value)
+      imageOptimizationPerThousand: 0.5, // $/thousand beyond free tier (example value)
+      bandwidthPerGB: 0.05 // $/GB beyond free tier (example value)
+    };
 
-  // Calculate projections
-  const now = new Date();
-  const startOfMonth = new Date(this.memoryCache.monthly.startDate);
-  const daysElapsed = Math.max(1, Math.ceil((now - startOfMonth) / (1000 * 60 * 60 * 24)));
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  
-  const dailyAverages = {
-    functions: Math.ceil(this.memoryCache.monthly.total / daysElapsed),
-    edgeExecutionUnits: Math.ceil(this.memoryCache.monthly.edgeExecutionUnits / daysElapsed),
-    middleware: Math.ceil(this.memoryCache.monthly.middlewareInvocations / daysElapsed),
-    functionDuration: this.memoryCache.monthly.functionDurationGBHours / daysElapsed,
-    images: Math.ceil(this.memoryCache.monthly.imageOptimizations / daysElapsed),
-    bandwidth: this.memoryCache.monthly.bandwidth / daysElapsed
-  };
-  
-  const projectedMonthly = {
-    functions: dailyAverages.functions * daysInMonth,
-    edgeExecutionUnits: dailyAverages.edgeExecutionUnits * daysInMonth,
-    middleware: dailyAverages.middleware * daysInMonth,
-    functionDuration: dailyAverages.functionDuration * daysInMonth,
-    images: dailyAverages.images * daysInMonth,
-    bandwidth: dailyAverages.bandwidth * daysInMonth
-  };
+    // Convert daily Map to array for trends
+    const dailyTrends = [];
+    const sortedDays = Array.from(this.memoryCache.daily.keys()).sort();
+    sortedDays.forEach(date => {
+      const dayData = this.memoryCache.daily.get(date);
+      dailyTrends.push({ date, ...dayData });
+    });
 
-  // ✅ Calculate actual performance metrics
-  const calculatePerformanceMetrics = () => {
-    let totalDuration = 0;
-    let totalCalls = 0;
-    const slowestEndpoints = [];
-    const errorRates = [];
-    const hourlyStats = new Map();
+    // Calculate projections
+    const now = new Date();
+    const startOfMonth = new Date(this.memoryCache.monthly.startDate);
+    const daysElapsed = Math.max(1, Math.ceil((now - startOfMonth) / (1000 * 60 * 60 * 24)));
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    
+    const dailyAverages = {
+      functions: Math.ceil(this.memoryCache.monthly.total / daysElapsed),
+      edgeExecutionUnits: Math.ceil(this.memoryCache.monthly.edgeExecutionUnits / daysElapsed),
+      middleware: Math.ceil(this.memoryCache.monthly.middlewareInvocations / daysElapsed),
+      functionDuration: this.memoryCache.monthly.functionDurationGBHours / daysElapsed,
+      images: Math.ceil(this.memoryCache.monthly.imageOptimizations / daysElapsed),
+      bandwidth: this.memoryCache.monthly.bandwidth / daysElapsed
+    };
+    
+    const projectedMonthly = {
+      functions: dailyAverages.functions * daysInMonth,
+      edgeExecutionUnits: dailyAverages.edgeExecutionUnits * daysInMonth,
+      middleware: dailyAverages.middleware * daysInMonth,
+      functionDuration: dailyAverages.functionDuration * daysInMonth,
+      images: dailyAverages.images * daysInMonth,
+      bandwidth: dailyAverages.bandwidth * daysInMonth
+    };
 
-    // Process internal endpoints
-    for (const [key, stats] of this.memoryCache.internal.entries()) {
-      totalDuration += stats.totalDuration;
-      totalCalls += stats.count;
+    // Calculate estimated costs
+    let estimatedMonthlyCost = 0;
 
-      // Calculate average duration for this endpoint
-      const avgDuration = stats.count > 0 ? stats.totalDuration / stats.count : 0;
-      
-      slowestEndpoints.push({
-        endpoint: stats.endpoint,
-        method: stats.method,
-        count: stats.count,
-        totalDuration: stats.totalDuration,
-        avgDuration: avgDuration,
-        callCount: stats.count
-      });
+    // Functions
+    const excessFunctions = Math.max(0, this.memoryCache.monthly.total - VERCEL_LIMITS.hobby.functions);
+    estimatedMonthlyCost += (excessFunctions / 1000000) * VERCEL_PRICING.functionsPerMillion;
 
-      // Calculate error rate
-      if (stats.count > 0) {
-        errorRates.push({
+    // Edge Execution Units
+    const excessEdgeUnits = Math.max(0, this.memoryCache.monthly.edgeExecutionUnits - VERCEL_LIMITS.hobby.edgeExecutionUnits);
+    estimatedMonthlyCost += (excessEdgeUnits / 1000000) * VERCEL_PRICING.edgeExecutionUnitsPerMillion;
+
+    // Middleware Invocations
+    const excessMiddleware = Math.max(0, this.memoryCache.monthly.middlewareInvocations - VERCEL_LIMITS.hobby.middlewareInvocations);
+    estimatedMonthlyCost += (excessMiddleware / 1000000) * VERCEL_PRICING.middlewareInvocationsPerMillion;
+
+    // Function Duration (GB-Hours)
+    const excessFunctionDuration = Math.max(0, this.memoryCache.monthly.functionDurationGBHours - VERCEL_LIMITS.hobby.functionDuration);
+    estimatedMonthlyCost += excessFunctionDuration * VERCEL_PRICING.functionDurationPerGBHour;
+
+    // Image Optimizations
+    const excessImageOptimizations = Math.max(0, this.memoryCache.monthly.imageOptimizations - VERCEL_LIMITS.hobby.imageOptimization);
+    estimatedMonthlyCost += (excessImageOptimizations / 1000) * VERCEL_PRICING.imageOptimizationPerThousand;
+
+    // Bandwidth (convert bytes to GB for calculation)
+    const excessBandwidthGB = Math.max(0, (this.memoryCache.monthly.bandwidth - VERCEL_LIMITS.hobby.bandwidth) / (1024 * 1024 * 1024));
+    estimatedMonthlyCost += excessBandwidthGB * VERCEL_PRICING.bandwidthPerGB;
+
+    // Calculate performance metrics with memory limits
+    const calculatePerformanceMetrics = () => {
+      let totalDuration = 0;
+      let totalCalls = 0;
+      const slowestEndpoints = [];
+      const errorRates = [];
+      const hourlyStats = new Map();
+
+      // Process internal endpoints (limited)
+      for (const [key, stats] of this.memoryCache.internal.entries()) {
+        totalDuration += stats.totalDuration;
+        totalCalls += stats.count;
+
+        const avgDuration = stats.count > 0 ? stats.totalDuration / stats.count : 0;
+        
+        slowestEndpoints.push({
           endpoint: stats.endpoint,
           method: stats.method,
-          totalRequests: stats.count,
-          errorCount: stats.errors,
-          errorRate: (stats.errors / stats.count) * 100
+          count: stats.count,
+          totalDuration: stats.totalDuration,
+          avgDuration: avgDuration,
+          callCount: stats.count
         });
-      }
 
-      // Process recent calls for hourly stats
-      if (stats.recentCalls && stats.recentCalls.length > 0) {
-        stats.recentCalls.forEach(call => {
-          if (call.timestamp) {
-            const hour = new Date(call.timestamp).getHours();
-            if (!hourlyStats.has(hour)) {
-              hourlyStats.set(hour, { hour, calls: 0 });
+        if (stats.count > 0) {
+          errorRates.push({
+            endpoint: stats.endpoint,
+            method: stats.method,
+            totalRequests: stats.count,
+            errorCount: stats.errors,
+            errorRate: (stats.errors / stats.count) * 100
+          });
+        }
+
+        // Process recent calls for hourly stats (limited)
+        if (stats.recentCalls && stats.recentCalls.length > 0) {
+          stats.recentCalls.forEach(call => {
+            if (call.timestamp) {
+              const hour = new Date(call.timestamp).getHours();
+              if (!hourlyStats.has(hour)) {
+                hourlyStats.set(hour, { hour, calls: 0 });
+              }
+              hourlyStats.get(hour).calls++;
             }
-            hourlyStats.get(hour).calls++;
-          }
-        });
+          });
+        }
       }
-    }
 
-    // Process external endpoints
-    for (const [key, stats] of this.memoryCache.external.entries()) {
-      totalDuration += stats.totalDuration;
-      totalCalls += stats.count;
+      // Process external endpoints (limited)
+      for (const [key, stats] of this.memoryCache.external.entries()) {
+        totalDuration += stats.totalDuration;
+        totalCalls += stats.count;
 
-      const avgDuration = stats.count > 0 ? stats.totalDuration / stats.count : 0;
-      
-      slowestEndpoints.push({
-        endpoint: `${stats.apiName}: ${stats.endpoint}`,
-        method: stats.method,
-        count: stats.count,
-        totalDuration: stats.totalDuration,
-        avgDuration: avgDuration,
-        callCount: stats.count
-      });
-
-      if (stats.count > 0) {
-        errorRates.push({
+        const avgDuration = stats.count > 0 ? stats.totalDuration / stats.count : 0;
+        
+        slowestEndpoints.push({
           endpoint: `${stats.apiName}: ${stats.endpoint}`,
           method: stats.method,
-          totalRequests: stats.count,
-          errorCount: stats.errors,
-          errorRate: (stats.errors / stats.count) * 100
+          count: stats.count,
+          totalDuration: stats.totalDuration,
+          avgDuration: avgDuration,
+          callCount: stats.count
         });
+
+        if (stats.count > 0) {
+          errorRates.push({
+            endpoint: `${stats.apiName}: ${stats.endpoint}`,
+            method: stats.method,
+            totalRequests: stats.count,
+            errorCount: stats.errors,
+            errorRate: (stats.errors / stats.count) * 100
+          });
+        }
       }
-    }
 
-    // Calculate overall average response time
-    const averageResponseTime = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
+      const averageResponseTime = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
 
-    // Sort and limit results
-    const sortedSlowestEndpoints = slowestEndpoints
-      .sort((a, b) => b.avgDuration - a.avgDuration)
-      .slice(0, 10);
+      // Sort and limit results to prevent memory issues
+      const sortedSlowestEndpoints = slowestEndpoints
+        .sort((a, b) => b.avgDuration - a.avgDuration)
+        .slice(0, this.limits.maxSlowEndpoints);
 
-    const sortedErrorRates = errorRates
-      .filter(e => e.errorRate > 0)
-      .sort((a, b) => b.errorRate - a.errorRate)
-      .slice(0, 10);
+      const sortedErrorRates = errorRates
+        .filter(e => e.errorRate > 0)
+        .sort((a, b) => b.errorRate - a.errorRate)
+        .slice(0, this.limits.maxErrorRates);
 
-    const peakHours = Array.from(hourlyStats.values())
-      .sort((a, b) => b.calls - a.calls)
-      .slice(0, 5);
+      const peakHours = Array.from(hourlyStats.values())
+        .sort((a, b) => b.calls - a.calls)
+        .slice(0, 5);
+
+      return {
+        averageResponseTime,
+        slowestEndpoints: sortedSlowestEndpoints,
+        errorRates: sortedErrorRates,
+        peakHours
+      };
+    };
+
+    const performanceMetrics = calculatePerformanceMetrics();
 
     return {
-      averageResponseTime,
-      slowestEndpoints: sortedSlowestEndpoints,
-      errorRates: sortedErrorRates,
-      peakHours
+      monthly: {
+        ...this.memoryCache.monthly,
+        daysUntilReset: Math.ceil((new Date(this.memoryCache.monthly.resetDate) - new Date()) / (1000 * 60 * 60 * 24))
+      },
+      limits: VERCEL_LIMITS.hobby,
+      usage: {
+        functions: {
+          current: this.memoryCache.monthly.total,
+          limit: VERCEL_LIMITS.hobby.functions,
+          percentage: (this.memoryCache.monthly.total / VERCEL_LIMITS.hobby.functions * 100).toFixed(2),
+          remaining: VERCEL_LIMITS.hobby.functions - this.memoryCache.monthly.total
+        },
+        edgeExecutionUnits: {
+          current: this.memoryCache.monthly.edgeExecutionUnits,
+          limit: VERCEL_LIMITS.hobby.edgeExecutionUnits,
+          percentage: (this.memoryCache.monthly.edgeExecutionUnits / VERCEL_LIMITS.hobby.edgeExecutionUnits * 100).toFixed(2),
+          remaining: VERCEL_LIMITS.hobby.edgeExecutionUnits - this.memoryCache.monthly.edgeExecutionUnits
+        },
+        middleware: {
+          current: this.memoryCache.monthly.middlewareInvocations,
+          limit: VERCEL_LIMITS.hobby.middlewareInvocations,
+          percentage: (this.memoryCache.monthly.middlewareInvocations / VERCEL_LIMITS.hobby.middlewareInvocations * 100).toFixed(2),
+          remaining: VERCEL_LIMITS.hobby.middlewareInvocations - this.memoryCache.monthly.middlewareInvocations
+        },
+        functionDuration: {
+          current: this.memoryCache.monthly.functionDurationGBHours,
+          limit: VERCEL_LIMITS.hobby.functionDuration,
+          percentage: (this.memoryCache.monthly.functionDurationGBHours / VERCEL_LIMITS.hobby.functionDuration * 100).toFixed(2),
+          remaining: VERCEL_LIMITS.hobby.functionDuration - this.memoryCache.monthly.functionDurationGBHours
+        },
+        imageOptimization: {
+          current: this.memoryCache.monthly.imageOptimizations,
+          limit: VERCEL_LIMITS.hobby.imageOptimization,
+          percentage: (this.memoryCache.monthly.imageOptimizations / VERCEL_LIMITS.hobby.imageOptimization * 100).toFixed(2),
+          remaining: VERCEL_LIMITS.hobby.imageOptimization - this.memoryCache.monthly.imageOptimizations
+        },
+        bandwidth: {
+          current: this.memoryCache.monthly.bandwidth,
+          limit: VERCEL_LIMITS.hobby.bandwidth,
+          percentage: (this.memoryCache.monthly.bandwidth / VERCEL_LIMITS.hobby.bandwidth * 100).toFixed(2),
+          remaining: VERCEL_LIMITS.hobby.bandwidth - this.memoryCache.monthly.bandwidth
+        }
+      },
+      // Added costs property
+      costs: {
+        estimated: parseFloat(estimatedMonthlyCost.toFixed(2)) // Ensure it's always a number, rounded to 2 decimal places
+      },
+      breakdown: {
+        internal: {
+          total: this.memoryCache.monthly.internal,
+          endpoints: this.memoryCache.internal.size,
+          details: Array.from(this.memoryCache.internal.values()).sort((a, b) => b.count - a.count).slice(0, 20)
+        },
+        external: {
+          total: this.memoryCache.monthly.external,
+          apis: this.memoryCache.external.size,
+          details: Array.from(this.memoryCache.external.values()).sort((a, b) => b.count - a.count).slice(0, 20)
+        }
+      },
+      performance: {
+        slowestEndpoints: performanceMetrics.slowestEndpoints,
+        errorRates: performanceMetrics.errorRates,
+        peakHours: performanceMetrics.peakHours,
+        averageResponseTime: performanceMetrics.averageResponseTime
+      },
+      trends: dailyTrends,
+      projections: {
+        dailyAverages,
+        projectedMonthly,
+        projectedUsagePercentages: {
+          functions: ((projectedMonthly.functions / VERCEL_LIMITS.hobby.functions) * 100).toFixed(2),
+          edgeExecutionUnits: ((projectedMonthly.edgeExecutionUnits / VERCEL_LIMITS.hobby.edgeExecutionUnits) * 100).toFixed(2),
+          middlewareInvocations: ((projectedMonthly.middleware / VERCEL_LIMITS.hobby.middlewareInvocations) * 100).toFixed(2),
+          functionDuration: ((projectedMonthly.functionDuration / VERCEL_LIMITS.hobby.functionDuration) * 100).toFixed(2),
+          imageOptimization: ((projectedMonthly.images / VERCEL_LIMITS.hobby.imageOptimization) * 100).toFixed(2),
+          bandwidth: ((projectedMonthly.bandwidth / VERCEL_LIMITS.hobby.bandwidth) * 100).toFixed(2)
+        },
+        willExceedLimits: {
+          functions: projectedMonthly.functions > VERCEL_LIMITS.hobby.functions,
+          edgeExecutionUnits: projectedMonthly.edgeExecutionUnits > VERCEL_LIMITS.hobby.edgeExecutionUnits,
+          middlewareInvocations: projectedMonthly.middleware > VERCEL_LIMITS.hobby.middlewareInvocations,
+          functionDuration: projectedMonthly.functionDuration > VERCEL_LIMITS.hobby.functionDuration,
+          imageOptimization: projectedMonthly.images > VERCEL_LIMITS.hobby.imageOptimization,
+          bandwidth: projectedMonthly.bandwidth > VERCEL_LIMITS.hobby.bandwidth
+        },
+        daysElapsed
+      },
+      memory: {
+        cacheSize: {
+          internal: this.memoryCache.internal.size,
+          external: this.memoryCache.external.size,
+          daily: this.memoryCache.daily.size
+        },
+        limits: this.limits,
+        lastCleanup: this.memoryCache.lastSyncTime
+      }
     };
-  };
-
-  const performanceMetrics = calculatePerformanceMetrics();
-
-  return {
-    monthly: {
-      ...this.memoryCache.monthly,
-      daysUntilReset: Math.ceil((new Date(this.memoryCache.monthly.resetDate) - new Date()) / (1000 * 60 * 60 * 24))
-    },
-    limits: VERCEL_LIMITS.hobby,
-    usage: {
-      functions: {
-        current: this.memoryCache.monthly.total,
-        limit: VERCEL_LIMITS.hobby.functions,
-        percentage: (this.memoryCache.monthly.total / VERCEL_LIMITS.hobby.functions * 100).toFixed(2),
-        remaining: VERCEL_LIMITS.hobby.functions - this.memoryCache.monthly.total
-      },
-      edgeExecutionUnits: {
-        current: this.memoryCache.monthly.edgeExecutionUnits,
-        limit: VERCEL_LIMITS.hobby.edgeExecutionUnits,
-        percentage: (this.memoryCache.monthly.edgeExecutionUnits / VERCEL_LIMITS.hobby.edgeExecutionUnits * 100).toFixed(2),
-        remaining: VERCEL_LIMITS.hobby.edgeExecutionUnits - this.memoryCache.monthly.edgeExecutionUnits
-      },
-      middleware: {
-        current: this.memoryCache.monthly.middlewareInvocations,
-        limit: VERCEL_LIMITS.hobby.middlewareInvocations,
-        percentage: (this.memoryCache.monthly.middlewareInvocations / VERCEL_LIMITS.hobby.middlewareInvocations * 100).toFixed(2),
-        remaining: VERCEL_LIMITS.hobby.middlewareInvocations - this.memoryCache.monthly.middlewareInvocations
-      },
-      functionDuration: {
-        current: this.memoryCache.monthly.functionDurationGBHours,
-        limit: VERCEL_LIMITS.hobby.functionDuration,
-        percentage: (this.memoryCache.monthly.functionDurationGBHours / VERCEL_LIMITS.hobby.functionDuration * 100).toFixed(2),
-        remaining: VERCEL_LIMITS.hobby.functionDuration - this.memoryCache.monthly.functionDurationGBHours
-      },
-      imageOptimization: {
-        current: this.memoryCache.monthly.imageOptimizations,
-        limit: VERCEL_LIMITS.hobby.imageOptimization,
-        percentage: (this.memoryCache.monthly.imageOptimizations / VERCEL_LIMITS.hobby.imageOptimization * 100).toFixed(2),
-        remaining: VERCEL_LIMITS.hobby.imageOptimization - this.memoryCache.monthly.imageOptimizations
-      },
-      bandwidth: {
-        current: this.memoryCache.monthly.bandwidth,
-        limit: VERCEL_LIMITS.hobby.bandwidth,
-        percentage: (this.memoryCache.monthly.bandwidth / VERCEL_LIMITS.hobby.bandwidth * 100).toFixed(2),
-        remaining: VERCEL_LIMITS.hobby.bandwidth - this.memoryCache.monthly.bandwidth
-      }
-    },
-    breakdown: {
-      internal: {
-        total: this.memoryCache.monthly.internal,
-        endpoints: this.memoryCache.internal.size,
-        details: Array.from(this.memoryCache.internal.values()).sort((a, b) => b.count - a.count)
-      },
-      external: {
-        total: this.memoryCache.monthly.external,
-        apis: this.memoryCache.external.size,
-        details: Array.from(this.memoryCache.external.values()).sort((a, b) => b.count - a.count)
-      }
-    },
-    performance: {
-      slowestEndpoints: performanceMetrics.slowestEndpoints,
-      errorRates: performanceMetrics.errorRates,
-      peakHours: performanceMetrics.peakHours,
-      averageResponseTime: performanceMetrics.averageResponseTime // ✅ Now calculated correctly!
-    },
-    trends: dailyTrends,
-    projections: {
-      dailyAverages,
-      projectedMonthly,
-      projectedUsagePercentages: {
-        functions: ((projectedMonthly.functions / VERCEL_LIMITS.hobby.functions) * 100).toFixed(2),
-        edgeExecutionUnits: ((projectedMonthly.edgeExecutionUnits / VERCEL_LIMITS.hobby.edgeExecutionUnits) * 100).toFixed(2),
-        middlewareInvocations: ((projectedMonthly.middleware / VERCEL_LIMITS.hobby.middlewareInvocations) * 100).toFixed(2),
-        functionDuration: ((projectedMonthly.functionDuration / VERCEL_LIMITS.hobby.functionDuration) * 100).toFixed(2),
-        imageOptimization: ((projectedMonthly.images / VERCEL_LIMITS.hobby.imageOptimization) * 100).toFixed(2),
-        bandwidth: ((projectedMonthly.bandwidth / VERCEL_LIMITS.hobby.bandwidth) * 100).toFixed(2)
-      },
-      willExceedLimits: {
-        functions: projectedMonthly.functions > VERCEL_LIMITS.hobby.functions,
-        edgeExecutionUnits: projectedMonthly.edgeExecutionUnits > VERCEL_LIMITS.hobby.edgeExecutionUnits,
-        middlewareInvocations: projectedMonthly.middleware > VERCEL_LIMITS.hobby.middlewareInvocations,
-        functionDuration: projectedMonthly.functionDuration > VERCEL_LIMITS.hobby.functionDuration,
-        imageOptimization: projectedMonthly.images > VERCEL_LIMITS.hobby.imageOptimization,
-        bandwidth: projectedMonthly.bandwidth > VERCEL_LIMITS.hobby.bandwidth
-      },
-      daysElapsed
-    },
-    costs: {
-      estimated: 0,
-      breakdown: { functions: 0, bandwidth: 0 },
-      overages: { functions: 0, bandwidth: 0 }
-    }
-  };
-}
+  }
 
   checkLimits() {
     const stats = this.getUsageStats();
@@ -805,29 +1153,65 @@ getUsageStats() {
         ]
       });
     }
+
+    // Cost recommendations
+    if (stats.costs.estimated > 0) {
+        recommendations.push({
+            type: 'cost-awareness',
+            category: 'Billing',
+            message: `Projected monthly cost: $${stats.costs.estimated.toFixed(2)}. Monitor usage closely.`,
+            actions: [
+                'Review areas with high projected costs (e.g., functions, bandwidth).',
+                'Consider upgrading your Vercel plan if usage consistently exceeds Hobby tier limits and the cost justifies it.'
+            ]
+        });
+    }
     
     return recommendations;
   }
+
+  // Cleanup method for graceful shutdown
+  async destroy() {
+    console.log('🧹 Destroying API tracker...');
+    
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = null;
+    }
+    
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+    
+    // Final sync to database
+    await this.syncToDatabase();
+    
+    // Clear all caches
+    this.memoryCache.internal.clear();
+    this.memoryCache.external.clear();
+    this.memoryCache.daily.clear();
+    
+    console.log('✅ API tracker destroyed cleanly');
+  }
 }
 
-// Simple singleton function
+// Simple singleton with proper cleanup
 function createOrGetTracker() {
   if (typeof global !== 'undefined' && global.apiTrackerInstance) {
-    console.log('📊 Returning existing global tracker instance');
     return global.apiTrackerInstance;
   }
 
-  const instance = new ProductionAPITracker();
+  const instance = new MemoryManagedAPITracker();
   
   if (typeof global !== 'undefined') {
     global.apiTrackerInstance = instance;
-    console.log('📊 Stored tracker instance in global scope');
   }
   
   return instance;
 }
 
-// Enhanced fetch wrapper
+// Enhanced fetch wrapper with proper error handling
 export function trackedFetch(url, options = {}, apiName = 'external') {
   const startTime = Date.now();
   const method = options.method || 'GET';

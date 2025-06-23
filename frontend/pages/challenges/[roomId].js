@@ -1,13 +1,19 @@
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import useSWR from 'swr';
 import Layout from '../../components/Layout';
 import ScoreTable from '../../components/ScoreTable';
+import CombinedLeaderboard from '../../components/CombinedLeaderboard';
 import { challengeQueries } from '../../lib/supabase';
-import { useAutoUpdateChallenge } from '../../hooks/useAPI';
-import { ArrowLeft, Loader2, Users, Calendar, Music, Star } from 'lucide-react';
+import { ArrowLeft, Loader2, Users, Calendar, Music, Star, Trophy } from 'lucide-react';
+import { shouldUpdateChallenge, markChallengeUpdated } from '../../lib/global-update-tracker';
 
 const fetcher = (roomId) => challengeQueries.getChallengeDetails(roomId);
+const leaderboardFetcher = ([_, challengeId]) => challengeQueries.getChallengeLeaderboard(challengeId);
+
+// Constants
+const UPDATE_THRESHOLD = 4 * 60 * 1000; // 4 minutes in milliseconds
 
 // Fixed UTC time formatting function
 const formatUTCDateTime = (utcDateString) => {
@@ -53,30 +59,90 @@ export default function ChallengeDetail() {
   const router = useRouter();
   const { roomId } = router.query;
   
+  // Smart refresh states
+  const [isUpdatingChallenge, setIsUpdatingChallenge] = useState(false);
+  const [updateComplete, setUpdateComplete] = useState(false);
+  
   const { data: challenge, error, isLoading, mutate } = useSWR(
     roomId ? ['challenge', roomId] : null,
     () => fetcher(roomId),
     {
-      refreshInterval: 60000, // Refresh every minute
+      revalidateOnFocus: false,
+      onSuccess: (data) => {
+        // After getting data from Supabase, check if we need to update from osu! API
+        if (data && data.is_active) {
+          checkAndUpdateIfStale(data);
+        }
+      }
+    }
+  );
+
+  // Fetch combined leaderboard when we have a challenge with multiple maps that have scores
+  const shouldShowCombinedLeaderboard = challenge && challenge.playlists && 
+    challenge.playlists.filter(p => p.scores && p.scores.length > 0).length >= 2;
+
+  const { data: combinedLeaderboard, isLoading: leaderboardLoading } = useSWR(
+    shouldShowCombinedLeaderboard ? ['leaderboard', challenge.id] : null,
+    leaderboardFetcher,
+    {
       revalidateOnFocus: false,
     }
   );
 
-  // Auto-update hook with proper mutate callback
-  const { isUpdating } = useAutoUpdateChallenge(challenge, {
-    autoUpdate: true,
-    delay: 2000,
-    onUpdate: (updatedData) => {
-      console.log('Before update - updated_at:', challenge?.updated_at);
-      console.log('After update - updated_at:', updatedData?.updated_at);
-      // Force refresh after update to get latest data including updated_at
-      mutate();
-    }
-  });
+  // Check if challenge data needs updating from osu! API
+  const checkAndUpdateIfStale = async (challengeData) => {
+  if (!challengeData || !challengeData.is_active || isUpdatingChallenge) {
+    return;
+  }
 
-  // Fixed stale data detection using proper UTC comparison
+  if (shouldUpdateChallenge(challengeData)) {
+    console.log(`🔄 Challenge needs osu! API update (global check)`);
+    await updateChallengeFromOsuAPI(challengeData.room_id);
+  } else {
+    console.log(`✅ Challenge is up to date (global check)`);
+  }
+};
+
+  // Update challenge data from osu! API
+  const updateChallengeFromOsuAPI = async (roomId) => {
+  try {
+    setIsUpdatingChallenge(true);
+    
+    console.log(`🚀 Calling osu! API to update challenge ${roomId}...`);
+    
+    const response = await fetch('/api/update-challenge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      console.log(`✅ Challenge ${roomId} updated successfully from osu! API`);
+      
+      // Mark as updated globally
+      markChallengeUpdated(roomId);
+      
+      // Show success indicator
+      setUpdateComplete(true);
+      setTimeout(() => setUpdateComplete(false), 3000);
+      
+      // Refresh the data from Supabase
+      await mutate();
+    } else {
+      console.error(`❌ Failed to update challenge ${roomId}:`, result.error);
+    }
+  } catch (error) {
+    console.error(`❌ Error updating challenge ${roomId}:`, error);
+  } finally {
+    setIsUpdatingChallenge(false);
+  }
+};
+
+  // Check if data appears stale (for UI indicator)
   const isDataStale = challenge && challenge.updated_at && challenge.is_active &&
-    (Date.now() - getUTCTimestamp(challenge.updated_at)) > 10 * 60 * 1000;
+    (Date.now() - getUTCTimestamp(challenge.updated_at)) > UPDATE_THRESHOLD;
 
   if (!roomId) return null;
 
@@ -92,12 +158,28 @@ export default function ChallengeDetail() {
           Back to challenges
         </Link>
 
-        {/* Auto-update status indicator */}
-        {isUpdating && (
-          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-6">
+        {/* Update status indicators */}
+        {isUpdatingChallenge && (
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
             <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-              <span className="text-blue-700">🔄 Refreshing challenge data...</span>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+              <div>
+                <p className="text-blue-800 font-medium">🔄 Fetching latest scores from osu!...</p>
+                <p className="text-blue-600 text-sm">Getting fresh challenge data</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {updateComplete && (
+          <div className="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
+            <div className="flex items-center">
+              <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <p className="text-green-800 font-medium">✅ Challenge updated with latest data!</p>
             </div>
           </div>
         )}
@@ -156,7 +238,7 @@ export default function ChallengeDetail() {
                   )}
                 </div>
 
-                {/* Fixed data freshness indicator */}
+                {/* Data freshness indicator */}
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`inline-block w-2 h-2 rounded-full ${
@@ -169,13 +251,37 @@ export default function ChallengeDetail() {
                   
                   <div className="text-xs text-gray-500">
                     Last updated: {formatUTCDateTime(challenge.updated_at)}
-                    {isDataStale && (
+                    {isDataStale && !isUpdatingChallenge && (
                       <span className="text-yellow-600 ml-2">⚠️ Data may be outdated</span>
                     )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Combined Leaderboard - Only show when there are 2+ maps with scores */}
+            {shouldShowCombinedLeaderboard && (
+              <div className="glass-card rounded-2xl overflow-hidden mb-8">
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6">
+                  <div className="flex items-center gap-3">
+                    <Trophy className="w-8 h-8 text-white" />
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">Combined Leaderboard</h2>
+                      <p className="text-white/90 text-sm mt-1">
+                        Total scores across all {challenge.playlists.length} maps
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <CombinedLeaderboard 
+                    leaderboard={combinedLeaderboard || []} 
+                    loading={leaderboardLoading}
+                    totalMaps={challenge.playlists.length}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Playlists */}
             <div className="space-y-8">
@@ -266,7 +372,10 @@ export default function ChallengeDetail() {
 
             {/* Update indicator */}
             <div className="mt-8 text-center text-sm text-neutral-500">
-              Data updates automatically when you visit this page
+              {isUpdatingChallenge ? 
+                'Fetching latest data from osu!...' : 
+                'Data updates automatically when you visit this page'
+              }
             </div>
           </>
         )}

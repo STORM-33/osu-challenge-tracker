@@ -1,4 +1,4 @@
-import { Trophy, Medal, Award } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import { useState } from 'react';
 
 // Utility function to sanitize user input
@@ -14,6 +14,12 @@ const sanitizeText = (text) => {
     };
     return escapeMap[match];
   });
+};
+
+// Helper function to get country flag URL from flagcdn.com
+const getCountryFlagUrl = (countryCode) => {
+  if (!countryCode || countryCode.length !== 2) return null;
+  return `https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`;
 };
 
 export default function ScoreTable({ scores = [], loading = false }) {
@@ -37,19 +43,6 @@ export default function ScoreTable({ scores = [], loading = false }) {
       </div>
     );
   }
-
-  const getRankIcon = (rank) => {
-    switch (rank) {
-      case 1:
-        return <Trophy className="w-5 h-5 text-yellow-500" aria-label="First place" />;
-      case 2:
-        return <Medal className="w-5 h-5 text-gray-400" aria-label="Second place" />;
-      case 3:
-        return <Award className="w-5 h-5 text-orange-500" aria-label="Third place" />;
-      default:
-        return null;
-    }
-  };
 
   const formatScore = (score) => {
     if (typeof score !== 'number' || isNaN(score)) return '0';
@@ -75,8 +68,31 @@ export default function ScoreTable({ scores = [], loading = false }) {
     }
   };
 
+  // Handle clicking on a username to open their osu! profile
+  const handleUsernameClick = (user) => {
+    if (!user) return;
+    
+    // Try different possible ID field names
+    const userId = user.id || user.user_id || user.osu_id;
+    
+    if (userId) {
+      const profileUrl = `https://osu.ppy.sh/users/${userId}`;
+      window.open(profileUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      // Fallback: search by username if no ID is available
+      const searchUrl = `https://osu.ppy.sh/users/${encodeURIComponent(user.username)}`;
+      window.open(searchUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  // First, add original rank based on score to each score object
+  const scoresWithRank = scores.map((score, index) => ({
+    ...score,
+    originalRank: index + 1 // This assumes scores are already sorted by score
+  }));
+
   // Sort scores based on current sort settings
-  const sortedScores = [...scores].sort((a, b) => {
+  const sortedScores = [...scoresWithRank].sort((a, b) => {
     let aVal, bVal;
     
     switch (sortBy) {
@@ -97,7 +113,7 @@ export default function ScoreTable({ scores = [], loading = false }) {
         bVal = (b.users?.username || '').toLowerCase();
         break;
       default: // rank
-        return 0; // Keep original order for rank
+        return a.originalRank - b.originalRank; // Sort by original rank for default
     }
     
     if (sortOrder === 'asc') {
@@ -132,6 +148,35 @@ export default function ScoreTable({ scores = [], loading = false }) {
     if (accuracy >= 80) return 'text-sky-500 bg-sky-50';
     if (accuracy >= 70) return 'text-orange-500 bg-orange-50';
     return 'text-red-600 bg-red-50';
+  };
+
+  const getRankStyle = (rank) => {
+  switch (rank) {
+      case 1:
+        return {
+          row: 'bg-gradient-to-r from-blue-400 via-blue-200 to-transparent border-l-4 border-blue-600',
+          rank: 'text-blue-900 text-2xl font-black',
+          icon: ''
+        };
+      case 2:
+        return {
+          row: 'bg-gradient-to-r from-purple-400 via-purple-200 to-transparent border-l-4 border-purple-600',
+          rank: 'text-purple-900 text-xl font-black',
+          icon: ''
+        };
+      case 3:
+        return {
+          row: 'bg-gradient-to-r from-red-400 via-red-200 to-transparent border-l-4 border-red-600',
+          rank: 'text-red-900 text-lg font-bold',
+          icon: ''
+        };
+      default:
+        return {
+          row: '',
+          rank: 'text-gray-700 font-bold',
+          icon: ''
+        };
+    }
   };
 
   return (
@@ -173,27 +218,22 @@ export default function ScoreTable({ scores = [], loading = false }) {
         </thead>
         <tbody>
           {sortedScores.map((score, index) => {
-            const rank = index + 1;
+            // Use original rank instead of current index for ranking and styling
+            const rank = score.originalRank;
             const username = sanitizeText(score.users?.username || 'Unknown');
             const country = sanitizeText(score.users?.country || '');
             const mods = sanitizeText(score.mods || 'None');
+            const rankStyle = getRankStyle(rank);
             
             return (
               <tr 
                 key={score.id || index}
-                className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                  rank <= 3 ? 'bg-gradient-to-r from-transparent' : ''
-                } ${
-                  rank === 1 ? 'via-yellow-50/30 to-transparent' :
-                  rank === 2 ? 'via-gray-50/30 to-transparent' :
-                  rank === 3 ? 'via-orange-50/30 to-transparent' : ''
-                }`}
+                className={`border-b border-gray-100 hover:bg-opacity-70 transition-all ${rankStyle.row}`}
                 role="row"
               >
                 <td className="py-3 px-4" role="cell">
-                  <div className="flex items-center justify-start gap-2">
-                    {getRankIcon(rank)}
-                    <span className={`font-bold ${rank <= 3 ? 'text-blue-600 text-lg' : 'text-gray-700'}`}>
+                  <div className="flex items-center justify-start">
+                    <span className={rankStyle.rank}>
                       #{rank}
                     </span>
                   </div>
@@ -212,13 +252,34 @@ export default function ScoreTable({ scores = [], loading = false }) {
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-gray-800 hover:text-blue-600 transition-colors cursor-pointer truncate" title={username}>
+                      <p 
+                        className="font-semibold text-gray-800 hover:text-blue-600 hover:underline transition-colors cursor-pointer truncate" 
+                        title={`Click to view ${username}'s osu! profile`}
+                        onClick={() => handleUsernameClick(score.users)}
+                      >
                         {username}
                       </p>
                       {country && (
-                        <p className="text-xs text-gray-500 uppercase truncate" title={country}>
-                          {country}
-                        </p>
+                        <div className="flex items-center gap-1 mt-1">
+                          {getCountryFlagUrl(country) ? (
+                            <img 
+                              src={getCountryFlagUrl(country)} 
+                              alt={`${country} flag`}
+                              className="w-4 h-3 object-cover border border-gray-300 rounded-sm"
+                              title={country.toUpperCase()}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'inline-block';
+                              }}
+                            />
+                          ) : null}
+                          <span 
+                            className="text-xs text-gray-500 font-medium"
+                            style={{ display: getCountryFlagUrl(country) ? 'none' : 'inline-block' }}
+                          >
+                            🌍 {country.toUpperCase()}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import { useAutoUpdateActiveChallenges } from '../hooks/useAPI';
 import { auth, challengeQueries, supabase } from '../lib/supabase';
 import { Loader2, Trophy, Target, Calendar, User, Award, BarChart3, Sparkles, Flame, Zap } from 'lucide-react';
 
@@ -36,36 +35,57 @@ export default function Profile() {
         challengeQueries.getUserStreaks(currentUser.id)
       ]);
 
-      // Calculate actual ranks for each score by fetching all scores for each playlist
-      const scoresWithCalculatedRanks = await Promise.all(
-        userScores.map(async (score) => {
-          try {
-            // Get all scores for this playlist, sorted by score descending
-            const { data: allPlaylistScores, error } = await supabase
-              .from('scores')
-              .select('score, user_id')
-              .eq('playlist_id', score.playlist_id)
-              .order('score', { ascending: false });
+      // 🚀 FIXED: Use batch function instead of N+1 queries
+      let scoresWithCalculatedRanks = userScores;
+      
+      if (userScores && userScores.length > 0) {
+        try {
+          // Extract playlist IDs for batch ranking
+          const playlistIds = userScores.map(score => score.playlist_id);
+          
+          // Single database call to get all ranks
+          const { data: rankData, error: rankError } = await supabase
+            .rpc('get_user_ranks_batch', {
+              p_user_id: currentUser.id,
+              p_playlist_ids: playlistIds
+            });
 
-            if (!error && allPlaylistScores) {
-              // Find user's rank in this playlist
-              const userRank = allPlaylistScores.findIndex(s => s.user_id === currentUser.id) + 1;
+          if (!rankError && rankData) {
+            // Create a map for quick lookup
+            const rankMap = new Map();
+            rankData.forEach(rank => {
+              rankMap.set(rank.playlist_id, {
+                calculated_rank: rank.user_rank,
+                total_players: rank.total_players
+              });
+            });
+
+            // Apply ranks to scores
+            scoresWithCalculatedRanks = userScores.map(score => {
+              const rankInfo = rankMap.get(score.playlist_id);
               return {
                 ...score,
-                calculated_rank: userRank > 0 ? userRank : score.rank_position
+                calculated_rank: rankInfo?.calculated_rank || score.rank_position,
+                total_players: rankInfo?.total_players || null
               };
-            }
-          } catch (error) {
-            console.error('Error calculating rank for score:', error);
+            });
+          } else {
+            console.warn('Batch rank calculation failed, using fallback ranks:', rankError);
+            // Fallback to original ranks
+            scoresWithCalculatedRanks = userScores.map(score => ({
+              ...score,
+              calculated_rank: score.rank_position
+            }));
           }
-          
-          // Fallback to original rank_position
-          return {
+        } catch (batchError) {
+          console.error('Error in batch rank calculation:', batchError);
+          // Fallback to original ranks
+          scoresWithCalculatedRanks = userScores.map(score => ({
             ...score,
             calculated_rank: score.rank_position
-          };
-        })
-      );
+          }));
+        }
+      }
 
       setScores(scoresWithCalculatedRanks.slice(0, 5));
       setStats(userStats);
@@ -348,7 +368,9 @@ export default function Profile() {
                           #{score.calculated_rank || score.rank_position}
                         </p>
                       </div>
-                      <p className="text-sm text-neutral-500 font-medium">Rank Position</p>
+                      <p className="text-sm text-neutral-500 font-medium">
+                        {score.total_players ? `of ${score.total_players}` : 'Rank Position'}
+                      </p>
                     </div>
                   </div>
                   

@@ -37,19 +37,20 @@ async function handler(req, res) {
       
       // Recent activity (last 5 scores)
       supabase
-        .from('scores')
-        .select(`
-          score,
-          accuracy,
-          submitted_at,
-          users (username),
-          playlists (
-            beatmap_title,
-            challenges (name, custom_name)
-          )
-        `)
-        .order('submitted_at', { ascending: false })
-        .limit(5)
+      .from('scores')
+      .select(`
+        score,
+        accuracy,
+        submitted_at,
+        users (username),
+        playlists (
+          beatmap_title,
+          challenges (name, custom_name)
+        )
+      `)
+      .not('submitted_at', 'is', null)
+      .order('submitted_at', { ascending: false })
+      .limit(5)
     ]);
 
     const basicStats = {
