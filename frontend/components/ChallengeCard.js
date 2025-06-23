@@ -116,25 +116,45 @@ export default function ChallengeCard({
             : 'bg-gradient-to-br from-purple-50 via-white to-purple-100'
         }`} />
         
-        {/* Weekly challenge background with map image - FIXED */}
+        {/* Weekly challenge background with map image and soft shadow separation */}
         {size === 'large' && challengeType === 'weekly' && weeklyBackgroundImage && (
           <>
+            {/* Background image container with natural soft shadows only */}
             <div 
-              className="absolute right-0 top-0 w-1/2 h-full opacity-90 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-r-2xl"
+              className="absolute right-0 top-0 w-1/2 h-full opacity-85 group-hover:opacity-95 transition-opacity duration-300 ease-out rounded-r-2xl"
               style={{ 
                 backgroundImage: `url(${weeklyBackgroundImage})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center center',
                 backgroundRepeat: 'no-repeat',
+                // Very subtle inner shadow for depth only
+                boxShadow: 'inset 12px 0 24px -12px rgba(0, 0, 0, 0.06)',
                 // Additional clipping for the background image specifically
                 clipPath: 'inset(0 0 0 0 round 0 1rem 1rem 0)',
                 // Ensure it doesn't exceed bounds
                 maxWidth: '50%',
                 maxHeight: '100%'
               }}
+            >
+              {/* Soft overlay for better text contrast - no hard edges */}
+              <div 
+                className="absolute inset-0 rounded-r-2xl"
+                style={{
+                  background: 'linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.1) 20%, transparent 40%)',
+                }}
+              />
+            </div>
+            
+            {/* Content area with natural shadow separation */}
+            <div 
+              className="absolute left-0 top-0 w-3/5 h-full rounded-l-2xl"
+              style={{
+                // Soft, natural shadow extending outward
+                boxShadow: '12px 0 24px -8px rgba(0, 0, 0, 0.04), 24px 0 48px -16px rgba(0, 0, 0, 0.02)',
+                background: 'linear-gradient(90deg, rgba(255, 255, 255, 1) 45%, rgba(255, 255, 255, 0.9) 55%, rgba(255, 255, 255, 0.8) 65%, rgba(255, 255, 255, 0.65) 72%, rgba(255, 255, 255, 0.5) 78%, rgba(255, 255, 255, 0.35) 84%, rgba(255, 255, 255, 0.2) 90%, rgba(255, 255, 255, 0.1) 95%, rgba(255, 255, 255, 0.05) 98%, transparent 100%)',
+                backdropFilter: 'blur(0.25px)',
+              }}
             />
-            {/* Softer gradient overlay for better blending */}
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent rounded-2xl" />
           </>
         )}
         
@@ -142,7 +162,6 @@ export default function ChallengeCard({
         <div className="absolute inset-0 backdrop-blur-sm bg-white/30 transition-all duration-300 ease-out group-hover:bg-white/20 rounded-2xl" />
         
         {/* Decorative elements */}
-        <div className="absolute top-4 right-4 w-20 h-20 rounded-full bg-gradient-to-br from-white/20 to-transparent transition-all duration-300 ease-out group-hover:scale-110 group-hover:from-white/30" />
         <div className="absolute bottom-4 left-4 w-12 h-12 rounded-full bg-gradient-to-tr from-white/10 to-transparent transition-all duration-300 ease-out group-hover:scale-110 group-hover:from-white/20" />
       </div>
 
