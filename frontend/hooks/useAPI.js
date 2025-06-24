@@ -4,7 +4,7 @@ import useSWR from 'swr';
 
 const challengeUpdateCache = {};
 
-// 🚀 FIXED: Simplified fetcher that ONLY fetches - no tracking
+// Simplified fetcher that ONLY fetches - no tracking
 // Let middleware handle ALL the tracking to avoid duplicates
 const simpleFetcher = async (url) => {
   const res = await fetch(url);
@@ -112,7 +112,7 @@ export function useAPIForm(endpoint, options = {}) {
     setError(null);
     
     try {
-      // 🚀 FIXED: Let middleware handle all tracking - no client-side tracking
+      // Let middleware handle all tracking - no client-side tracking
       const response = await fetch(endpoint, {
         method: options.method || 'POST',
         headers: {
@@ -187,7 +187,7 @@ export function useRealtimeAPI(endpoint, options = {}) {
   return { data, error, loading, refresh };
 }
 
-// 🚀 ENHANCED: Better challenge update management with rate limiting
+// Better challenge update management with rate limiting
 export function useChallengeAutoUpdate() {
   const instanceId = Math.random().toString(36).substr(2, 9);
   console.log('🏭 NEW useChallengeAutoUpdate instance:', instanceId);
@@ -200,7 +200,7 @@ export function useChallengeAutoUpdate() {
     lastError: null
   });
 
-  // 🚀 Enhanced rate limiting and caching
+  // rate limiting and caching
   const shouldUpdateChallenge = useCallback((challenge) => {
     if (!challenge || !challenge.is_active) return false;
     
@@ -359,7 +359,7 @@ export function useChallengeAutoUpdate() {
     }
   }, [isUpdating, shouldUpdateChallenge, updateChallenge, updateStats]);
 
-  // 🚀 NEW: Cleanup function to clear cache
+  // Cleanup function to clear cache
   const clearUpdateCache = useCallback(() => {
     Object.keys(challengeUpdateCache).forEach(key => {
       delete challengeUpdateCache[key];

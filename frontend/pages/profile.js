@@ -35,7 +35,7 @@ export default function Profile() {
         challengeQueries.getUserStreaks(currentUser.id)
       ]);
 
-      // 🚀 FIXED: Use batch function instead of N+1 queries
+      // Use batch function instead of N+1 queries
       let scoresWithCalculatedRanks = userScores;
       
       if (userScores && userScores.length > 0) {

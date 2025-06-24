@@ -4,16 +4,63 @@ import apiTracker from '../../lib/api-tracker';
 import { withAPITracking } from '../../middleware';
 import { handleAPIError, validateRequest } from '../../lib/api-utils';
 
-// 🚀 FIXED: Database-based distributed locking instead of memory-only
+// Helper function to process mods and ensure proper format
+function processModsData(mods) {
+  if (!mods || !Array.isArray(mods) || mods.length === 0) {
+    return {
+      legacy: 'None',
+      detailed: []
+    };
+  }
+  
+  try {
+    // Create detailed mods array with settings
+    const detailedMods = mods.map(mod => ({
+      acronym: mod.acronym || 'Unknown',
+      settings: mod.settings || {}
+    }));
+    
+    // Create legacy string for backward compatibility
+    const legacyString = mods.map(mod => mod.acronym).join('');
+    
+    return {
+      legacy: legacyString || 'None',
+      detailed: detailedMods
+    };
+  } catch (error) {
+    console.warn('Error processing mods data:', error, mods);
+    return {
+      legacy: 'Error',
+      detailed: []
+    };
+  }
+}
+
+// Enhanced atomic update function with mod support
+async function executeAtomicUpdateWithMods(challengeData, playlistsData, scoresData, participationData) {
+  // Use the enhanced atomic function that handles detailed mods
+  const { data, error } = await supabaseAdmin.rpc('update_challenge_atomic_with_mods', {
+    challenge_data: challengeData,
+    playlists_data: playlistsData,
+    scores_data: scoresData,
+    participation_data: participationData
+  });
+  
+  if (error) {
+    throw new Error(`Atomic update with mods failed: ${error.message}`);
+  }
+  
+  return data;
+}
+
+// Database-based distributed locking
 const LOCK_TIMEOUT = 10 * 60 * 1000; // 10 minutes max lock time
 
-// 🚀 NEW: Database-based locking functions
 async function acquireDistributedLock(roomId, requestId, timeoutMs = LOCK_TIMEOUT) {
   const lockId = `challenge_update_${roomId}`;
   const expiresAt = new Date(Date.now() + timeoutMs).toISOString();
   
   try {
-    // Try to insert a new lock
     const { data, error } = await supabaseAdmin
       .from('api_locks')
       .insert({
@@ -28,9 +75,7 @@ async function acquireDistributedLock(roomId, requestId, timeoutMs = LOCK_TIMEOU
       .single();
     
     if (error) {
-      // Check if it's a conflict (lock already exists)
-      if (error.code === '23505') { // unique_violation
-        // Check if existing lock is expired
+      if (error.code === '23505') {
         const { data: existingLock } = await supabaseAdmin
           .from('api_locks')
           .select('*')
@@ -38,7 +83,6 @@ async function acquireDistributedLock(roomId, requestId, timeoutMs = LOCK_TIMEOU
           .single();
         
         if (existingLock && new Date(existingLock.expires_at) < new Date()) {
-          // Lock is expired, try to update it
           const { data: updatedLock, error: updateError } = await supabaseAdmin
             .from('api_locks')
             .update({
@@ -47,7 +91,7 @@ async function acquireDistributedLock(roomId, requestId, timeoutMs = LOCK_TIMEOU
               expires_at: expiresAt
             })
             .eq('lock_id', lockId)
-            .eq('expires_at', existingLock.expires_at) // Ensure we're updating the same expired lock
+            .eq('expires_at', existingLock.expires_at)
             .select()
             .single();
           
@@ -84,7 +128,7 @@ async function releaseDistributedLock(roomId, requestId) {
       .from('api_locks')
       .delete()
       .eq('lock_id', lockId)
-      .eq('request_id', requestId); // Only delete if we own the lock
+      .eq('request_id', requestId);
     
     if (error) {
       console.error(`Failed to release lock for room ${roomId}:`, error);
@@ -96,7 +140,6 @@ async function releaseDistributedLock(roomId, requestId) {
   }
 }
 
-// 🚀 NEW: Cleanup expired locks periodically
 async function cleanupExpiredLocks() {
   try {
     const { data, error } = await supabaseAdmin
@@ -113,33 +156,13 @@ async function cleanupExpiredLocks() {
   }
 }
 
-// 🚀 NEW: Atomic transaction wrapper for database operations
-async function executeAtomicUpdate(challengeData, playlistsData, scoresData, participationData) {
-  // Use a single transaction to ensure atomicity
-  const { data, error } = await supabaseAdmin.rpc('update_challenge_atomic', {
-    challenge_data: challengeData,
-    playlists_data: playlistsData,
-    scores_data: scoresData,
-    participation_data: participationData
-  });
-  
-  if (error) {
-    throw new Error(`Atomic update failed: ${error.message}`);
-  }
-  
-  return data;
-}
-
 async function handler(req, res) {
-  // Add request ID for tracking
   const requestId = Math.random().toString(36).substr(2, 9);
   console.log(`🆔 Request ${requestId}: /api/update-challenge called`);
 
-  // Cleanup expired locks first
   await cleanupExpiredLocks();
 
   try {
-    // Validate request
     validateRequest(req, {
       method: 'POST',
       body: {
@@ -149,13 +172,11 @@ async function handler(req, res) {
 
     const { roomId } = req.body;
     
-    // Convert to number and validate
     const roomIdNum = parseInt(roomId);
     if (isNaN(roomIdNum) || roomIdNum <= 0) {
       throw new Error('Invalid room ID - must be a positive number');
     }
 
-    // 🚀 FIXED: Try to acquire distributed lock
     const lockResult = await acquireDistributedLock(roomIdNum, requestId);
     
     if (!lockResult.success) {
@@ -179,7 +200,6 @@ async function handler(req, res) {
     }
 
     try {
-      // Check API limits before proceeding
       const limitStatus = apiTracker.checkLimits();
       const usageStats = apiTracker.getUsageStats();
       
@@ -191,7 +211,7 @@ async function handler(req, res) {
 
       console.log(`🔄 Request ${requestId}: Starting challenge update for room ${roomIdNum}`);
 
-      // Fetch room details from osu! API with retry logic
+      // Fetch room data with retry logic
       let roomData;
       let retryCount = 0;
       const maxRetries = 3;
@@ -207,7 +227,7 @@ async function handler(req, res) {
           }
           
           console.warn(`⚠️ Request ${requestId}: API retry ${retryCount}/${maxRetries} for room ${roomIdNum}`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         }
       }
       
@@ -224,7 +244,6 @@ async function handler(req, res) {
         }
       }
 
-      // Prepare data for atomic transaction
       const challengeData = {
         room_id: roomIdNum,
         name: roomData.name,
@@ -246,12 +265,11 @@ async function handler(req, res) {
       const scoresData = [];
       const usersData = [];
 
-      // Process playlists with better error handling and batching
+      // Process playlists with enhanced mod handling
       if (roomData.playlist && roomData.playlist.length > 0) {
         console.log(`📝 Request ${requestId}: Processing ${roomData.playlist.length} playlists`);
         
         for (const [index, playlist] of roomData.playlist.entries()) {
-          // Check limits before each playlist
           const currentLimitStatus = apiTracker.checkLimits();
           
           if (currentLimitStatus === 'critical') {
@@ -260,10 +278,8 @@ async function handler(req, res) {
           }
 
           try {
-            // Extract beatmap cover images
             const covers = playlist.beatmap?.beatmapset?.covers || {};
             
-            // Prepare playlist data
             const playlistRecord = {
               playlist_id: playlist.id,
               beatmap_id: playlist.beatmap_id,
@@ -280,7 +296,7 @@ async function handler(req, res) {
             playlistsData.push(playlistRecord);
             playlistsProcessed++;
 
-            // Fetch and process scores for this playlist with retry logic
+            // Fetch scores with retry logic
             try {
               let scores;
               let scoreRetryCount = 0;
@@ -303,10 +319,8 @@ async function handler(req, res) {
               if (scores && scores.length > 0) {
                 console.log(`📊 Request ${requestId}: Processing ${scores.length} scores for playlist ${index + 1}`);
                 
-                // Process scores in batches
                 for (const score of scores) {
                   try {
-                    // Prepare user data
                     const userData = {
                       osu_id: score.user_id,
                       username: score.user?.username || 'Unknown',
@@ -317,16 +331,24 @@ async function handler(req, res) {
                     
                     usersData.push(userData);
 
-                    // Prepare score data
+                    // Process mods with detailed information
+                    const modData = processModsData(score.mods);
+                    
+                    console.log(`🎮 Request ${requestId}: Score mods for ${score.user?.username}:`, {
+                      raw: score.mods,
+                      processed: modData
+                    });
+
                     const scoreValue = score.total_score || score.score || 0;
                     
                     const scoreRecord = {
                       playlist_id: playlist.id,
-                      user_osu_id: score.user_id, // We'll resolve this to internal user_id in the transaction
+                      user_osu_id: score.user_id,
                       score: scoreValue,
                       accuracy: score.accuracy * 100,
                       max_combo: score.max_combo,
-                      mods: score.mods?.length > 0 ? score.mods.map(m => m.acronym).join('') : 'None',
+                      mods: modData.legacy, // Keep legacy format for backward compatibility
+                      mods_detailed: modData.detailed, // Store detailed mod information
                       rank_position: score.position || 999,
                       submitted_at: score.ended_at || score.started_at || new Date().toISOString()
                     };
@@ -347,32 +369,31 @@ async function handler(req, res) {
         }
       }
 
-      // 🚀 FIXED: Execute everything in a single atomic transaction
-      console.log(`💾 Request ${requestId}: Executing atomic database transaction...`);
+      // Execute atomic transaction with enhanced mod support
+      console.log(`💾 Request ${requestId}: Executing atomic database transaction with mod data...`);
       
       try {
-        const result = await executeAtomicUpdate(
+        const result = await executeAtomicUpdateWithMods(
           challengeData,
           playlistsData, 
           scoresData,
           usersData
         );
         
-        console.log(`✅ Request ${requestId}: Atomic transaction completed successfully`);
+        console.log(`✅ Request ${requestId}: Atomic transaction with mods completed successfully`);
         
       } catch (transactionError) {
         console.error(`❌ Request ${requestId}: Atomic transaction failed:`, transactionError);
         throw new Error(`Database transaction failed: ${transactionError.message}`);
       }
 
-      // Final usage report
       const finalUsage = apiTracker.getUsageStats();
       console.log(`✅ Request ${requestId}: Challenge update complete. Processed ${playlistsProcessed} playlists, ${scoresProcessed} scores. Final API usage: ${finalUsage.usage?.functions?.percentage || '0'}%`);
 
       const response = { 
         success: true, 
         challenge: challengeData,
-        message: 'Challenge data updated successfully',
+        message: 'Challenge data updated successfully with detailed mod information',
         stats: {
           playlistsProcessed,
           scoresProcessed,
@@ -391,13 +412,11 @@ async function handler(req, res) {
     } catch (error) {
       console.error(`❌ Request ${requestId}: Update challenge error:`, error);
       
-      // Report current usage even on error
       const errorUsage = apiTracker.getUsageStats();
       console.log(`💥 Request ${requestId}: Error occurred at ${errorUsage.usage?.functions?.percentage || '0'}% API usage`);
       
       return handleAPIError(res, error);
     } finally {
-      // 🚀 FIXED: Always release the distributed lock
       await releaseDistributedLock(roomIdNum, requestId);
       console.log(`🔓 Request ${requestId}: Released distributed lock for room ${roomIdNum}`);
     }
