@@ -265,8 +265,12 @@ export default function Profile() {
 
         {/* Average Performance Overview */}
         <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl p-8 mb-12 border border-indigo-100 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
             <h2 className="text-2xl font-bold text-neutral-800">Performance Statistics</h2>
+            <div className="flex items-center gap-2 px-3 py-1 bg-indigo-100 rounded-full border border-indigo-200">
+              <Calendar className="w-4 h-4 text-indigo-600" />
+              <span className="text-sm font-medium text-indigo-700">Past 3 Months</span>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

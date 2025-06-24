@@ -170,10 +170,10 @@ getUserStreaks: async (userId) => {
   
   try {
     const { data, error } = await supabase
-      .rpc('get_user_streaks_final', { user_id_param: userId });
+      .rpc('get_user_streaks', { user_id_param: userId });
 
     if (error) {
-      console.error('❌ Error calling get_user_streaks_final function:', error);
+      console.error('❌ Error calling get_user_streaks function:', error);
       throw error;
     }
 
@@ -215,125 +215,64 @@ getUserStreaks: async (userId) => {
   }
 },
 
-  // Get user stats
-  // Enhanced getUserStats function for lib/supabase.js
-// Replace the existing getUserStats function with this improved version
-
 getUserStats: async (userId) => {
   try {
-    // Get comprehensive user statistics with a single optimized query
+    // Get comprehensive user statistics for the past 3 months only
     const { data: userStats, error: statsError } = await supabase
-      .rpc('get_user_comprehensive_stats', { user_id_param: userId });
+      .rpc('get_user_comprehensive_stats_3months', { user_id_param: userId });
 
     if (statsError) {
-      console.error('Error fetching user stats:', statsError);
+      console.error('Error fetching user stats (3 months):', statsError);
       throw statsError;
     }
 
-    // Fallback to individual queries if RPC function doesn't exist yet
     if (!userStats || userStats.length === 0) {
-      console.log('RPC function not available, falling back to individual queries');
-      return await challengeQueries.getUserStatsLegacy(userId);
+      console.log('No stats data returned for user');
+      // Return default empty stats
+      return {
+        totalChallenges: 0,
+        totalScores: 0,
+        avgAccuracy: '0.00',
+        avgScore: 0,
+        avgRank: null,
+        bestRank: null,
+        worstRank: null,
+        bestAccuracy: null,
+        highestScore: null,
+        participationRate: 0,
+        improvementTrend: null,
+        lastSubmission: null
+      };
     }
 
     const stats = userStats[0];
     
     return {
-      // Basic stats
+      // Basic stats (past 3 months only)
       totalChallenges: stats.total_challenges || 0,
       totalScores: stats.total_scores || 0,
       
-      // Averages
+      // Averages (past 3 months only)
       avgAccuracy: stats.avg_accuracy ? parseFloat(stats.avg_accuracy).toFixed(2) : '0.00',
       avgScore: stats.avg_score ? Math.round(stats.avg_score) : 0,
       avgRank: stats.avg_rank ? Math.round(stats.avg_rank) : null,
       
-      // Best/worst stats
+      // Best/worst stats (past 3 months only)
       bestRank: stats.best_rank || null,
       worstRank: stats.worst_rank || null,
       bestAccuracy: stats.best_accuracy ? parseFloat(stats.best_accuracy).toFixed(2) : null,
       highestScore: stats.highest_score || null,
       
-      // Additional insights
+      // Additional insights (past 3 months only)
       participationRate: stats.participation_rate || 0,
       improvementTrend: stats.improvement_trend || null,
       lastSubmission: stats.last_submission || null
     };
 
   } catch (error) {
-    console.error('Error in getUserStats:', error);
+    console.error('Error in getUserStats (3 months):', error);
     throw error;
   }
-},
-
-// Legacy fallback function (keep existing logic as backup)
-getUserStatsLegacy: async (userId) => {
-  // Your existing getUserStats logic here as fallback
-  const { data: allUserScores, error: userScoresError } = await supabase
-    .from('scores')
-    .select(`
-      accuracy,
-      score,
-      playlist_id
-    `)
-    .eq('user_id', userId);
-
-  if (userScoresError) throw userScoresError;
-
-  const { count: challengeCount, error: countError } = await supabase
-    .from('user_challenges')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
-
-  if (countError) throw countError;
-
-  if (!allUserScores || allUserScores.length === 0) {
-    return {
-      totalChallenges: challengeCount || 0,
-      avgAccuracy: '0.00',
-      bestRank: null,
-      avgScore: 0,
-      avgRank: null,
-      totalScores: 0
-    };
-  }
-
-  const avgAccuracy = allUserScores.reduce((acc, s) => acc + s.accuracy, 0) / allUserScores.length;
-  const avgScore = allUserScores.reduce((acc, s) => acc + s.score, 0) / allUserScores.length;
-
-  let bestRank = null;
-  let totalRank = 0;
-  let validRanks = 0;
-  
-  for (const userScore of allUserScores.slice(0, 10)) { // Limit to last 10 scores for performance
-    const { data: playlistScores, error: playlistError } = await supabase
-      .from('scores')
-      .select('score, user_id')
-      .eq('playlist_id', userScore.playlist_id)
-      .order('score', { ascending: false });
-
-    if (!playlistError && playlistScores) {
-      const userRank = playlistScores.findIndex(s => s.user_id === userId) + 1;
-      
-      if (userRank > 0) {
-        totalRank += userRank;
-        validRanks++;
-        
-        if (bestRank === null || userRank < bestRank) {
-          bestRank = userRank;
-        }
-      }
-    }
-  }
-
-  return {
-    totalChallenges: challengeCount || 0,
-    totalScores: allUserScores.length,
-    avgAccuracy: avgAccuracy.toFixed(2),
-    avgScore: Math.round(avgScore),
-    avgRank: validRanks > 0 ? Math.round(totalRank / validRanks) : null,
-    bestRank
-  };
 }
 };
 
