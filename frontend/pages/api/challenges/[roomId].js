@@ -20,7 +20,7 @@ async function handler(req, res) {
 
     console.log(`Fetching challenge details for room ${roomId}`);
 
-    // Get challenge with full details including difficulty
+    // Get challenge with full details including ruleset information
     const { data: challenge, error } = await supabase
       .from('challenges')
       .select(`
@@ -50,6 +50,7 @@ async function handler(req, res) {
             accuracy,
             max_combo,
             mods,
+            mods_detailed,
             rank_position,
             submitted_at,
             users (
@@ -90,11 +91,69 @@ async function handler(req, res) {
       }));
     }
 
-    console.log(`Challenge found: ${challenge.name} with ${challenge.playlists?.length || 0} playlists`);
+    // Get ruleset winner information if challenge has ruleset
+    let rulesetWinner = null;
+    let rulesetInfo = null;
+
+    if (challenge.has_ruleset) {
+      // Prepare ruleset info for frontend
+      rulesetInfo = {
+        ruleset_name: challenge.ruleset_name,
+        ruleset_description: challenge.ruleset_description,
+        required_mods: challenge.required_mods || [],
+        ruleset_match_type: challenge.ruleset_match_type
+      };
+
+      // Get current ruleset winner
+      const { data: winnerData, error: winnerError } = await supabase
+        .from('challenge_ruleset_winners')
+        .select(`
+          score_id,
+          won_at,
+          scores (
+            id,
+            score,
+            accuracy,
+            max_combo,
+            mods,
+            mods_detailed,
+            users (
+              id,
+              osu_id,
+              username,
+              avatar_url,
+              country
+            )
+          )
+        `)
+        .eq('challenge_id', challenge.id)
+        .single();
+
+      if (winnerData && !winnerError) {
+        rulesetWinner = {
+          score_id: winnerData.score_id,
+          won_at: winnerData.won_at,
+          score: winnerData.scores.score,
+          accuracy: winnerData.scores.accuracy,
+          max_combo: winnerData.scores.max_combo,
+          mods: winnerData.scores.mods,
+          mods_detailed: winnerData.scores.mods_detailed,
+          username: winnerData.scores.users.username,
+          avatar_url: winnerData.scores.users.avatar_url,
+          country: winnerData.scores.users.country,
+          user_id: winnerData.scores.users.id,
+          osu_id: winnerData.scores.users.osu_id
+        };
+      }
+    }
+
+    console.log(`Challenge found: ${challenge.name} with ${challenge.playlists?.length || 0} playlists${challenge.has_ruleset ? ` and ruleset "${challenge.ruleset_name}"` : ''}`);
 
     res.status(200).json({
       success: true,
-      challenge
+      challenge,
+      ruleset_info: rulesetInfo,
+      ruleset_winner: rulesetWinner
     });
 
   } catch (error) {

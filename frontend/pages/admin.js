@@ -4,6 +4,8 @@ import Layout from '../components/Layout';
 import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play, Edit3, ArrowRight, Info } from 'lucide-react';
 import { auth } from '../lib/supabase';
 import { useRouter } from 'next/router';
+import RulesetManager from '../components/RulesetManager';
+import { Crown, Target } from 'lucide-react';
 
 // Fixed UTC time formatting function
 const formatUTCDateTime = (utcDateString) => {
@@ -37,6 +39,8 @@ export default function Admin() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeChallenges, setActiveChallenges] = useState([]);
   const [updatingChallenges, setUpdatingChallenges] = useState(new Set());
+  const [showRulesetManager, setShowRulesetManager] = useState(false);
+  const [selectedChallengeForRuleset, setSelectedChallengeForRuleset] = useState(null);
   
   // Non-blocking bulk update state
   const [bulkUpdateState, setBulkUpdateState] = useState({
@@ -258,6 +262,25 @@ export default function Admin() {
         error: error.message
       });
     }
+  };
+
+  const handleManageRuleset = (challenge) => {
+    setSelectedChallengeForRuleset(challenge);
+    setShowRulesetManager(true);
+  };
+
+  const handleRulesetSuccess = (message) => {
+    setResult({
+      success: true,
+      message: message
+    });
+    setShowRulesetManager(false);
+    setSelectedChallengeForRuleset(null);
+    
+    // Refresh challenges list
+    setTimeout(() => {
+      loadActiveChallenges();
+    }, 1000);
   };
 
   // Pause/Resume functionality
@@ -637,6 +660,13 @@ export default function Admin() {
                                 {challenge.custom_name && (
                                   <span className="ml-2 text-xs text-purple-600 font-medium">(Custom)</span>
                                 )}
+                                {/* Ruleset indicator */}
+                                {challenge.has_ruleset && (
+                                  <span className="ml-2 inline-flex items-center gap-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
+                                    <Crown className="w-3 h-3" />
+                                    {challenge.ruleset_name}
+                                  </span>
+                                )}
                               </h4>
                             </div>
                             <div className="flex items-center gap-4 text-xs text-neutral-600">
@@ -653,24 +683,38 @@ export default function Admin() {
                             </div>
                           </div>
                           
-                          <button
-                            onClick={() => handleUpdateSingleChallenge(challenge.room_id)}
-                            disabled={bulkUpdateState.isRunning || updatingChallenges.has(challenge.room_id)}
-                            className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border flex items-center gap-1 ${
-                              isStale 
-                                ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' 
-                                : needsUpdate
-                                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                                : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
-                          >
-                            {updatingChallenges.has(challenge.room_id) ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-3 h-3" />
-                            )}
-                            <span>Update</span>
-                          </button>
+                          <div className="flex items-center gap-2 ml-3">
+                            {/* Ruleset Management Button */}
+                            <button
+                              onClick={() => handleManageRuleset(challenge)}
+                              disabled={bulkUpdateState.isRunning}
+                              className="px-3 py-1.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50"
+                              title="Manage Ruleset"
+                            >
+                              <Target className="w-3 h-3" />
+                              <span>Ruleset</span>
+                            </button>
+                            
+                            {/* Update Button */}
+                            <button
+                              onClick={() => handleUpdateSingleChallenge(challenge.room_id)}
+                              disabled={bulkUpdateState.isRunning || updatingChallenges.has(challenge.room_id)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border flex items-center gap-1 ${
+                                isStale 
+                                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' 
+                                  : needsUpdate
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                  : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                              {updatingChallenges.has(challenge.room_id) ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-3 h-3" />
+                              )}
+                              <span>Update</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -687,6 +731,7 @@ export default function Admin() {
                   )}
                 </div>
               )}
+              
             </div>
 
             {/* Moved Notes Section - Always at bottom */}
@@ -707,6 +752,17 @@ export default function Admin() {
             </div>
           </div>
         </div>
+        {/* Ruleset Manager Modal */}
+        {showRulesetManager && selectedChallengeForRuleset && (
+          <RulesetManager
+            challengeId={selectedChallengeForRuleset.id}
+            onClose={() => {
+              setShowRulesetManager(false);
+              setSelectedChallengeForRuleset(null);
+            }}
+            onSuccess={handleRulesetSuccess}
+          />
+        )}
       </div>
     </Layout>
   );

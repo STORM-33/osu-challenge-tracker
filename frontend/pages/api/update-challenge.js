@@ -53,6 +53,55 @@ async function executeAtomicUpdateWithMods(challengeData, playlistsData, scoresD
   return data;
 }
 
+async function updateChallengeRulesetWinner(challengeId, requestId) {
+  try {
+    console.log(`🏆 Request ${requestId}: Calculating ruleset winner for challenge ${challengeId}`);
+    
+    // Check if challenge has a ruleset
+    const { data: challenge, error: challengeError } = await supabaseAdmin
+      .from('challenges')
+      .select('id, has_ruleset, ruleset_name, required_mods, ruleset_match_type')
+      .eq('id', challengeId)
+      .single();
+
+    if (challengeError || !challenge) {
+      console.warn(`⚠️ Request ${requestId}: Challenge ${challengeId} not found for ruleset update`);
+      return { success: false, error: 'Challenge not found' };
+    }
+
+    if (!challenge.has_ruleset) {
+      console.log(`📝 Request ${requestId}: Challenge ${challengeId} has no ruleset, skipping winner calculation`);
+      return { success: true, has_ruleset: false };
+    }
+
+    // Use the PostgreSQL function to update winner
+    const { data: winnerResult, error: winnerError } = await supabaseAdmin
+      .rpc('update_challenge_ruleset_winner', { challenge_id_param: challengeId });
+
+    if (winnerError) {
+      console.error(`❌ Request ${requestId}: Error calculating ruleset winner:`, winnerError);
+      return { success: false, error: winnerError.message };
+    }
+
+    if (winnerResult && winnerResult.winner_updated) {
+      console.log(`🏆 Request ${requestId}: Ruleset winner updated - ${winnerResult.winner_username} with score ${winnerResult.winner_score}`);
+    } else {
+      console.log(`📝 Request ${requestId}: No qualifying scores found for ruleset "${challenge.ruleset_name}"`);
+    }
+
+    return {
+      success: true,
+      has_ruleset: true,
+      ruleset_name: challenge.ruleset_name,
+      winner_result: winnerResult
+    };
+
+  } catch (error) {
+    console.error(`❌ Request ${requestId}: Error in ruleset winner calculation:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
 // Database-based distributed locking
 const LOCK_TIMEOUT = 10 * 60 * 1000; // 10 minutes max lock time
 
@@ -372,6 +421,7 @@ async function handler(req, res) {
       // Execute atomic transaction with enhanced mod support
       console.log(`💾 Request ${requestId}: Executing atomic database transaction with mod data...`);
       
+      let challengeDbId = null;
       try {
         const result = await executeAtomicUpdateWithMods(
           challengeData,
@@ -382,9 +432,33 @@ async function handler(req, res) {
         
         console.log(`✅ Request ${requestId}: Atomic transaction with mods completed successfully`);
         
+        // Extract challenge ID from the result
+        challengeDbId = result.challenge_id;
+        
       } catch (transactionError) {
         console.error(`❌ Request ${requestId}: Atomic transaction failed:`, transactionError);
         throw new Error(`Database transaction failed: ${transactionError.message}`);
+      }
+
+      // Calculate ruleset winner AFTER successful transaction
+      let rulesetResult = { success: false, has_ruleset: false };
+      
+      if (challengeDbId) {
+        console.log(`🏆 Request ${requestId}: Calculating ruleset winner for challenge ${challengeDbId}...`);
+
+        try {
+          rulesetResult = await updateChallengeRulesetWinner(challengeDbId, requestId);
+          
+          if (rulesetResult.success && rulesetResult.has_ruleset) {
+            console.log(`✅ Request ${requestId}: Ruleset winner calculation completed for "${rulesetResult.ruleset_name}"`);
+          } else if (rulesetResult.success && !rulesetResult.has_ruleset) {
+            console.log(`📝 Request ${requestId}: Challenge has no ruleset, skipped winner calculation`);
+          }
+          
+        } catch (rulesetError) {
+          console.warn(`⚠️ Request ${requestId}: Ruleset winner calculation failed, but challenge update succeeded:`, rulesetError);
+          rulesetResult = { success: false, error: rulesetError.message };
+        }
       }
 
       const finalUsage = apiTracker.getUsageStats();
@@ -404,6 +478,7 @@ async function handler(req, res) {
           percentage: finalUsage.usage?.functions?.percentage || '0',
           remaining: finalUsage.usage?.functions?.remaining || 100000
         },
+        ruleset: rulesetResult, // Add ruleset result to response
         requestId
       };
 
