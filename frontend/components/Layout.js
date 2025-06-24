@@ -145,10 +145,16 @@ export default function Layout({ children, backgroundImage }) {
                         <User className="w-4 h-4" />
                       </div>
                     )}
-                    <span className="text-sm font-medium text-neutral-700">
-                      {user.username}
-                      {isAdmin && <span className="ml-1 text-xs text-primary-600">(Admin)</span>}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-neutral-700 leading-tight">
+                        {user.username}
+                      </span>
+                      {isAdmin && (
+                        <span className="text-xs text-primary-600 leading-tight">
+                          Admin
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={handleLogout}

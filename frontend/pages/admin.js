@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import Layout from '../components/Layout';
-import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play } from 'lucide-react';
+import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play, Edit3, ArrowRight, Info } from 'lucide-react';
 import { auth } from '../lib/supabase';
 import { useRouter } from 'next/router';
 
@@ -34,10 +35,10 @@ export default function Admin() {
   const [result, setResult] = useState(null);
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [activeChallenges, setActiveChallenges] = useState([]); 
+  const [activeChallenges, setActiveChallenges] = useState([]);
   const [updatingChallenges, setUpdatingChallenges] = useState(new Set());
   
-  // 🚀 NEW: Non-blocking bulk update state
+  // Non-blocking bulk update state
   const [bulkUpdateState, setBulkUpdateState] = useState({
     isRunning: false,
     isPaused: false,
@@ -95,7 +96,6 @@ export default function Admin() {
     }
   };
 
-  // 🚀 NEW: Non-blocking bulk update with progress tracking
   const handleUpdateAllActive = async () => {
     if (activeChallenges.length === 0) {
       setResult({ success: false, error: 'No active challenges to update' });
@@ -260,7 +260,7 @@ export default function Admin() {
     }
   };
 
-  // 🚀 NEW: Pause/Resume functionality
+  // Pause/Resume functionality
   const toggleBulkUpdatePause = () => {
     setBulkUpdateState(prev => ({
       ...prev,
@@ -268,7 +268,7 @@ export default function Admin() {
     }));
   };
 
-  // 🚀 NEW: Cancel functionality
+  // Cancel functionality
   const cancelBulkUpdate = () => {
     if (bulkUpdateController.current) {
       bulkUpdateController.current.abort();
@@ -459,6 +459,27 @@ export default function Admin() {
               </button>
             </form>
 
+            {/* Manage Challenge Names Link */}
+            <div className="mt-6 pt-6 border-t border-neutral-200">
+              <h3 className="text-sm font-medium text-neutral-700 mb-3">Challenge Management</h3>
+              <Link href="/admin/challenges">
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-4 hover:shadow-md transition-all duration-300 cursor-pointer group">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                        <Edit3 className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-neutral-800">Manage Challenge Names</h4>
+                        <p className="text-xs text-neutral-600">Edit names for all challenges</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-purple-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+                  </div>
+                </div>
+              </Link>
+            </div>
+
             {result && (
               <div className={`mt-6 p-4 rounded-lg flex items-start gap-3 ${
                 result.success 
@@ -501,14 +522,14 @@ export default function Admin() {
           </div>
 
           {/* Active Challenge Management Section */}
-          <div className="glass-card rounded-xl p-6 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="glass-card rounded-xl p-6 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <Zap className="w-5 h-5 text-blue-600" />
                 <h2 className="text-xl font-semibold text-neutral-800">Active Challenge Management</h2>
               </div>
               
-              {/* 🚀 NEW: Enhanced bulk update controls */}
+              {/* Enhanced bulk update controls */}
               <div className="flex items-center gap-2">
                 {bulkUpdateState.isRunning && (
                   <>
@@ -561,7 +582,7 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* 🚀 NEW: Progress indicator for bulk updates */}
+            {/* Progress indicator for bulk updates */}
             {bulkUpdateState.isRunning && (
               <div className="mb-4 p-4 bg-blue-100 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between mb-2">
@@ -591,79 +612,100 @@ export default function Admin() {
               </div>
             )}
 
-            {activeChallenges.length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
-                <p className="text-neutral-500">No active challenges</p>
-                <p className="text-sm text-neutral-400 mt-1">Add a new challenge to get started!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {activeChallenges.map(challenge => {
-                  const lastUpdated = getUTCTimestamp(challenge.updated_at);
-                  const isStale = lastUpdated && (Date.now() - lastUpdated) > 10 * 60 * 1000;
-                  const needsUpdate = lastUpdated && (Date.now() - lastUpdated) > 5 * 60 * 1000;
-                  
-                  return (
-                    <div key={challenge.id} className="p-3 bg-white/80 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-2 mb-1">
-                            <h4 className="font-medium text-neutral-800 text-sm flex-1 leading-tight">{challenge.name}</h4>
+            {/* Main content area that grows to fill space */}
+            <div className="flex-1">
+              {activeChallenges.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                  <p className="text-neutral-500">No active challenges</p>
+                  <p className="text-sm text-neutral-400 mt-1">Add a new challenge to get started!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {activeChallenges.slice(0, 5).map(challenge => {
+                    const lastUpdated = getUTCTimestamp(challenge.updated_at);
+                    const isStale = lastUpdated && (Date.now() - lastUpdated) > 10 * 60 * 1000;
+                    const needsUpdate = lastUpdated && (Date.now() - lastUpdated) > 5 * 60 * 1000;
+                    
+                    return (
+                      <div key={challenge.id} className="p-3 bg-white/80 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-2 mb-1">
+                              <h4 className="font-medium text-neutral-800 text-sm flex-1 leading-tight">
+                                {challenge.custom_name || challenge.name}
+                                {challenge.custom_name && (
+                                  <span className="ml-2 text-xs text-purple-600 font-medium">(Custom)</span>
+                                )}
+                              </h4>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-neutral-600">
+                              <span>Room ID: <span className="font-mono">{challenge.room_id}</span></span>
+                              <span className="flex items-center gap-1">
+                                <Users className="w-3 h-3" />
+                                {challenge.host}
+                              </span>
+                              <span>{challenge.participant_count || 0} participants</span>
+                              <span>{challenge.playlists?.length || 0} maps</span>
+                            </div>
+                            <div className="text-xs text-neutral-500 mt-1">
+                              Last updated: {formatUTCDateTime(challenge.updated_at)}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-neutral-600">
-                            <span>Room ID: <span className="font-mono">{challenge.room_id}</span></span>
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              {challenge.host}
-                            </span>
-                            <span>{challenge.participant_count || 0} participants</span>
-                            <span>{challenge.playlists?.length || 0} maps</span>
-                          </div>
-                          <div className="text-xs text-neutral-500 mt-1">
-                            Last updated: {formatUTCDateTime(challenge.updated_at)}
-                          </div>
+                          
+                          <button
+                            onClick={() => handleUpdateSingleChallenge(challenge.room_id)}
+                            disabled={bulkUpdateState.isRunning || updatingChallenges.has(challenge.room_id)}
+                            className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border flex items-center gap-1 ${
+                              isStale 
+                                ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' 
+                                : needsUpdate
+                                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {updatingChallenges.has(challenge.room_id) ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-3 h-3" />
+                            )}
+                            <span>Update</span>
+                          </button>
                         </div>
-                        
-                        <button
-                          onClick={() => handleUpdateSingleChallenge(challenge.room_id)}
-                          disabled={bulkUpdateState.isRunning || updatingChallenges.has(challenge.room_id)}
-                          className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border flex items-center gap-1 ${
-                            isStale 
-                              ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' 
-                              : needsUpdate
-                              ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                              : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {updatingChallenges.has(challenge.room_id) ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <RefreshCw className="w-3 h-3" />
-                          )}
-                          <span>Update</span>
-                        </button>
                       </div>
+                    );
+                  })}
+                  
+                  {activeChallenges.length > 5 && (
+                    <div className="text-center pt-3 border-t border-neutral-200">
+                      <Link href="/admin/challenges?status=active">
+                        <span className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
+                          View all {activeChallenges.length} active challenges →
+                        </span>
+                      </Link>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-        {/* Footer Notes */}
-        <div className="mt-8 p-4 bg-neutral-50 rounded-lg">
-          <h4 className="font-medium text-neutral-800 mb-2">Important Notes:</h4>
-          <ul className="text-sm text-neutral-600 space-y-1">
-            <li>• Only public multiplayer rooms can be tracked</li>
-            <li>• Data updates automatically when users view challenges (4-minute cooldown)</li>
-            <li>• Use "Update All" to force refresh all active challenges (can be paused/cancelled)</li>
-            <li>• Custom names will override the original room name for display</li>
-            <li>• New challenges are automatically assigned to the current season (6-month cycles)</li>
-            <li>• Challenge data includes scores, rankings, and participant information</li>
-            <li>• 🚀 NEW: Bulk updates are now non-blocking and can be paused or cancelled</li>
-          </ul>
+            {/* Moved Notes Section - Always at bottom */}
+            <div className="mt-auto pt-6 border-t border-blue-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Info className="w-4 h-4 text-blue-600" />
+                <h4 className="font-medium text-neutral-800">Challenge Management Notes</h4>
+              </div>
+              <div className="text-sm text-neutral-600 space-y-1.5 bg-blue-50/50 rounded-lg p-3">
+                <p>• Only public multiplayer rooms can be tracked</p>
+                <p>• Data updates automatically when users view challenges (4-minute cooldown)</p>
+                <p>• Use "Update All" to force refresh all active challenges (can be paused/cancelled)</p>
+                <p>• Custom names will override the original room name for display</p>
+                <p>• New challenges are automatically assigned to the current season (6-month cycles)</p>
+                <p>• Challenge data includes scores, rankings, and participant information</p>
+                <p>• Use "Manage Challenge Names" to edit names for all challenges (active + inactive)</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </Layout>
