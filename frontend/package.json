@@ -10,15 +10,20 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@stripe/stripe-js": "^2.4.0",
         "@supabase/supabase-js": "^2.39.0",
+        "autoprefixer": "^10.4.16",
+        "canvas-confetti": "^1.9.2",
         "lucide-react": "^0.303.0",
+        "micro": "^10.0.1",
         "next": "^14.2.29",
+        "postcss": "^8.4.32",
         "react": "18.2.0",
         "react-dom": "18.2.0",
+        "react-hot-toast": "^2.4.1",
+        "stripe": "^14.17.0",
         "swr": "^2.2.4",
-        "tailwindcss": "^3.4.0",
-        "autoprefixer": "^10.4.16",
-        "postcss": "^8.4.32"
+        "tailwindcss": "^3.4.0"
     },
     "devDependencies": {
         "eslint": "^8.56.0",

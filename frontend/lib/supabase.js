@@ -315,6 +315,78 @@ export const seasonQueries = {
   }
 };
 
+// Donation helper functions
+export const donationQueries = {
+  // Get user's donation history
+  getUserDonations: async (userId) => {
+    const { data, error } = await supabase
+      .from('donations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get total donations for a user
+  getUserDonationTotal: async (userId) => {
+    const { data, error } = await supabase
+      .from('donations')
+      .select('amount')
+      .eq('user_id', userId)
+      .eq('status', 'completed');
+
+    if (error) throw error;
+    
+    const total = data?.reduce((sum, donation) => sum + parseFloat(donation.amount), 0) || 0;
+    return total;
+  },
+
+  // Get recent donations (non-anonymous)
+  getRecentDonations: async (limit = 10) => {
+    const { data, error } = await supabase
+      .from('donations')
+      .select(`
+        id,
+        amount,
+        created_at,
+        anonymous,
+        users (
+          username,
+          avatar_url
+        )
+      `)
+      .eq('status', 'completed')
+      .eq('anonymous', false)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get donation statistics
+  getDonationStats: async () => {
+    const { data, error } = await supabase
+      .from('donations')
+      .select('amount')
+      .eq('status', 'completed');
+
+    if (error) throw error;
+
+    const total = data?.reduce((sum, donation) => sum + parseFloat(donation.amount), 0) || 0;
+    const count = data?.length || 0;
+    const average = count > 0 ? total / count : 0;
+
+    return {
+      totalAmount: total,
+      totalCount: count,
+      averageAmount: average
+    };
+  }
+};
+
 // Auth helper functions
 export const auth = {
   getCurrentUser: async () => {

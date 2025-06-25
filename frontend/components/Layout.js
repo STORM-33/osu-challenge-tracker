@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Trophy, User, LogIn, LogOut, BarChart3, Plus } from 'lucide-react';
 import { auth } from '../lib/supabase';
+import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart } from 'lucide-react';
 
 export default function Layout({ children, backgroundImage }) {
   const [user, setUser] = useState(null);

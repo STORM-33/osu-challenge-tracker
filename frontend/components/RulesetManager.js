@@ -291,6 +291,8 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
                 onChange={(e) => setFormData(prev => ({ ...prev, ruleset_match_type: e.target.value }))}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
+                <option value="exact">Exact Match - Players must have exactly these mods (no extras)</option>
+                <option value="at_least">At Least - Players must have at least these mods (extras allowed)</option>
                 <option value="any_of">Any Of - Players must have at least one of these mods (extras allowed)</option>
               </select>
             </div>
