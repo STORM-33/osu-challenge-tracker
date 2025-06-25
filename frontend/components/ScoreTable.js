@@ -1,5 +1,5 @@
-import { Trophy } from 'lucide-react';
-import { useState } from 'react';
+import { Trophy, Target } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 // Utility function to sanitize user input
 const sanitizeText = (text) => {
@@ -22,9 +22,39 @@ const getCountryFlagUrl = (countryCode) => {
   return `https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`;
 };
 
-export default function ScoreTable({ scores = [], loading = false }) {
+export default function ScoreTable({ scores = [], loading = false, challenge = null }) {
   const [sortBy, setSortBy] = useState('rank');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [winnerInfo, setWinnerInfo] = useState(null);
+
+  // Load winner information for this challenge
+  useEffect(() => {
+    if (challenge?.has_ruleset && challenge?.id) {
+      loadWinnerInfo();
+    }
+  }, [challenge?.id, challenge?.has_ruleset]);
+
+  const loadWinnerInfo = async () => {
+    if (!challenge?.id) return;
+    
+    try {
+      const response = await fetch(`/api/admin/rulesets/${challenge.id}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setWinnerInfo(data.winner);
+      }
+    } catch (error) {
+      console.warn('Failed to load winner info:', error);
+    }
+  };
+
+  // Check if a score is the ruleset winner
+  const isRulesetWinner = (score) => {
+    return winnerInfo && winnerInfo.score_id === score.id;
+  };
 
   if (loading) {
     return (
@@ -224,6 +254,7 @@ export default function ScoreTable({ scores = [], loading = false }) {
             const country = sanitizeText(score.users?.country || '');
             const mods = sanitizeText(score.mods || 'None');
             const rankStyle = getRankStyle(rank);
+            const isWinner = isRulesetWinner(score);
             
             return (
               <tr 
@@ -252,13 +283,24 @@ export default function ScoreTable({ scores = [], loading = false }) {
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p 
-                        className="font-semibold text-gray-800 hover:text-blue-600 hover:underline transition-colors cursor-pointer truncate" 
-                        title={`Click to view ${username}'s osu! profile`}
-                        onClick={() => handleUsernameClick(score.users)}
-                      >
-                        {username}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p 
+                          className="font-semibold text-gray-800 hover:text-blue-600 hover:underline transition-colors cursor-pointer truncate" 
+                          title={`Click to view ${username}'s osu! profile`}
+                          onClick={() => handleUsernameClick(score.users)}
+                        >
+                          {username}
+                        </p>
+                        {/* Multiple badges for different winner types */}
+                        <div className="flex items-center gap-1">
+                          {isWinner && (
+                            <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full">
+                              <Target className="w-3 h-3" />
+                              Ruleset Winner
+                            </span>
+                          )}
+                        </div>
+                      </div>
                       {country && (
                         <div className="flex items-center gap-1 mt-1">
                           {getCountryFlagUrl(country) ? (

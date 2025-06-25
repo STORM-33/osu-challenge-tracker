@@ -771,9 +771,7 @@ export default function Admin() {
                 <p>• Only public multiplayer rooms can be tracked</p>
                 <p>• Data updates automatically when users view challenges (4-minute cooldown)</p>
                 <p>• Use "Update All" to force refresh all active challenges (can be paused/cancelled)</p>
-                <p>• Custom names will override the original room name for display</p>
                 <p>• New challenges are automatically assigned to the current season (6-month cycles)</p>
-                <p>• Challenge data includes scores, rankings, and participant information</p>
                 <p>• Use "Manage Challenge Names" to edit names for all challenges (active + inactive)</p>
                 <p>• Ruleset names are auto-generated from selected mods and settings</p>
               </div>

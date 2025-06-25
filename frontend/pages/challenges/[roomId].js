@@ -8,6 +8,9 @@ import CombinedLeaderboard from '../../components/CombinedLeaderboard';
 import { challengeQueries } from '../../lib/supabase';
 import { ArrowLeft, Loader2, Users, Calendar, Music, Star, Trophy } from 'lucide-react';
 import { shouldUpdateChallenge, markChallengeUpdated } from '../../lib/global-update-tracker';
+import { Crown, Target } from 'lucide-react';
+import { generateRulesetName, generateRulesetDescription } from '../../lib/ruleset-name-generator';
+
 
 const fetcher = (roomId) => challengeQueries.getChallengeDetails(roomId);
 const leaderboardFetcher = ([_, challengeId]) => challengeQueries.getChallengeLeaderboard(challengeId);
@@ -105,40 +108,79 @@ export default function ChallengeDetail() {
 
   // Update challenge data from osu! API
   const updateChallengeFromOsuAPI = async (roomId) => {
-  try {
-    setIsUpdatingChallenge(true);
-    
-    console.log(`🚀 Calling osu! API to update challenge ${roomId}...`);
-    
-    const response = await fetch('/api/update-challenge', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId })
-    });
+    try {
+      setIsUpdatingChallenge(true);
+      
+      console.log(`🚀 Calling osu! API to update challenge ${roomId}...`);
+      
+      const response = await fetch('/api/update-challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId })
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (result.success) {
-      console.log(`✅ Challenge ${roomId} updated successfully from osu! API`);
-      
-      // Mark as updated globally
-      markChallengeUpdated(roomId);
-      
-      // Show success indicator
-      setUpdateComplete(true);
-      setTimeout(() => setUpdateComplete(false), 3000);
-      
-      // Refresh the data from Supabase
-      await mutate();
-    } else {
-      console.error(`❌ Failed to update challenge ${roomId}:`, result.error);
+      if (result.success) {
+        console.log(`✅ Challenge ${roomId} updated successfully from osu! API`);
+        
+        // Mark as updated globally
+        markChallengeUpdated(roomId);
+        
+        // Show success indicator
+        setUpdateComplete(true);
+        setTimeout(() => setUpdateComplete(false), 3000);
+        
+        // Refresh the data from Supabase
+        await mutate();
+      } else {
+        console.error(`❌ Failed to update challenge ${roomId}:`, result.error);
+      }
+    } catch (error) {
+      console.error(`❌ Error updating challenge ${roomId}:`, error);
+    } finally {
+      setIsUpdatingChallenge(false);
     }
-  } catch (error) {
-    console.error(`❌ Error updating challenge ${roomId}:`, error);
-  } finally {
-    setIsUpdatingChallenge(false);
-  }
-};
+  };
+
+  const RulesetNote = ({ challenge }) => {
+    if (!challenge?.has_ruleset || !challenge?.required_mods) {
+      return null;
+    }
+
+    const getRulesetName = () => {
+      try {
+        return generateRulesetName(challenge.required_mods, challenge.ruleset_match_type || 'exact');
+      } catch (error) {
+        console.warn('Error generating ruleset name:', error);
+        return 'Custom Ruleset';
+      }
+    };
+
+    const getRulesetDescription = () => {
+      try {
+        return generateRulesetDescription(challenge.required_mods, challenge.ruleset_match_type || 'exact');
+      } catch (error) {
+        console.warn('Error generating ruleset description:', error);
+        return 'Custom ruleset is active';
+      }
+    };
+
+    const rulesetName = getRulesetName();
+    const rulesetDescription = getRulesetDescription();
+
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+        <div className="flex items-center gap-2 text-sm">
+          <Target className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+          <span className="text-yellow-800">
+            <strong>Ruleset Active:</strong> <code className="bg-yellow-100 text-yellow-900 px-1.5 py-0.5 rounded font-mono text-xs">{rulesetName}</code> - {rulesetDescription}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
 
   // Check if data appears stale (for UI indicator)
   const isDataStale = challenge && challenge.updated_at && challenge.is_active &&
@@ -259,6 +301,8 @@ export default function ChallengeDetail() {
               </div>
             </div>
 
+            <RulesetNote challenge={challenge} />
+
             {/* Combined Leaderboard - Only show when there are 2+ maps with scores */}
             {shouldShowCombinedLeaderboard && (
               <div className="glass-card rounded-2xl overflow-hidden mb-8">
@@ -357,7 +401,7 @@ export default function ChallengeDetail() {
 
                   <div className="p-6">
                     {playlist.scores?.length > 0 ? (
-                      <ScoreTable scores={playlist.scores} />
+                      <ScoreTable scores={playlist.scores} challenge={challenge} />
                     ) : (
                       <div className="text-center py-8">
                         <Music className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
