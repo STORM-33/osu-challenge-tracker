@@ -8,13 +8,13 @@ export default function AboutChallengers() {
   const formatStyles = {
     weekly: 'from-blue-50 to-blue-100 border-blue-200',
     ce: 'from-purple-50 to-purple-100 border-purple-200',
-    holiday: 'from-green-50 to-green-100 border-green-200'
+    custom: 'from-green-50 to-green-100 border-green-200'
   };
 
   const iconStyles = {
     weekly: 'text-blue-600 bg-blue-100',
     ce: 'text-purple-600 bg-purple-100',
-    holiday: 'text-green-600 bg-green-100'
+    custom: 'text-green-600 bg-green-100'
   };
 
   return (
@@ -72,7 +72,7 @@ export default function AboutChallengers() {
                 <h3 className="text-2xl font-bold text-neutral-800">o!C CE</h3>
               </div>
               <p className="text-neutral-700 mb-4">
-                Cycle End events featuring all weekly maps. Top 3 + raffle system for extra chances!
+                Cycle End events featuring all maps from the current season. Top 3 + raffle system for extra chances!
               </p>
               <div className="flex items-center gap-2 text-purple-700 font-semibold">
                 <Award className="w-5 h-5" />
@@ -80,16 +80,16 @@ export default function AboutChallengers() {
               </div>
             </div>
 
-            {/* Holiday Card */}
+            {/* Custom Card */}
             <div 
-              className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${formatStyles.holiday} border-2 border-green-300 p-6 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl ${activeTab === 'holiday' ? 'ring-4 ring-green-400 ring-opacity-50' : ''}`}
-              onClick={() => setActiveTab('holiday')}
+              className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${formatStyles.custom} border-2 border-green-300 p-6 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl ${activeTab === 'custom' ? 'ring-4 ring-green-400 ring-opacity-50' : ''}`}
+              onClick={() => setActiveTab('custom')}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className={`w-12 h-12 rounded-xl ${iconStyles.holiday} flex items-center justify-center`}>
+                <div className={`w-12 h-12 rounded-xl ${iconStyles.custom} flex items-center justify-center`}>
                   <Gift className="w-6 h-6" />
                 </div>
-                <h3 className="text-2xl font-bold text-neutral-800">o!C Holiday</h3>
+                <h3 className="text-2xl font-bold text-neutral-800">o!C Custom</h3>
               </div>
               <p className="text-neutral-700 mb-4">
                 Special events with custom maps and songs created just for you!
@@ -175,7 +175,7 @@ export default function AboutChallengers() {
                 
                 <div className="prose prose-lg max-w-none">
                   <p className="text-neutral-700">
-                    Three days before the end of each month, a special collage is created containing <strong>every Weekly map</strong> from that cycle. This event grows over time!
+                    Three days before the end of each season, a special collage is created containing <strong>all maps from that season</strong>. This creates massive multi-map challenges!
                   </p>
                   
                   <div className="bg-purple-50 rounded-xl p-6 my-6">
@@ -221,11 +221,11 @@ export default function AboutChallengers() {
               </div>
             )}
 
-            {activeTab === 'holiday' && (
+            {activeTab === 'custom' && (
               <div className="space-y-6">
                 <h3 className="text-2xl font-bold text-neutral-800 flex items-center gap-2">
                   <Gift className="w-6 h-6 text-green-600" />
-                  o!C Holiday Details
+                  o!C Custom Details
                 </h3>
                 
                 <div className="prose prose-lg max-w-none">
@@ -235,7 +235,7 @@ export default function AboutChallengers() {
                       <h4 className="text-xl font-semibold text-green-800 m-0">Something Special!</h4>
                     </div>
                     <p className="text-green-700 m-0">
-                      Holiday events feature <strong>custom commissioned maps</strong> with <strong>brand new songs</strong> created exclusively for osu!Challengers participants!
+                      Custom events feature <strong>custom commissioned maps</strong> with <strong>brand new songs</strong> created exclusively for osu!Challengers participants!
                     </p>
                   </div>
 

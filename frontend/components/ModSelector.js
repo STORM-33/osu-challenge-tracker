@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Settings, Info, Check, AlertTriangle } from 'lucide-react';
 
-// COMPLETE osu! Mods reference - Updated with ALL current mods
+// COMPLETE osu! Mods reference
 const OSU_MODS = {
   // Difficulty Reduction
   'EZ': { name: 'Easy', category: 'Difficulty Reduction', settings: [] },
@@ -17,7 +17,7 @@ const OSU_MODS = {
   'NC': { name: 'Nightcore', category: 'Difficulty Increase', settings: ['speed_change'] },
   'HD': { name: 'Hidden', category: 'Difficulty Increase', settings: ['only_fade_approach_circles'] },
   'FL': { name: 'Flashlight', category: 'Difficulty Increase', settings: ['size_multiplier', 'combo_based_size', 'follow_delay'] },
-  'AC': { name: 'Accuracy Challenge', category: 'Difficulty Increase', settings: ['minimum_accuracy'] },
+  'AC': { name: 'Accuracy Challenge', category: 'Difficulty Increase', settings: ['minimum_accuracy', 'accuracy_judge_mode', 'restart'] },
   'BL': { name: 'Blinds', category: 'Difficulty Increase', settings: [] },
   
   // Automation
@@ -38,21 +38,21 @@ const OSU_MODS = {
   'ST': { name: 'Strict Tracking', category: 'Conversion', settings: [] },
   
   // Fun & Visual
-  'WU': { name: 'Wind Up', category: 'Fun', settings: ['initial_rate', 'final_rate'] },
-  'WD': { name: 'Wind Down', category: 'Fun', settings: ['initial_rate', 'final_rate'] },
+  'WU': { name: 'Wind Up', category: 'Fun', settings: ['initial_rate', 'final_rate', 'adjust_pitch'] },
+  'WD': { name: 'Wind Down', category: 'Fun', settings: ['initial_rate', 'final_rate', 'adjust_pitch'] },
   'AS': { name: 'Adaptive Speed', category: 'Fun', settings: ['initial_rate', 'adjust_pitch'] },
-  'AD': { name: 'Approach Different', category: 'Fun', settings: ['scale', 'style'] },
-  'MU': { name: 'Muted', category: 'Fun', settings: ['inverse_muting', 'enable_metronome', 'mute_combo_count'] },
+  'AD': { name: 'Approach Different', category: 'Fun', settings: ['initial_size', 'style'] },
+  'MU': { name: 'Muted', category: 'Fun', settings: ['start_muted', 'enable_metronome', 'final_volume_combo_count', 'mute_hit_sounds'] },
   'DF': { name: 'Deflate', category: 'Fun', settings: ['start_scale'] },
   'GR': { name: 'Grow', category: 'Fun', settings: ['start_scale'] },
   'SI': { name: 'Spin In', category: 'Fun', settings: [] },
   'TC': { name: 'Traceable', category: 'Fun', settings: [] },
-  'BR': { name: 'Barrel Roll', category: 'Fun', settings: ['roll_speed', 'spin_speed'] },
+  'BR': { name: 'Barrel Roll', category: 'Fun', settings: ['roll_speed', 'direction'] },
   'DP': { name: 'Depth', category: 'Fun', settings: ['max_depth', 'show_approach_circles'] },
   'TR': { name: 'Transform', category: 'Fun', settings: [] },
   'WG': { name: 'Wiggle', category: 'Fun', settings: ['strength'] },
   'MG': { name: 'Magnetised', category: 'Fun', settings: ['attraction_strength'] },
-  'RP': { name: 'Repel', category: 'Fun', settings: ['repulsion_strength'] }, // HERE IT IS!
+  'RP': { name: 'Repel', category: 'Fun', settings: ['repulsion_strength'] },
   'BU': { name: 'Bubbles', category: 'Fun', settings: [] },
   'SY': { name: 'Synesthesia', category: 'Fun', settings: [] },
   'BM': { name: 'Bloom', category: 'Fun', settings: ['max_size_combo_count', 'max_cursor_size'] },
@@ -106,10 +106,10 @@ const SETTING_CONFIGS = {
   // Speed/Rate settings
   speed_change: { 
     type: 'range', 
-    min: 0.5, 
-    max: 2.0, 
+    getMin: (mod) => (['HT', 'DC'].includes(mod) ? 0.5 : 1.01),
+    getMax: (mod) => (['HT', 'DC'].includes(mod) ? 0.99 : 2.0),
     step: 0.01, 
-    default: 1.5,
+    getDefault: (mod) => (['HT', 'DC'].includes(mod) ? 0.75 : 1.5),
     label: 'Speed Change',
     format: (val) => `${val}x`
   },
@@ -118,21 +118,23 @@ const SETTING_CONFIGS = {
     default: false,
     label: 'Adjust Pitch'
   },
+  
+  // Wind Up/Down
   initial_rate: { 
     type: 'range', 
-    min: 0.5, 
-    max: 2.0, 
+    getMin: (mod) => (mod === 'WU' ? 0.5 : 0.51),
+    getMax: (mod) => (mod === 'WU' ? 1.99 : 2.0),
     step: 0.01, 
-    default: 1.0,
+    getDefault: (mod) => (mod === 'WU' ? 1.0 : 1.0),
     label: 'Initial Rate',
     format: (val) => `${val}x`
   },
   final_rate: { 
     type: 'range', 
-    min: 0.5, 
-    max: 2.0, 
+    getMin: (mod) => (mod === 'WU' ? 0.51 : 0.5),
+    getMax: (mod) => (mod === 'WU' ? 2.0 : 1.99),
     step: 0.01, 
-    default: 1.5,
+    getDefault: (mod) => (mod === 'WU' ? 1.5 : 0.75),
     label: 'Final Rate',
     format: (val) => `${val}x`
   },
@@ -148,14 +150,25 @@ const SETTING_CONFIGS = {
     default: false,
     label: 'Fail on Slider Tail Miss'
   },
+  
+  // Accuracy Challenge
   minimum_accuracy: { 
     type: 'range', 
-    min: 0.0, 
-    max: 1.0, 
+    min: 0.6, 
+    max: 0.99, 
     step: 0.01, 
-    default: 0.8,
+    default: 0.9,
     label: 'Minimum Accuracy',
     format: (val) => `${(val * 100).toFixed(0)}%`
+  },
+  accuracy_judge_mode: { 
+    type: 'select', 
+    options: [
+      { value: 'Standard', label: 'Standard' },
+      { value: 'MaximumAchievable', label: 'Maximum Achievable' }
+    ],
+    default: 'Standard',
+    label: 'Accuracy Mode'
   },
   
   // Hidden settings
@@ -294,14 +307,15 @@ const SETTING_CONFIGS = {
     label: 'Enable Metronome'
   },
   
-  // Approach Different settings
-  scale: { 
+  // Approach Different
+  initial_size: { 
     type: 'range', 
     min: 1.5, 
     max: 10.0, 
     step: 0.1, 
     default: 4.0,
-    label: 'Scale'
+    label: 'Initial Size',
+    format: (val) => `${val}x`
   },
   style: { 
     type: 'select', 
@@ -321,55 +335,60 @@ const SETTING_CONFIGS = {
     label: 'Animation Style'
   },
   
-  // Muted settings
-  inverse_muting: { 
+  // Muted
+  start_muted: { 
     type: 'boolean', 
     default: false,
-    label: 'Inverse Muting'
+    label: 'Start Muted'
   },
   enable_metronome: { 
     type: 'boolean', 
-    default: false,
+    default: true,
     label: 'Enable Metronome'
   },
-  mute_combo_count: { 
+  final_volume_combo_count: { 
     type: 'range', 
-    min: 1, 
-    max: 50, 
+    min: 0, 
+    max: 500, 
     step: 1, 
-    default: 25,
-    label: 'Mute Combo Count'
+    default: 100,
+    label: 'Final Volume at Combo Count'
+  },
+  mute_hit_sounds: { 
+    type: 'boolean', 
+    default: true,
+    label: 'Mute Hit Sounds'
   },
   
   // Scale modification settings
   start_scale: { 
     type: 'range', 
-    min: 0.0, 
-    max: 25.0, 
-    step: 0.1, 
-    default: 2.0,
+    getMin: (mod) => (mod === 'GR' ? 0.0 : 1.0),
+    getMax: (mod) => (mod === 'GR' ? 0.99 : 25.0),
+    getStep: (mod) => (mod === 'GR' ? 0.01 : 0.1),
+    getDefault: (mod) => (mod === 'GR' ? 0.5 : 2.0),
     label: 'Start Scale',
     format: (val) => `${val}x`
   },
   
-  // Barrel Roll settings
+  // Barrel Roll
   roll_speed: { 
     type: 'range', 
-    min: 0.25, 
-    max: 2.0, 
-    step: 0.05, 
-    default: 1.0,
-    label: 'Roll Speed',
-    format: (val) => `${val}x`
+    min: 0.02, 
+    max: 12.0, 
+    step: 0.01, 
+    default: 0.5,
+    label: 'Roll Speed (RPM)',
+    format: (val) => `${val} rpm`
   },
-  spin_speed: { 
-    type: 'range', 
-    min: 0.5, 
-    max: 4.0, 
-    step: 0.1, 
-    default: 1.0,
-    label: 'Spin Speed',
-    format: (val) => `${val}x`
+  direction: { 
+    type: 'select', 
+    options: [
+      { value: 'Clockwise', label: 'Clockwise' },
+      { value: 'Counterclockwise', label: 'Counterclockwise' }
+    ],
+    default: 'Clockwise',
+    label: 'Direction of Rotation'
   },
   
   // Depth settings
@@ -489,7 +508,12 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
         for (const settingKey of modInfo.settings) {
           const config = SETTING_CONFIGS[settingKey];
           if (config) {
-            defaultSettings[settingKey] = config.default;
+            // Handle dynamic defaults based on mod
+            if (typeof config.getDefault === 'function') {
+              defaultSettings[settingKey] = config.getDefault(acronym);
+            } else {
+              defaultSettings[settingKey] = config.default;
+            }
           }
         }
       }
@@ -545,6 +569,44 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
     return selectedMods.find(mod => mod.acronym === acronym);
   };
 
+  const getSettingRange = (config, modAcronym, settingKey) => {
+    if (config.getMin && config.getMax) {
+      return {
+        min: config.getMin(modAcronym),
+        max: config.getMax(modAcronym),
+        step: config.getStep ? config.getStep(modAcronym) : config.step
+      };
+    }
+    return {
+      min: config.min,
+      max: config.max,
+      step: config.step
+    };
+  };
+
+  const renderSettingsSummary = (selectedMod) => {
+    if (!selectedMod.settings || Object.keys(selectedMod.settings).length === 0) {
+      return null;
+    }
+
+    const summaryItems = [];
+    Object.entries(selectedMod.settings).forEach(([key, value]) => {
+      const config = SETTING_CONFIGS[key];
+      if (config && config.format) {
+        summaryItems.push(`${config.label}: ${config.format(value)}`);
+      } else if (config && config.type === 'boolean') {
+        if (value) summaryItems.push(config.label);
+      } else if (config && config.type === 'select') {
+        const option = config.options.find(opt => opt.value === value);
+        if (option) summaryItems.push(`${config.label}: ${option.label}`);
+      } else if (value !== undefined) {
+        summaryItems.push(`${config?.label || key}: ${value}`);
+      }
+    });
+
+    return summaryItems.length > 0 ? ` (${summaryItems.join(', ')})` : null;
+  };
+
   const categories = getModByCategory();
 
   return (
@@ -572,20 +634,26 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <h4 className="font-medium text-green-900 mb-2">Selected Mods ({selectedMods.length})</h4>
           <div className="flex flex-wrap gap-2">
-            {selectedMods.map(mod => (
-              <div key={mod.acronym} className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                <span className="font-medium">{mod.acronym}</span>
-                {Object.keys(mod.settings || {}).length > 0 && (
-                  <Settings className="w-3 h-3" />
-                )}
-                <button
-                  onClick={() => handleModToggle(mod.acronym)}
-                  className="text-green-600 hover:text-green-800"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+            {selectedMods.map(mod => {
+              const settingsSummary = renderSettingsSummary(mod);
+              return (
+                <div key={mod.acronym} className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                  <span className="font-medium">{mod.acronym}</span>
+                  {settingsSummary && (
+                    <span className="text-xs opacity-75">{settingsSummary}</span>
+                  )}
+                  {Object.keys(mod.settings || {}).length > 0 && (
+                    <Settings className="w-3 h-3" />
+                  )}
+                  <button
+                    onClick={() => handleModToggle(mod.acronym)}
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -609,7 +677,7 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
                     onClick={() => handleModToggle(mod.acronym)}
                     className={`w-full p-3 rounded-lg border-2 transition-all duration-200 text-left ${
                       isSelected
-                        ? 'border-primary-500 bg-primary-50 text-primary-900'
+                        ? 'border-blue-500 bg-blue-50 text-blue-900'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -618,7 +686,7 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
                         <div className="font-bold text-lg">{mod.acronym}</div>
                         <div className="text-sm opacity-75">{mod.name}</div>
                       </div>
-                      {isSelected && <Check className="w-5 h-5 text-primary-600" />}
+                      {isSelected && <Check className="w-5 h-5 text-blue-600" />}
                     </div>
                   </button>
                   
@@ -628,7 +696,7 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
                       onClick={() => toggleSettings(mod.acronym)}
                       className={`w-full p-2 rounded-lg border text-sm transition-colors ${
                         showSettings[mod.acronym]
-                          ? 'border-primary-300 bg-primary-100 text-primary-800'
+                          ? 'border-blue-300 bg-blue-100 text-blue-800'
                           : 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -648,7 +716,8 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
                         const config = SETTING_CONFIGS[settingKey];
                         if (!config) return null;
                         
-                        const currentValue = selectedMod.settings[settingKey] ?? config.default;
+                        const currentValue = selectedMod.settings[settingKey] ?? 
+                          (typeof config.getDefault === 'function' ? config.getDefault(mod.acronym) : config.default);
                         
                         return (
                           <div key={settingKey} className="space-y-2">
@@ -667,7 +736,7 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
                                   type="checkbox"
                                   checked={currentValue}
                                   onChange={(e) => handleSettingChange(mod.acronym, settingKey, e.target.checked)}
-                                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                 />
                                 <span className="text-sm text-gray-600">Enable</span>
                               </label>
@@ -675,19 +744,26 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
                             
                             {config.type === 'range' && (
                               <div className="space-y-1">
-                                <input
-                                  type="range"
-                                  min={config.min}
-                                  max={config.max}
-                                  step={config.step}
-                                  value={currentValue}
-                                  onChange={(e) => handleSettingChange(mod.acronym, settingKey, parseFloat(e.target.value))}
-                                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                                />
-                                <div className="flex justify-between text-xs text-gray-500">
-                                  <span>{config.min}</span>
-                                  <span>{config.max}</span>
-                                </div>
+                                {(() => {
+                                  const range = getSettingRange(config, mod.acronym, settingKey);
+                                  return (
+                                    <>
+                                      <input
+                                        type="range"
+                                        min={range.min}
+                                        max={range.max}
+                                        step={range.step}
+                                        value={currentValue}
+                                        onChange={(e) => handleSettingChange(mod.acronym, settingKey, parseFloat(e.target.value))}
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                      />
+                                      <div className="flex justify-between text-xs text-gray-500">
+                                        <span>{range.min}</span>
+                                        <span>{range.max}</span>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             )}
                             
@@ -696,15 +772,18 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
                                 type="number"
                                 value={currentValue}
                                 onChange={(e) => handleSettingChange(mod.acronym, settingKey, parseInt(e.target.value) || 0)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               />
                             )}
                             
                             {config.type === 'select' && (
                               <select
                                 value={currentValue}
-                                onChange={(e) => handleSettingChange(mod.acronym, settingKey, parseInt(e.target.value))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                onChange={(e) => {
+                                  const val = config.options.find(opt => opt.value.toString() === e.target.value)?.value;
+                                  handleSettingChange(mod.acronym, settingKey, val);
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               >
                                 {config.options.map(option => (
                                   <option key={option.value} value={option.value}>
