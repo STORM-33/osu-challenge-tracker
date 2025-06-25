@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Layout from '../components/Layout';
 import ChallengeCard from '../components/ChallengeCard';
 import SeasonSelector from '../components/SeasonSelector';
-import { Loader2, Trophy, History, Calendar, Sparkles, RefreshCw, ChevronDown, ChevronRight, Users, MapPin, Clock } from 'lucide-react';
+import { Loader2, Trophy, History, Calendar, Sparkles, RefreshCw, ChevronDown, ChevronRight, Users, MapPin, Clock, Info } from 'lucide-react';
 import { seasonUtils } from '../lib/seasons';
 import globalUpdateTracker, { shouldUpdateChallenge, markChallengeUpdated } from '../lib/global-update-tracker';
 
@@ -224,23 +224,40 @@ export default function Home() {
         
         {/* Active Challenges Section */}
         <div className="mb-16">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="relative">
-              <Trophy className="w-8 h-8 text-primary-600" />
-              <Sparkles className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1" />
+          <div className="flex items-start justify-between mb-10">
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="relative">
+                  <Trophy className="w-8 h-8 text-primary-600" />
+                  <Sparkles className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1" />
+                </div>
+                <h1 className="text-4xl font-bold text-neutral-800">
+                  Active Challenges
+                </h1>
+                {activeChallenges.length > 0 && (
+                  <span className="px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 text-sm font-semibold rounded-full border border-green-200 shadow-sm">
+                    {activeChallenges.length} Live
+                  </span>
+                )}
+              </div>
+              <p className="text-neutral-600 text-lg max-w-2xl">
+                Jump into any of our currently active challenges and compete with players worldwide for the top spots!
+              </p>
             </div>
-            <h1 className="text-4xl font-bold text-neutral-800">
-              Active Challenges
-            </h1>
-            {activeChallenges.length > 0 && (
-              <span className="px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 text-sm font-semibold rounded-full border border-green-200 shadow-sm">
-                {activeChallenges.length} Live
-              </span>
-            )}
+            
+            {/* About Challenges Button */}
+            <div className="text-right flex-shrink-0 ml-8">
+              <Link href="/about-challengers">
+                <button className="flex items-center gap-3 px-6 py-3 glass-card hover:glass-card-enhanced text-neutral-700 font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 border border-neutral-200 hover:border-primary-300">
+                  <Info className="w-5 h-5 text-primary-600" />
+                  About Challengers
+                </button>
+              </Link>
+              <p className="text-sm text-neutral-500 mt-2 max-w-[200px]">
+                New here? Learn how challenges work!
+              </p>
+            </div>
           </div>
-          <p className="text-neutral-600 text-lg mb-10 max-w-2xl">
-            Jump into any of our currently active challenges and compete with players worldwide for the top spots!
-          </p>
 
           {/* Show updating status */}
           {hasUpdatingChallenges && (
