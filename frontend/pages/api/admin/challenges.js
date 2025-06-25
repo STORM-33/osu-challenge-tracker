@@ -38,17 +38,16 @@ async function handleGetAllChallenges(req, res) {
       limit = 50, 
       offset = 0,
       search = '',
-      sortBy = 'updated_at',
-      sortOrder = 'desc',
       status = '', // 'active', 'inactive', or '' for all
       season_id = '',
       hasCustomName = '', // 'true', 'false', or '' for all
+      hasRuleset = '', // 'true', 'false', or '' for all
       dateFrom = '',
       dateTo = ''
     } = req.query;
 
     console.log('🔍 Query parameters:', {
-      limit, offset, search, sortBy, sortOrder, status, season_id, hasCustomName, dateFrom, dateTo
+      limit, offset, search, status, season_id, hasCustomName, hasRuleset, dateFrom, dateTo
     });
 
     // Validation
@@ -92,6 +91,14 @@ async function handleGetAllChallenges(req, res) {
       query = query.is('custom_name', null);
     }
 
+    if (hasRuleset === 'true') {
+      console.log('🔍 Filtering for challenges with rulesets');
+      query = query.eq('has_ruleset', true);
+    } else if (hasRuleset === 'false') {
+      console.log('🔍 Filtering for challenges without rulesets');
+      query = query.eq('has_ruleset', false);
+    }
+
     if (search) {
       console.log('🔍 Applying search filter:', search);
       // Search in room_id, name, custom_name, and host
@@ -113,18 +120,13 @@ async function handleGetAllChallenges(req, res) {
       query = query.lte('created_at', dateTo);
     }
 
-    // Sorting
-    const validSortFields = [
-      'created_at', 'updated_at', 'name', 'custom_name', 
-      'participant_count', 'start_date', 'room_id', 'host'
-    ];
-    const sortField = validSortFields.includes(sortBy) ? sortBy : 'updated_at';
-    const ascending = sortOrder === 'asc';
-    
-    console.log('🔍 Sorting by:', sortField, ascending ? 'ASC' : 'DESC');
+    // Fixed sorting: Always sort by end_date DESC (most recent first)
+    // For challenges with null end_date (active challenges), they'll be sorted last
+    console.log('🔍 Sorting by end_date DESC (most recent first)');
     
     query = query
-      .order(sortField, { ascending })
+      .order('end_date', { ascending: false, nullsLast: true })
+      .order('updated_at', { ascending: false }) // Secondary sort for consistency
       .range(parsedOffset, parsedOffset + parsedLimit - 1);
 
     console.log('🚀 Executing main challenges query...');
@@ -151,7 +153,8 @@ async function handleGetAllChallenges(req, res) {
       .select(`
         id,
         is_active,
-        custom_name
+        custom_name,
+        has_ruleset
       `);
 
     let summary = {
@@ -159,7 +162,9 @@ async function handleGetAllChallenges(req, res) {
       active: 0,
       inactive: 0,
       withCustomNames: 0,
-      withoutCustomNames: 0
+      withoutCustomNames: 0,
+      withRulesets: 0,
+      withoutRulesets: 0
     };
 
     if (!statsError && stats) {
@@ -167,6 +172,8 @@ async function handleGetAllChallenges(req, res) {
       summary.inactive = stats.filter(c => !c.is_active).length;
       summary.withCustomNames = stats.filter(c => c.custom_name !== null).length;
       summary.withoutCustomNames = stats.filter(c => c.custom_name === null).length;
+      summary.withRulesets = stats.filter(c => c.has_ruleset === true).length;
+      summary.withoutRulesets = stats.filter(c => c.has_ruleset === false).length;
       console.log('✅ Summary calculated:', summary);
     } else if (statsError) {
       console.error('⚠️ Stats error (non-critical):', statsError);
@@ -186,15 +193,19 @@ async function handleGetAllChallenges(req, res) {
         currentPage: Math.floor(parsedOffset / parsedLimit) + 1
       },
       summary,
+      sorting: {
+        field: 'end_date',
+        order: 'desc',
+        description: 'Sorted by end date (most recent first), active challenges last'
+      },
       filters: {
         search,
         status,
         season_id,
         hasCustomName,
+        hasRuleset,
         dateFrom,
-        dateTo,
-        sortBy,
-        sortOrder
+        dateTo
       }
     });
 

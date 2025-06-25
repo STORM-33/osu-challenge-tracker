@@ -392,13 +392,16 @@ export default function Home() {
                   <tbody className="divide-y divide-neutral-100">
                     {filteredChallenges.map((challenge, index) => {
                       const challengeType = getChallengeType(challenge);
+                      // Add this line to prioritize custom names (same as ChallengeCard)
+                      const displayName = challenge.custom_name || challenge.name;
+                      
                       return (
                         <tr key={challenge.id} className="hover:bg-neutral-50 transition-colors">
                           <td className="px-6 py-4">
                             <Link href={`/challenges/${challenge.room_id}`}>
                               <div className="cursor-pointer">
                                 <div className="font-medium text-neutral-800 hover:text-primary-600 transition-colors">
-                                  {challenge.name || `Challenge #${challenge.id}`}
+                                  {displayName || `Challenge #${challenge.id}`}
                                 </div>
                                 {challenge.description && (
                                   <div className="text-sm text-neutral-500 truncate max-w-xs">
@@ -408,6 +411,7 @@ export default function Home() {
                               </div>
                             </Link>
                           </td>
+                          {/* Rest of the table cells remain the same */}
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               challengeType === 'weekly' 

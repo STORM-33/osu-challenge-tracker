@@ -2,14 +2,39 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
 import SeasonSelector from '../../components/SeasonSelector';
+import RulesetManager from '../../components/RulesetManager';
 import { 
   Loader2, Settings, Search, Filter, Edit2, Save, RotateCcw, 
   CheckCircle, AlertCircle, Users, Calendar, Clock, MapPin,
-  ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown,
-  X, Eye, EyeOff
+  ChevronLeft, ChevronRight, X, Eye, EyeOff, Crown, Target
 } from 'lucide-react';
 import { auth } from '../../lib/supabase';
 import { useRouter } from 'next/router';
+
+// Import the name generator directly
+import { generateRulesetName } from '../../lib/ruleset-name-generator';
+
+// Helper function to generate ruleset names
+const generateRulesetDisplayName = (challenge) => {
+  if (!challenge.has_ruleset || !challenge.required_mods || challenge.required_mods.length === 0) {
+    return null;
+  }
+
+  try {
+    return generateRulesetName(
+      challenge.required_mods, 
+      challenge.ruleset_match_type || 'exact'
+    );
+  } catch (error) {
+    console.warn('Error generating ruleset name:', error);
+    
+    // Fallback: simple concatenation of mod acronyms
+    const modNames = challenge.required_mods.map(mod => mod.acronym).join('');
+    const prefix = challenge.ruleset_match_type === 'at_least' ? 'AtLeast:' : 
+                   challenge.ruleset_match_type === 'any_of' ? 'Any:' : '';
+    return `${prefix}${modNames}`;
+  }
+};
 
 export default function AdminChallenges() {
   const [user, setUser] = useState(null);
@@ -25,14 +50,17 @@ export default function AdminChallenges() {
   const [editingName, setEditingName] = useState('');
   const [savingChanges, setSavingChanges] = useState(new Set());
   
-  // Filters and search
+  // Ruleset management state
+  const [showRulesetManager, setShowRulesetManager] = useState(false);
+  const [selectedChallengeForRuleset, setSelectedChallengeForRuleset] = useState(null);
+  
+  // Filters and search (removed sorting options)
   const [filters, setFilters] = useState({
     search: '',
     status: '', // 'active', 'inactive', ''
     season_id: '',
     hasCustomName: '', // 'true', 'false', ''
-    sortBy: 'updated_at',
-    sortOrder: 'desc',
+    hasRuleset: '', // 'true', 'false', ''
     limit: 25,
     offset: 0
   });
@@ -131,11 +159,6 @@ export default function AdminChallenges() {
     setFilters(prev => ({ ...prev, offset: newOffset }));
   };
 
-  const handleSort = (field) => {
-    const newOrder = filters.sortBy === field && filters.sortOrder === 'asc' ? 'desc' : 'asc';
-    updateFilters({ sortBy: field, sortOrder: newOrder });
-  };
-
   const startEditing = (challenge) => {
     setEditingChallenge(challenge.room_id);
     setEditingName(challenge.custom_name || challenge.name);
@@ -144,6 +167,26 @@ export default function AdminChallenges() {
   const cancelEditing = () => {
     setEditingChallenge(null);
     setEditingName('');
+  };
+
+  // Ruleset management functions
+  const handleManageRuleset = (challenge) => {
+    setSelectedChallengeForRuleset(challenge);
+    setShowRulesetManager(true);
+  };
+
+  const handleRulesetSuccess = (message) => {
+    setResult({
+      success: true,
+      message: message
+    });
+    setShowRulesetManager(false);
+    setSelectedChallengeForRuleset(null);
+    
+    // Refresh challenges list
+    setTimeout(() => {
+      loadChallenges();
+    }, 1000);
   };
 
   const saveChallengeName = async (roomId) => {
@@ -278,11 +321,6 @@ export default function AdminChallenges() {
     return challenge.custom_name || challenge.name;
   };
 
-  const getSortIcon = (field) => {
-    if (filters.sortBy !== field) return <ArrowUpDown className="w-4 h-4" />;
-    return filters.sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
-  };
-
   if (checkingAuth) {
     return (
       <Layout>
@@ -303,15 +341,15 @@ export default function AdminChallenges() {
               <ChevronLeft className="w-6 h-6" />
             </Link>
             <Settings className="w-8 h-8 text-primary-600" />
-            <h1 className="text-3xl font-bold text-neutral-800">Challenge Name Management</h1>
+            <h1 className="text-3xl font-bold text-neutral-800">Challenge Management</h1>
           </div>
           <p className="text-neutral-600">
-            Edit challenge names, reset to originals, and manage display names across all seasons.
+            Edit challenge names, manage rulesets, and configure display settings across all seasons. Challenges are sorted by date ended (most recent first).
           </p>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* Enhanced Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
             <div className="text-2xl font-bold text-blue-700">{summary.total || 0}</div>
             <div className="text-sm text-blue-600">Total Challenges</div>
@@ -324,77 +362,81 @@ export default function AdminChallenges() {
             <div className="text-2xl font-bold text-purple-700">{summary.withCustomNames || 0}</div>
             <div className="text-sm text-purple-600">Custom Names</div>
           </div>
+          <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-xl border border-yellow-200">
+            <div className="text-2xl font-bold text-yellow-700">{summary.withRulesets || 0}</div>
+            <div className="text-sm text-yellow-600">With Rulesets</div>
+          </div>
           <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-xl border border-orange-200">
             <div className="text-2xl font-bold text-orange-700">{summary.inactive || 0}</div>
             <div className="text-sm text-orange-600">Inactive</div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Search
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Room ID, name, or host..."
-                  value={filters.search}
-                  onChange={(e) => updateFilters({ search: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
-                />
-              </div>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Status
-              </label>
-              <select
-                value={filters.status}
-                onChange={(e) => updateFilters({ status: e.target.value })}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
-              >
-                <option value="">All Challenges</option>
-                <option value="active">Active Only</option>
-                <option value="inactive">Inactive Only</option>
-              </select>
-            </div>
-
-            {/* Custom Name Filter */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Name Type
-              </label>
-              <select
-                value={filters.hasCustomName}
-                onChange={(e) => updateFilters({ hasCustomName: e.target.value })}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
-              >
-                <option value="">All Names</option>
-                <option value="true">Custom Names Only</option>
-                <option value="false">Original Names Only</option>
-              </select>
-            </div>
-
-            {/* Season Filter */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Season
-              </label>
-              <SeasonSelector 
-                onSeasonChange={(season) => updateFilters({ season_id: season?.id || '' })}
-                currentSeasonId={filters.season_id}
-                showAllOption={true}
-              />
-            </div>
-          </div>
-        </div>
+        {/* Enhanced Filters */}
+<div className="bg-white rounded-xl border border-neutral-200 p-6 mb-6">
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    
+    {/* Status Filter */}
+    <div>
+      <label className="block text-sm font-medium text-neutral-700 mb-2">
+        Status
+      </label>
+      <select
+        value={filters.status}
+        onChange={(e) => updateFilters({ status: e.target.value })}
+        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+      >
+        <option value="">All Challenges</option>
+        <option value="active">Active Only</option>
+        <option value="inactive">Inactive Only</option>
+      </select>
+    </div>
+    
+    {/* Custom Name Filter */}
+    <div>
+      <label className="block text-sm font-medium text-neutral-700 mb-2">
+        Name Type
+      </label>
+      <select
+        value={filters.hasCustomName}
+        onChange={(e) => updateFilters({ hasCustomName: e.target.value })}
+        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+      >
+        <option value="">All Names</option>
+        <option value="true">Custom Names Only</option>
+        <option value="false">Original Names Only</option>
+      </select>
+    </div>
+    
+    {/* Ruleset Filter */}
+    <div>
+      <label className="block text-sm font-medium text-neutral-700 mb-2">
+        Ruleset
+      </label>
+      <select
+        value={filters.hasRuleset}
+        onChange={(e) => updateFilters({ hasRuleset: e.target.value })}
+        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+      >
+        <option value="">All Challenges</option>
+        <option value="true">With Rulesets</option>
+        <option value="false">No Rulesets</option>
+      </select>
+    </div>
+    
+    {/* Season Filter - Now on the right */}
+    <div>
+      <label className="block text-sm font-medium text-neutral-700 mb-2">
+        Season
+      </label>
+      <SeasonSelector 
+        onSeasonChange={(season) => updateFilters({ season_id: season?.id || '' })}
+        currentSeasonId={filters.season_id}
+        showAllOption={true}
+      />
+    </div>
+  </div>
+</div>
 
         {/* Results */}
         {result && (
@@ -433,7 +475,7 @@ export default function AdminChallenges() {
               <Filter className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
               <p className="text-neutral-500">No challenges found matching your filters</p>
               <button 
-                onClick={() => updateFilters({ search: '', status: '', season_id: '', hasCustomName: '' })}
+                onClick={() => updateFilters({ search: '', status: '', season_id: '', hasCustomName: '', hasRuleset: '' })}
                 className="mt-2 text-primary-600 hover:text-primary-700 text-sm font-medium"
               >
                 Clear all filters
@@ -445,45 +487,20 @@ export default function AdminChallenges() {
                 <table className="w-full">
                   <thead className="bg-neutral-50">
                     <tr>
-                      <th className="px-6 py-3 text-left">
-                        <button 
-                          onClick={() => handleSort('room_id')}
-                          className="flex items-center gap-2 text-xs font-medium text-neutral-500 uppercase tracking-wider hover:text-neutral-700"
-                        >
-                          Room ID {getSortIcon('room_id')}
-                        </button>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Room ID
                       </th>
-                      <th className="px-6 py-3 text-left">
-                        <button 
-                          onClick={() => handleSort('name')}
-                          className="flex items-center gap-2 text-xs font-medium text-neutral-500 uppercase tracking-wider hover:text-neutral-700"
-                        >
-                          Challenge Name {getSortIcon('name')}
-                        </button>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Challenge Name
                       </th>
-                      <th className="px-6 py-3 text-left">
-                        <button 
-                          onClick={() => handleSort('is_active')}
-                          className="flex items-center gap-2 text-xs font-medium text-neutral-500 uppercase tracking-wider hover:text-neutral-700"
-                        >
-                          Status {getSortIcon('is_active')}
-                        </button>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Status
                       </th>
-                      <th className="px-6 py-3 text-left">
-                        <button 
-                          onClick={() => handleSort('participant_count')}
-                          className="flex items-center gap-2 text-xs font-medium text-neutral-500 uppercase tracking-wider hover:text-neutral-700"
-                        >
-                          Participants {getSortIcon('participant_count')}
-                        </button>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Participants
                       </th>
-                      <th className="px-6 py-3 text-left">
-                        <button 
-                          onClick={() => handleSort('updated_at')}
-                          className="flex items-center gap-2 text-xs font-medium text-neutral-500 uppercase tracking-wider hover:text-neutral-700"
-                        >
-                          Last Updated {getSortIcon('updated_at')}
-                        </button>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Date Ended
                       </th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Actions
@@ -494,6 +511,7 @@ export default function AdminChallenges() {
                     {challenges.map((challenge) => {
                       const isEditing = editingChallenge === challenge.room_id;
                       const isSaving = savingChanges.has(challenge.room_id);
+                      const rulesetName = generateRulesetDisplayName(challenge);
                       
                       return (
                         <tr key={challenge.id} className="hover:bg-neutral-50 transition-colors">
@@ -537,6 +555,13 @@ export default function AdminChallenges() {
                                         Custom
                                       </span>
                                     )}
+                                    {/* Ruleset indicator with generated name */}
+                                    {challenge.has_ruleset && rulesetName && (
+                                      <span className="ml-2 inline-flex items-center gap-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
+                                        <Crown className="w-3 h-3" />
+                                        {rulesetName}
+                                      </span>
+                                    )}
                                   </div>
                                   {challenge.custom_name && (
                                     <div className="text-sm text-neutral-500 mt-1">
@@ -570,13 +595,23 @@ export default function AdminChallenges() {
                           <td className="px-6 py-4 text-sm text-neutral-500">
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4 text-neutral-400" />
-                              {formatDate(challenge.updated_at)}
+                              {challenge.end_date ? formatDate(challenge.end_date) : 'Still active'}
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-center gap-2">
                               {!isEditing && (
                                 <>
+                                  {/* Ruleset Management Button */}
+                                  <button
+                                    onClick={() => handleManageRuleset(challenge)}
+                                    disabled={isSaving}
+                                    className="p-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 rounded-md transition-colors disabled:opacity-50"
+                                    title="Manage Ruleset"
+                                  >
+                                    <Target className="w-4 h-4" />
+                                  </button>
+                                  
                                   <button
                                     onClick={() => startEditing(challenge)}
                                     disabled={isSaving}
@@ -652,6 +687,18 @@ export default function AdminChallenges() {
             </>
           )}
         </div>
+
+        {/* Ruleset Manager Modal */}
+        {showRulesetManager && selectedChallengeForRuleset && (
+          <RulesetManager
+            challengeId={selectedChallengeForRuleset.id}
+            onClose={() => {
+              setShowRulesetManager(false);
+              setSelectedChallengeForRuleset(null);
+            }}
+            onSuccess={handleRulesetSuccess}
+          />
+        )}
       </div>
     </Layout>
   );
