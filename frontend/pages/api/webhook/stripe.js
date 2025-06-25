@@ -36,7 +36,14 @@ export default async function handler(req, res) {
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(event.data.object);
+        // Need to retrieve the full session object with expanded data
+        const fullSession = await stripe.checkout.sessions.retrieve(
+          event.data.object.id,
+          {
+            expand: ['subscription']
+          }
+        );
+        await handleCheckoutSessionCompleted(fullSession);
         break;
         
       case 'payment_intent.succeeded':
@@ -68,29 +75,60 @@ export default async function handler(req, res) {
 
 async function handleCheckoutSessionCompleted(session) {
   console.log('Checkout session completed:', session.id);
+  console.log('Session mode:', session.mode);
+  console.log('Payment intent:', session.payment_intent);
+  console.log('Subscription:', session.subscription);
   
   if (!supabaseAdmin) {
     console.error('Supabase admin client not available');
     return;
   }
 
-  // Only create a single record on successful payment (minimize DB writes)
+  // For subscriptions, we might need to wait a moment for the subscription to be ready
+  let subscriptionId = session.subscription;
+  
+  // If subscription is an object, extract the ID
+  if (subscriptionId && typeof subscriptionId === 'object' && subscriptionId.id) {
+    subscriptionId = subscriptionId.id;
+  }
+  
+  // If it's a subscription but we don't have the ID yet, try to retrieve it
+  if (session.mode === 'subscription' && !subscriptionId) {
+    console.log('Subscription ID not found, retrieving full session...');
+    try {
+      const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+        expand: ['subscription', 'payment_intent']
+      });
+      subscriptionId = fullSession.subscription?.id || fullSession.subscription;
+      console.log('Retrieved subscription ID:', subscriptionId);
+    } catch (error) {
+      console.error('Error retrieving full session:', error);
+    }
+  }
+
+  // Create the donation record
+  const donationData = {
+    user_id: session.metadata?.userId !== 'guest' ? parseInt(session.metadata.userId) : null,
+    amount: session.amount_total / 100,
+    currency: session.currency,
+    status: 'completed',
+    stripe_payment_intent_id: session.mode === 'payment' ? session.payment_intent : null,
+    stripe_subscription_id: session.mode === 'subscription' ? subscriptionId : null,
+    is_recurring: session.mode === 'subscription',
+    anonymous: session.metadata?.isAnonymous === 'true',
+    message: session.metadata?.message || null
+  };
+
+  console.log('Creating donation record:', donationData);
+
   const { error } = await supabaseAdmin
     .from('donations')
-    .insert({
-      user_id: session.metadata?.userId !== 'guest' ? parseInt(session.metadata.userId) : null,
-      amount: session.amount_total / 100,
-      currency: session.currency,
-      status: 'completed',
-      stripe_payment_intent_id: session.payment_intent,
-      stripe_subscription_id: session.subscription,
-      is_recurring: session.mode === 'subscription',
-      anonymous: session.metadata?.isAnonymous === 'true',
-      message: session.metadata?.message || null
-    });
+    .insert(donationData);
 
   if (error) {
     console.error('Error creating donation record:', error);
+  } else {
+    console.log('Successfully created donation record');
   }
 }
 
@@ -103,25 +141,8 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
 async function handleSubscriptionCreated(subscription) {
   console.log('Subscription created:', subscription.id);
   
-  if (!supabaseAdmin) return;
-
-  // Record the subscription
-  const { error } = await supabaseAdmin
-    .from('donations')
-    .insert({
-      user_id: subscription.metadata.userId !== 'guest' ? subscription.metadata.userId : null,
-      amount: subscription.items.data[0].price.unit_amount / 100,
-      currency: subscription.currency,
-      status: 'active',
-      stripe_subscription_id: subscription.id,
-      is_recurring: true,
-      anonymous: subscription.metadata.isAnonymous === 'true',
-      message: subscription.metadata.message || null
-    });
-
-  if (error) {
-    console.error('Error recording subscription:', error);
-  }
+  // Skip - we'll record the subscription in checkout.session.completed
+  // This prevents duplicate entries
 }
 
 async function handleSubscriptionDeleted(subscription) {
@@ -146,24 +167,31 @@ async function handleSubscriptionDeleted(subscription) {
 async function handleInvoicePaymentSucceeded(invoice) {
   console.log('Invoice payment succeeded:', invoice.id);
   
-  // This handles recurring subscription payments
-  if (invoice.subscription && supabaseAdmin) {
-    // Record the recurring payment
-    const { error } = await supabaseAdmin
-      .from('donations')
-      .insert({
-        user_id: invoice.metadata?.userId !== 'guest' ? invoice.metadata.userId : null,
-        amount: invoice.amount_paid / 100,
-        currency: invoice.currency,
-        status: 'completed',
-        stripe_subscription_id: invoice.subscription,
-        is_recurring: true,
-        anonymous: invoice.metadata?.isAnonymous === 'true',
-        message: 'Recurring monthly donation'
-      });
+  // Only record recurring payments after the first one
+  if (!invoice.subscription || !supabaseAdmin) return;
+  
+  // Check if this is the first invoice (subscription creation)
+  // Skip it because we already recorded it in checkout.session.completed
+  if (invoice.billing_reason === 'subscription_create') {
+    console.log('Skipping initial subscription invoice - already recorded');
+    return;
+  }
+  
+  // This is a recurring payment - record it
+  const { error } = await supabaseAdmin
+    .from('donations')
+    .insert({
+      user_id: invoice.metadata?.userId !== 'guest' ? parseInt(invoice.metadata.userId) : null,
+      amount: invoice.amount_paid / 100,
+      currency: invoice.currency,
+      status: 'completed',
+      stripe_subscription_id: invoice.subscription,
+      is_recurring: true,
+      anonymous: invoice.metadata?.isAnonymous === 'true',
+      message: 'Recurring monthly donation'
+    });
 
-    if (error) {
-      console.error('Error recording recurring payment:', error);
-    }
+  if (error) {
+    console.error('Error recording recurring payment:', error);
   }
 }
