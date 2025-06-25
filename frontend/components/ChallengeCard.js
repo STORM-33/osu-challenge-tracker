@@ -14,12 +14,35 @@ export default function ChallengeCard({
     });
   };
 
-  const getDaysRemaining = (endDate) => {
+  const getTimeRemaining = (endDate) => {
     if (!endDate) return null;
-    const end = new Date(endDate);
+    
+    // Force UTC interpretation by adding 'Z' if not present
+    const utcDateString = endDate.includes('Z') || endDate.includes('+') || endDate.includes('T') && endDate.length > 19 
+      ? endDate 
+      : endDate + 'Z';
+    
+    const end = new Date(utcDateString);
     const now = new Date();
-    const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-    return days > 0 ? days : 0;
+    
+    if (isNaN(end.getTime())) return null;
+    
+    const totalMs = end - now;
+    if (totalMs <= 0) return { expired: true };
+    
+    const days = Math.floor(totalMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((totalMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) {
+      return { days, label: days === 1 ? 'Day left' : 'Days left' };
+    } else if (hours > 0) {
+      return { hours, label: hours === 1 ? 'Hour left' : 'Hours left' };
+    } else if (minutes > 0) {
+      return { minutes, label: minutes === 1 ? 'Minute left' : 'Minutes left' };
+    } else {
+      return { expired: true };
+    }
   };
 
   const getDifficultyColor = (difficulty) => {
@@ -36,7 +59,7 @@ export default function ChallengeCard({
     return 'text-indigo-700 bg-indigo-100 border-indigo-200'; // Expert+ (Dark Blue)
   };
 
-  const daysRemaining = getDaysRemaining(challenge.end_date);
+  const timeRemaining = getTimeRemaining(challenge.end_date);
   
   // Display name: custom_name takes priority over name
   const displayName = challenge.custom_name || challenge.name;
@@ -275,21 +298,23 @@ export default function ChallengeCard({
             <p className="text-xs text-neutral-600 font-medium">Maps</p>
           </div>
           
-          {/* Days remaining*/}
+          {/* Time remaining with new precise display */}
           {config.showDays && (
             <div className="text-center">
               <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 ${size === 'large' ? 'w-12 h-12' : ''}`}>
                 <Calendar className={`${config.iconSize} text-green-600`} />
               </div>
-              {daysRemaining !== null && daysRemaining > 0 ? (
+              {timeRemaining && !timeRemaining.expired ? (
                 <>
-                  <p className={`${config.numberSize} font-bold text-neutral-800`}>{daysRemaining}</p>
-                  <p className="text-xs text-neutral-600 font-medium">Days left</p>
+                  <p className={`${config.numberSize} font-bold text-neutral-800`}>
+                    {timeRemaining.days || timeRemaining.hours || timeRemaining.minutes}
+                  </p>
+                  <p className="text-xs text-neutral-600 font-medium">{timeRemaining.label}</p>
                 </>
               ) : (
                 <>
-                  <p className={`${size === 'large' ? 'text-base' : 'text-sm'} font-bold ${daysRemaining === 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {daysRemaining === 0 ? 'Ended' : 'Active'}
+                  <p className={`${size === 'large' ? 'text-base' : 'text-sm'} font-bold ${timeRemaining?.expired ? 'text-red-600' : 'text-green-600'}`}>
+                    {timeRemaining?.expired ? 'Ended' : 'Active'}
                   </p>
                   <p className="text-xs text-neutral-600 font-medium">Status</p>
                 </>
