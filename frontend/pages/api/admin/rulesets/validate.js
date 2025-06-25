@@ -1,4 +1,3 @@
-// File: pages/api/admin/rulesets/validate.js
 import { withAPITracking } from '../../../middleware';
 import { withAdminAuth } from '../../../lib/auth-middleware';
 
@@ -16,9 +15,8 @@ async function handleValidateRuleset(req, res) {
   try {
     const { required_mods, ruleset_match_type, test_scores } = req.body;
 
-    // Validate the ruleset itself
+    // Validate the ruleset itself (removed name validation)
     const rulesetValidation = validateRulesetData({
-      ruleset_name: 'Test', // Dummy name for validation
       required_mods,
       ruleset_match_type
     });
@@ -74,7 +72,7 @@ async function handleValidateRuleset(req, res) {
   }
 }
 
-function validateRulesetData({ ruleset_name, required_mods, ruleset_match_type }) {
+function validateRulesetData({ required_mods, ruleset_match_type }) {
   const errors = [];
 
   // Validate match type

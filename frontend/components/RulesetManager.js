@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Save, X, Crown, AlertCircle, CheckCircle, Loader2, Target, Trophy, Settings2 } from 'lucide-react';
+import { Save, X, Crown, AlertCircle, CheckCircle, Loader2, Target, Trophy, Settings2, Eye } from 'lucide-react';
 import ModSelector from './ModSelector';
+import { generateRulesetName, generateRulesetDescription, previewRulesetName } from '../lib/ruleset-name-generator';
 
 export default function RulesetManager({ challengeId, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -8,13 +9,12 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
   const [challenge, setChallenge] = useState(null);
   const [winner, setWinner] = useState(null);
   const [formData, setFormData] = useState({
-    ruleset_name: '',
-    ruleset_description: '',
     required_mods: [],
     ruleset_match_type: 'exact'
   });
   const [errors, setErrors] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [namePreview, setNamePreview] = useState({ name: '', description: '', isValid: true, modCount: 0 });
 
   useEffect(() => {
     loadChallengeData();
@@ -24,14 +24,30 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
     // Check if form has changes from original data
     if (challenge) {
       const hasRulesetChanges = 
-        formData.ruleset_name !== (challenge.ruleset_name || '') ||
-        formData.ruleset_description !== (challenge.ruleset_description || '') ||
         formData.ruleset_match_type !== (challenge.ruleset_match_type || 'exact') ||
         JSON.stringify(formData.required_mods) !== JSON.stringify(challenge.required_mods || []);
       
       setHasChanges(hasRulesetChanges);
     }
   }, [formData, challenge]);
+
+  // Update name preview whenever form data changes
+  useEffect(() => {
+    if (formData.required_mods && formData.ruleset_match_type) {
+      try {
+        const preview = previewRulesetName(formData.required_mods, formData.ruleset_match_type);
+        setNamePreview(preview);
+      } catch (error) {
+        console.warn('Error generating name preview:', error);
+        setNamePreview({ 
+          name: 'Error generating name', 
+          description: 'Please check your mod selection', 
+          isValid: false, 
+          modCount: formData.required_mods?.length || 0 
+        });
+      }
+    }
+  }, [formData.required_mods, formData.ruleset_match_type]);
 
   const loadChallengeData = async () => {
     setLoading(true);
@@ -51,11 +67,9 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
       setChallenge(data.challenge);
       setWinner(data.winner);
 
-      // Initialize form with existing data
+      // Initialize form with existing data (removed name and description)
       if (data.challenge.has_ruleset) {
         setFormData({
-          ruleset_name: data.challenge.ruleset_name || '',
-          ruleset_description: data.challenge.ruleset_description || '',
           required_mods: data.challenge.required_mods || [],
           ruleset_match_type: data.challenge.ruleset_match_type || 'exact'
         });
@@ -74,16 +88,12 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
     setErrors([]);
 
     try {
-      // Validate form data
-      if (!formData.ruleset_name.trim()) {
-        throw new Error('Ruleset name is required');
-      }
-
+      // Validate form data (removed name validation)
       if (!formData.required_mods || formData.required_mods.length === 0) {
         throw new Error('At least one mod must be selected');
       }
 
-      // Save ruleset
+      // Save ruleset (removed name and description from payload)
       const response = await fetch(`/api/admin/rulesets/${challengeId}`, {
         method: 'POST',
         headers: {
@@ -221,6 +231,35 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
           </div>
         )}
 
+        {/* Name Preview Section */}
+        {formData.required_mods.length > 0 && (
+          <div className="mx-6 mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Eye className="w-5 h-5 text-blue-600" />
+              <h3 className="font-semibold text-blue-900">Ruleset Preview</h3>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-blue-800">Name:</span>
+                <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-sm font-mono">
+                  {namePreview.name}
+                </code>
+                {!namePreview.isValid && (
+                  <AlertCircle className="w-4 h-4 text-red-500" />
+                )}
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-sm font-medium text-blue-800">Description:</span>
+                <span className="text-sm text-blue-700">{namePreview.description}</span>
+              </div>
+              <div className="text-xs text-blue-600">
+                {namePreview.modCount} mod{namePreview.modCount !== 1 ? 's' : ''} selected • 
+                Match type: {formData.ruleset_match_type}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error Display */}
         {errors.length > 0 && (
           <div className="mx-6 mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -239,9 +278,9 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
         )}
 
         <div className="p-6 space-y-6">
-          {/* Basic Info */}
+          {/* Rule Type */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">Ruleset Information</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Ruleset Configuration</h3>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -252,8 +291,6 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
                 onChange={(e) => setFormData(prev => ({ ...prev, ruleset_match_type: e.target.value }))}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
-                <option value="exact">Exact Match - Players must have exactly these mods (no extras)</option>
-                <option value="at_least">At Least - Players must have at least these mods (extras allowed)</option>
                 <option value="any_of">Any Of - Players must have at least one of these mods (extras allowed)</option>
               </select>
             </div>
@@ -261,7 +298,6 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
 
           {/* Mod Selection */}
           <div className="space-y-4">
-            
             <ModSelector
               selectedMods={formData.required_mods}
               onChange={(mods) => setFormData(prev => ({ ...prev, required_mods: mods }))}

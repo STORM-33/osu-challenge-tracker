@@ -1,4 +1,3 @@
-// pages/api/admin/rulesets/[challengeId].js
 import { withAPITracking } from '../../../../middleware';
 import { supabaseAdmin } from '../../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../../lib/auth-middleware';
@@ -39,8 +38,6 @@ async function handleGetRuleset(req, res, challengeId) {
         name,
         custom_name,
         has_ruleset,
-        ruleset_name,
-        ruleset_description,
         required_mods,
         ruleset_match_type
       `)
@@ -103,16 +100,12 @@ async function handleGetRuleset(req, res, challengeId) {
 async function handleCreateOrUpdateRuleset(req, res, challengeId) {
   try {
     const { 
-      ruleset_name, 
-      ruleset_description, 
       required_mods, 
       ruleset_match_type 
     } = req.body;
 
-    // Validate input
+    // Validate input (removed name and description validation)
     const validation = validateRulesetData({
-      ruleset_name,
-      ruleset_description,
       required_mods,
       ruleset_match_type
     });
@@ -135,13 +128,11 @@ async function handleCreateOrUpdateRuleset(req, res, challengeId) {
       return res.status(404).json({ error: 'Challenge not found' });
     }
 
-    // Update challenge with ruleset
+    // Update challenge with ruleset (removed name and description)
     const { data: updatedChallenge, error: updateError } = await supabaseAdmin
       .from('challenges')
       .update({
         has_ruleset: true,
-        ruleset_name: ruleset_name.trim(),
-        ruleset_description: ruleset_description?.trim() || null,
         required_mods: required_mods || [],
         ruleset_match_type: ruleset_match_type || 'exact',
         updated_at: new Date().toISOString()
@@ -178,13 +169,11 @@ async function handleCreateOrUpdateRuleset(req, res, challengeId) {
 
 async function handleDeleteRuleset(req, res, challengeId) {
   try {
-    // Remove ruleset from challenge
+    // Remove ruleset from challenge (removed name and description)
     const { data: updatedChallenge, error: updateError } = await supabaseAdmin
       .from('challenges')
       .update({
         has_ruleset: false,
-        ruleset_name: null,
-        ruleset_description: null,
         required_mods: [],
         ruleset_match_type: 'exact',
         updated_at: new Date().toISOString()
@@ -215,15 +204,8 @@ async function handleDeleteRuleset(req, res, challengeId) {
   }
 }
 
-function validateRulesetData({ ruleset_name, ruleset_description, required_mods, ruleset_match_type }) {
+function validateRulesetData({ required_mods, ruleset_match_type }) {
   const errors = [];
-
-  // Validate ruleset name
-  if (!ruleset_name || typeof ruleset_name !== 'string' || ruleset_name.trim().length === 0) {
-    errors.push('Ruleset name is required');
-  } else if (ruleset_name.trim().length > 255) {
-    errors.push('Ruleset name must be 255 characters or less');
-  }
 
   // Validate match type
   if (!['exact', 'at_least', 'any_of'].includes(ruleset_match_type)) {

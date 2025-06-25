@@ -30,6 +30,32 @@ const getUTCTimestamp = (utcDateString) => {
   return new Date(utcString).getTime();
 }
 
+// Import the name generator directly
+import { generateRulesetName } from '../lib/ruleset-name-generator';
+
+// Helper function to generate ruleset names
+const generateRulesetDisplayName = (challenge) => {
+  if (!challenge.has_ruleset || !challenge.required_mods || challenge.required_mods.length === 0) {
+    return null;
+  }
+
+  try {
+    // Use the imported function directly
+    return generateRulesetName(
+      challenge.required_mods, 
+      challenge.ruleset_match_type || 'exact'
+    );
+  } catch (error) {
+    console.warn('Error generating ruleset name:', error);
+    
+    // Fallback: simple concatenation of mod acronyms
+    const modNames = challenge.required_mods.map(mod => mod.acronym).join('');
+    const prefix = challenge.ruleset_match_type === 'at_least' ? 'AtLeast:' : 
+                   challenge.ruleset_match_type === 'any_of' ? 'Any:' : '';
+    return `${prefix}${modNames}`;
+  }
+};
+
 export default function Admin() {
   const [roomId, setRoomId] = useState('');
   const [customName, setCustomName] = useState('');
@@ -649,6 +675,7 @@ export default function Admin() {
                     const lastUpdated = getUTCTimestamp(challenge.updated_at);
                     const isStale = lastUpdated && (Date.now() - lastUpdated) > 10 * 60 * 1000;
                     const needsUpdate = lastUpdated && (Date.now() - lastUpdated) > 5 * 60 * 1000;
+                    const rulesetName = generateRulesetDisplayName(challenge);
                     
                     return (
                       <div key={challenge.id} className="p-3 bg-white/80 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-colors">
@@ -660,11 +687,11 @@ export default function Admin() {
                                 {challenge.custom_name && (
                                   <span className="ml-2 text-xs text-purple-600 font-medium">(Custom)</span>
                                 )}
-                                {/* Ruleset indicator */}
-                                {challenge.has_ruleset && (
+                                {/* Ruleset indicator with generated name */}
+                                {challenge.has_ruleset && rulesetName && (
                                   <span className="ml-2 inline-flex items-center gap-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
                                     <Crown className="w-3 h-3" />
-                                    {challenge.ruleset_name}
+                                    {rulesetName}
                                   </span>
                                 )}
                               </h4>
@@ -748,6 +775,7 @@ export default function Admin() {
                 <p>• New challenges are automatically assigned to the current season (6-month cycles)</p>
                 <p>• Challenge data includes scores, rankings, and participant information</p>
                 <p>• Use "Manage Challenge Names" to edit names for all challenges (active + inactive)</p>
+                <p>• Ruleset names are auto-generated from selected mods and settings</p>
               </div>
             </div>
           </div>
