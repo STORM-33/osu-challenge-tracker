@@ -175,7 +175,7 @@ export default function AboutChallengers() {
                 
                 <div className="prose prose-lg max-w-none">
                   <p className="text-neutral-700">
-                    Three days before the end of each season, a special collage is created containing <strong>all maps from that season</strong>. This creates massive multi-map challenges!
+                    Three days before the end of each month, a special collage is created containing all Weekly maps from the current season. This creates massive multi-map challenges!
                   </p>
                   
                   <div className="bg-purple-50 rounded-xl p-6 my-6">
