@@ -47,7 +47,7 @@ const OSU_MODS = {
   'GR': { name: 'Grow', category: 'Fun', settings: ['start_scale'] },
   'SI': { name: 'Spin In', category: 'Fun', settings: [] },
   'TC': { name: 'Traceable', category: 'Fun', settings: [] },
-  'BR': { name: 'Barrel Roll', category: 'Fun', settings: ['roll_speed', 'direction'] },
+  'BR': { name: 'Barrel Roll', category: 'Fun', settings: ['spin_speed', 'direction'] },
   'DP': { name: 'Depth', category: 'Fun', settings: ['max_depth', 'show_approach_circles'] },
   'TR': { name: 'Transform', category: 'Fun', settings: [] },
   'WG': { name: 'Wiggle', category: 'Fun', settings: ['strength'] },
@@ -372,7 +372,7 @@ const SETTING_CONFIGS = {
   },
   
   // Barrel Roll
-  roll_speed: { 
+  spin_speed: { 
     type: 'range', 
     min: 0.02, 
     max: 12.0, 

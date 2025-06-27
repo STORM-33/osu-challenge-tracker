@@ -1,26 +1,23 @@
 import { withAPITracking } from '../../../middleware';
 import { supabase } from '../../../lib/supabase';
+import { handleAPIResponse, handleAPIError, validateRequest } from '../../../lib/api-utils';
+import syncManager from '../../../lib/sync-manager';
 
 async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
+    validateRequest(req, {
+      method: 'GET',
+      query: {
+        roomId: { required: true, pattern: /^\d+$/ }
+      }
+    });
+
     const { roomId } = req.query;
+    const roomIdNum = parseInt(roomId);
 
-    if (!roomId) {
-      return res.status(400).json({ error: 'Room ID is required' });
-    }
+    console.log(`📋 Fetching challenge details for room ${roomId}`);
 
-    // Validate roomId format
-    if (!/^\d+$/.test(roomId)) {
-      return res.status(400).json({ error: 'Invalid room ID format' });
-    }
-
-    console.log(`Fetching challenge details for room ${roomId}`);
-
-    // Get challenge with full details including ruleset information
+    // 1. IMMEDIATELY fetch existing data from database
     const { data: challenge, error } = await supabase
       .from('challenges')
       .select(`
@@ -63,25 +60,21 @@ async function handler(req, res) {
           )
         )
       `)
-      .eq('room_id', parseInt(roomId))
+      .eq('room_id', roomIdNum)
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Challenge not found' });
+        return handleAPIError(res, new Error('Challenge not found'));
       }
-      return res.status(500).json({ 
-        error: 'Failed to fetch challenge',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
+      throw error;
     }
 
     if (!challenge) {
-      return res.status(404).json({ error: 'Challenge not found' });
+      return handleAPIError(res, new Error('Challenge not found'));
     }
 
-    // Sort scores for each playlist by score descending
+    // 2. Sort scores for each playlist by score descending
     if (challenge.playlists) {
       challenge.playlists = challenge.playlists.map(playlist => ({
         ...playlist,
@@ -91,12 +84,11 @@ async function handler(req, res) {
       }));
     }
 
-    // Get ruleset winner information if challenge has ruleset
+    // 3. Get ruleset winner information if challenge has ruleset
     let rulesetWinner = null;
     let rulesetInfo = null;
 
     if (challenge.has_ruleset) {
-      // Prepare ruleset info for frontend
       rulesetInfo = {
         ruleset_name: challenge.ruleset_name,
         ruleset_description: challenge.ruleset_description,
@@ -104,7 +96,6 @@ async function handler(req, res) {
         ruleset_match_type: challenge.ruleset_match_type
       };
 
-      // Get current ruleset winner
       const { data: winnerData, error: winnerError } = await supabase
         .from('challenge_ruleset_winners')
         .select(`
@@ -147,21 +138,61 @@ async function handler(req, res) {
       }
     }
 
-    console.log(`Challenge found: ${challenge.name} with ${challenge.playlists?.length || 0} playlists${challenge.has_ruleset ? ` and ruleset "${challenge.ruleset_name}"` : ''}`);
+    // 4. Get sync status and metadata
+    const syncStatus = syncManager.getSyncStatus('challenge', roomId);
+    const stalenessCheck = await syncManager.checkStaleness('challenge', roomId);
+    const canSyncResult = await syncManager.canSync('challenge', roomId);
 
-    res.status(200).json({
-      success: true,
+    // 5. AUTO-TRIGGER background sync if data is stale and sync is available
+    let backgroundSyncTriggered = false;
+    if (challenge.is_active && stalenessCheck.isStale && canSyncResult.canSync) {
+      console.log(`🔄 Auto-triggering background sync for stale challenge ${roomId}`);
+      
+      try {
+        const queueResult = await syncManager.queueSync('challenge', roomId, { 
+          priority: 1 // Auto-triggered syncs get normal priority
+        });
+        
+        if (queueResult.success) {
+          backgroundSyncTriggered = true;
+          console.log(`✅ Background sync queued for challenge ${roomId} (job: ${queueResult.jobId})`);
+        }
+      } catch (syncError) {
+        console.warn(`⚠️ Failed to auto-trigger sync for challenge ${roomId}:`, syncError.message);
+      }
+    }
+
+    // 6. Prepare sync metadata for frontend
+    const syncMetadata = {
+      last_synced: stalenessCheck.lastUpdated,
+      is_stale: stalenessCheck.isStale,
+      time_since_update: stalenessCheck.timeSinceUpdate,
+      sync_in_progress: syncStatus.inProgress,
+      can_sync: canSyncResult.canSync,
+      sync_reason: canSyncResult.reason,
+      background_sync_triggered: backgroundSyncTriggered,
+      next_sync_available_in: canSyncResult.nextSyncIn || syncStatus.canSyncIn || 0,
+      estimated_sync_time: syncStatus.estimatedTimeRemaining || 30000,
+      job_id: syncStatus.jobId || null,
+      sync_stage: syncStatus.stage || null
+    };
+
+    console.log(`📋 Challenge ${roomId} loaded with ${challenge.playlists?.length || 0} playlists. Sync: ${syncMetadata.sync_in_progress ? 'in progress' : syncMetadata.is_stale ? 'stale' : 'fresh'}`);
+
+    // 7. Return immediate response with current data + sync metadata
+    return handleAPIResponse(res, {
       challenge,
       ruleset_info: rulesetInfo,
-      ruleset_winner: rulesetWinner
+      ruleset_winner: rulesetWinner,
+      sync_metadata: syncMetadata
+    }, {
+      cache: !challenge.is_active, // Only cache inactive challenges
+      cacheTime: challenge.is_active ? 0 : 300 // 5 minute cache for inactive
     });
 
   } catch (error) {
-    console.error('API error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error('Enhanced challenge detail API error:', error);
+    return handleAPIError(res, error);
   }
 }
 

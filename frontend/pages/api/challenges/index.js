@@ -3,6 +3,8 @@ import { supabase } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
 import { trackedFetch } from '../../../lib/api-tracker';
+import { handleAPIResponse, handleAPIError, validateRequest, getPaginationParams, paginatedResponse } from '../../../lib/api-utils';
+import syncManager from '../../../lib/sync-manager';
 import apiTracker from '../../../lib/api-tracker';
 
 async function handler(req, res) {
@@ -11,25 +13,38 @@ async function handler(req, res) {
   } else if (req.method === 'POST') {
     return withAdminAuth(handleCreateChallenge)(req, res);
   } else {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return handleAPIError(res, new Error('Method not allowed'));
   }
 }
 
 async function handleGetChallenges(req, res) {
   try {
+    validateRequest(req, {
+      method: 'GET',
+      query: {
+        active: { type: 'string', enum: ['true', 'false'] },
+        season_id: { type: 'number', min: 1 },
+        search: { type: 'string', maxLength: 100 },
+        sortBy: { type: 'string', enum: ['created_at', 'updated_at', 'name', 'participant_count', 'start_date'] },
+        sortOrder: { type: 'string', enum: ['asc', 'desc'] },
+        auto_sync: { type: 'string', enum: ['true', 'false'] } // New parameter for background sync
+      }
+    });
+
     const { 
       active,
       season_id,
-      limit = 50, 
-      offset = 0,
       search = '',
       sortBy = 'created_at',
-      sortOrder = 'desc'
+      sortOrder = 'desc',
+      auto_sync = 'true' // Enable auto-sync by default
     } = req.query;
 
-    const parsedLimit = Math.min(parseInt(limit) || 50, 100);
-    const parsedOffset = parseInt(offset) || 0;
+    const { limit, offset, page } = getPaginationParams(req, 100, 50);
 
+    console.log(`📋 Fetching challenges list (active: ${active}, auto_sync: ${auto_sync})`);
+
+    // 1. IMMEDIATELY fetch existing data from database
     let query = supabase
       .from('challenges')
       .select(`
@@ -55,6 +70,7 @@ async function handleGetChallenges(req, res) {
         )
       `, { count: 'exact' });
 
+    // Apply filters
     if (active === 'true') {
       query = query.eq('is_active', true);
     } else if (active === 'false') {
@@ -69,83 +85,143 @@ async function handleGetChallenges(req, res) {
       query = query.or(`name.ilike.%${search}%,custom_name.ilike.%${search}%,host.ilike.%${search}%`);
     }
 
-    const validSortFields = ['created_at', 'updated_at', 'name', 'participant_count', 'start_date'];
-    const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at';
+    // Apply sorting and pagination
     const ascending = sortOrder === 'asc';
-    
     query = query
-      .order(sortField, { ascending })
-      .range(parsedOffset, parsedOffset + parsedLimit - 1);
+      .order(sortBy, { ascending })
+      .range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('Database error:', error);
-      return res.status(500).json({ 
-        error: 'Failed to fetch challenges',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
+      throw error;
     }
 
     if (!data || data.length === 0) {
-      return res.status(200).json({
-        success: true,
-        challenges: [],
-        pagination: {
-          total: count || 0,
-          limit: parsedLimit,
-          offset: parsedOffset,
-          hasNext: false,
-          hasPrev: false,
-          totalPages: 0,
-          currentPage: 1
-        }
-      });
+      return paginatedResponse(res, [], count || 0, { limit, page });
     }
 
-    res.status(200).json({
-      success: true,
-      challenges: data,
-      pagination: {
-        total: count || 0,
-        limit: parsedLimit,
-        offset: parsedOffset,
-        hasNext: (parsedOffset + parsedLimit) < (count || 0),
-        hasPrev: parsedOffset > 0,
-        totalPages: Math.ceil((count || 0) / parsedLimit),
-        currentPage: Math.floor(parsedOffset / parsedLimit) + 1
+    // 2. Add sync metadata to each challenge
+    const challengesWithSyncInfo = await Promise.all(
+      data.map(async (challenge) => {
+        // Get sync status for this challenge
+        const syncStatus = syncManager.getSyncStatus('challenge', challenge.room_id.toString());
+        const stalenessCheck = await syncManager.checkStaleness('challenge', challenge.room_id.toString());
+        const canSyncResult = await syncManager.canSync('challenge', challenge.room_id.toString());
+
+        return {
+          ...challenge,
+          sync_metadata: {
+            last_synced: stalenessCheck.lastUpdated,
+            is_stale: stalenessCheck.isStale,
+            time_since_update: stalenessCheck.timeSinceUpdate,
+            sync_in_progress: syncStatus.inProgress,
+            can_sync: canSyncResult.canSync,
+            sync_reason: canSyncResult.reason,
+            next_sync_available_in: canSyncResult.nextSyncIn || syncStatus.canSyncIn || 0,
+            job_id: syncStatus.jobId || null
+          }
+        };
+      })
+    );
+
+    // 3. AUTO-TRIGGER background syncs for stale active challenges (if enabled)
+    const backgroundSyncResults = [];
+    if (auto_sync === 'true' && active === 'true') {
+      console.log(`🔄 Auto-sync enabled, checking ${challengesWithSyncInfo.length} active challenges`);
+      
+      // Find challenges that need syncing (limit to avoid overwhelming)
+      const staleChallenges = challengesWithSyncInfo
+        .filter(c => c.is_active && c.sync_metadata.is_stale && c.sync_metadata.can_sync)
+        .slice(0, 3); // Limit to 3 simultaneous background syncs
+
+      if (staleChallenges.length > 0) {
+        console.log(`🚀 Auto-triggering background sync for ${staleChallenges.length} stale challenges`);
+        
+        for (const challenge of staleChallenges) {
+          try {
+            const queueResult = await syncManager.queueSync('challenge', challenge.room_id.toString(), { 
+              priority: 2 // Auto-list syncs get higher priority than auto-detail syncs
+            });
+            
+            if (queueResult.success) {
+              backgroundSyncResults.push({
+                roomId: challenge.room_id,
+                jobId: queueResult.jobId,
+                triggered: true
+              });
+              
+              // Update the sync metadata to reflect the new job
+              const updatedChallenge = challengesWithSyncInfo.find(c => c.room_id === challenge.room_id);
+              if (updatedChallenge) {
+                updatedChallenge.sync_metadata.sync_in_progress = true;
+                updatedChallenge.sync_metadata.job_id = queueResult.jobId;
+                updatedChallenge.sync_metadata.background_sync_triggered = true;
+              }
+            } else {
+              backgroundSyncResults.push({
+                roomId: challenge.room_id,
+                triggered: false,
+                reason: queueResult.reason
+              });
+            }
+          } catch (syncError) {
+            console.warn(`⚠️ Failed to auto-trigger sync for challenge ${challenge.room_id}:`, syncError.message);
+            backgroundSyncResults.push({
+              roomId: challenge.room_id,
+              triggered: false,
+              error: syncError.message
+            });
+          }
+        }
       }
-    });
+    }
+
+    // 4. Prepare response with pagination and sync info
+    const responseData = {
+      challenges: challengesWithSyncInfo,
+      sync_summary: {
+        auto_sync_enabled: auto_sync === 'true',
+        background_syncs_triggered: backgroundSyncResults.filter(r => r.triggered).length,
+        total_stale: challengesWithSyncInfo.filter(c => c.sync_metadata?.is_stale).length,
+        total_syncing: challengesWithSyncInfo.filter(c => c.sync_metadata?.sync_in_progress).length,
+        sync_results: backgroundSyncResults
+      }
+    };
+
+    console.log(`📋 Challenges list loaded: ${challengesWithSyncInfo.length} challenges, ${backgroundSyncResults.filter(r => r.triggered).length} background syncs triggered`);
+
+    return paginatedResponse(res, responseData, count || 0, { limit, page });
 
   } catch (error) {
-    console.error('API error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error('Enhanced challenges list API error:', error);
+    return handleAPIError(res, error);
   }
 }
 
 async function handleCreateChallenge(req, res) {
   try {
+    validateRequest(req, {
+      method: 'POST',
+      body: {
+        roomId: { required: true, type: 'number' },
+        name: { type: 'string', maxLength: 500 },
+        custom_name: { type: 'string', maxLength: 255 }
+      }
+    });
+
     const { roomId, name, custom_name } = req.body;
 
-    if (!roomId) {
-      return res.status(400).json({ error: 'Room ID is required' });
-    }
-
-    if (!/^\d+$/.test(roomId)) {
-      return res.status(400).json({ error: 'Invalid room ID format' });
+    if (!/^\d+$/.test(roomId.toString())) {
+      throw new Error('Invalid room ID format');
     }
 
     const limitStatus = apiTracker.checkLimits();
     if (limitStatus === 'critical') {
-      return res.status(429).json({ 
-        error: 'API usage critical - temporarily limiting requests',
-        usage: apiTracker.getUsageStats().usage
-      });
+      return handleAPIError(res, new Error('API usage critical - temporarily limiting requests'));
     }
 
+    // Check if challenge already exists
     const { data: existingChallenge } = await supabase
       .from('challenges')
       .select('id, room_id, name, custom_name')
@@ -153,19 +229,15 @@ async function handleCreateChallenge(req, res) {
       .single();
 
     if (existingChallenge) {
-      return res.status(409).json({ 
-        error: 'Challenge already exists',
-        challenge: existingChallenge
-      });
+      return handleAPIError(res, new Error('Challenge already exists'));
     }
 
+    // Get current season
     let currentSeasonId = null;
     try {
       const seasonResponse = await trackedFetch(`${req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL}/api/seasons/current`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       }, 'internal-api');
 
       if (seasonResponse.ok) {
@@ -178,6 +250,7 @@ async function handleCreateChallenge(req, res) {
       console.warn('Could not fetch current season:', seasonError);
     }
 
+    // Create challenge in database
     const { data: challenge, error: createError } = await supabaseAdmin
       .from('challenges')
       .insert({
@@ -196,47 +269,52 @@ async function handleCreateChallenge(req, res) {
       .single();
 
     if (createError) {
-      console.error('Challenge creation error:', createError);
-      return res.status(500).json({ 
-        error: 'Failed to create challenge',
-        details: process.env.NODE_ENV === 'development' ? createError.message : undefined
-      });
+      throw createError;
     }
 
+    // Trigger initial sync in background
+    let backgroundSyncTriggered = false;
+    let syncJobId = null;
+    
     try {
-      const updateResponse = await trackedFetch(`${req.headers.origin}/api/update-challenge`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ roomId: roomId.toString() })
-      }, 'internal-api');
-
-      if (!updateResponse.ok) {
-        console.error('Failed to trigger challenge update');
+      const queueResult = await syncManager.queueSync('challenge', roomId.toString(), { 
+        priority: 5, // New challenges get highest priority
+        force: true // Force sync for new challenges
+      });
+      
+      if (queueResult.success) {
+        backgroundSyncTriggered = true;
+        syncJobId = queueResult.jobId;
+        console.log(`✅ Initial background sync queued for new challenge ${roomId} (job: ${syncJobId})`);
       }
-    } catch (updateError) {
-      console.error('Error triggering challenge update:', updateError);
+    } catch (syncError) {
+      console.warn(`⚠️ Failed to queue initial sync for new challenge ${roomId}:`, syncError.message);
     }
 
     const usageStats = apiTracker.getUsageStats();
 
-    res.status(201).json({
-      success: true,
-      challenge,
-      message: 'Challenge created successfully. Data will be updated shortly.',
+    return handleAPIResponse(res, {
+      challenge: {
+        ...challenge,
+        sync_metadata: {
+          background_sync_triggered: backgroundSyncTriggered,
+          job_id: syncJobId,
+          sync_in_progress: backgroundSyncTriggered,
+          is_new_challenge: true
+        }
+      },
+      message: backgroundSyncTriggered 
+        ? 'Challenge created successfully. Data is being fetched in the background.'
+        : 'Challenge created successfully. Please manually trigger sync to fetch data.',
       apiUsage: {
-        percentage: usageStats.usage.percentage,
-        remaining: usageStats.usage.remaining
+        percentage: usageStats.usage?.functions?.percentage || '0',
+        remaining: usageStats.usage?.functions?.remaining || 100000
       }
-    });
+    }, { status: 201 });
 
   } catch (error) {
     console.error('Create challenge error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return handleAPIError(res, error);
   }
 }
 

@@ -6,7 +6,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_KEY;
 if (!supabaseUrl || !serviceRoleKey) {
   console.error('Missing Supabase admin environment variables');
   console.error('SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing');
-  console.error('SUPABASE_SERVICE_ROLE_KEY:', serviceRoleKey ? 'Set' : 'Missing');
+  console.error('SUPABASE_SERVICE_KEY:', serviceRoleKey ? 'Set' : 'Missing');
   throw new Error('Missing Supabase admin environment variables');
 }
 

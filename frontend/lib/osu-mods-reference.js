@@ -43,7 +43,7 @@ const OSU_MODS = {
   'GR': { settings: ['start_scale'] }, // Grow (osu! only)
   'SI': { settings: [] }, // Spin In (osu! only)
   'TC': { settings: [] }, // Traceable (osu! only)
-  'BR': { settings: ['roll_speed', 'direction'] }, 
+  'BR': { settings: ['spin_speed', 'direction'] }, 
   'DP': { settings: ['max_depth', 'show_approach_circles'] }, // Depth (osu! only)
   'TR': { settings: [] }, // Transform (osu! only)
   'WG': { settings: ['strength'] }, // Wiggle (osu! only)

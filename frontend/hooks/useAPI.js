@@ -1,12 +1,10 @@
-// hooks/useAPI.js - Fixed to remove double tracking
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 
 const challengeUpdateCache = {};
 
-// Simplified fetcher that ONLY fetches - no tracking
-// Let middleware handle ALL the tracking to avoid duplicates
-const simpleFetcher = async (url) => {
+// Enhanced fetcher with sync metadata handling
+const smartFetcher = async (url) => {
   const res = await fetch(url);
   
   if (!res.ok) {
@@ -18,7 +16,6 @@ const simpleFetcher = async (url) => {
       error.message = data.error?.message || 'An error occurred';
       error.code = data.error?.code;
     } catch (e) {
-      // If we can't parse JSON, use status text
       error.message = res.statusText || 'An error occurred';
     }
     
@@ -39,7 +36,7 @@ export function useAPI(endpoint, options = {}) {
 
   const { data, error, mutate, isValidating } = useSWR(
     enabled ? endpoint : null,
-    simpleFetcher,
+    smartFetcher,
     {
       refreshInterval,
       revalidateOnFocus,
@@ -102,6 +99,264 @@ export function usePaginatedAPI(baseEndpoint, options = {}) {
   };
 }
 
+// Enhanced hook for challenge data with background sync capabilities
+export function useChallengeWithSync(roomId, options = {}) {
+  const { 
+    autoRefresh = true, 
+    pollInterval = 30000, // Poll every 30 seconds for sync updates
+    onSyncComplete = null 
+  } = options;
+
+  const [syncState, setSyncState] = useState({
+    isBackgroundSyncing: false,
+    lastSyncAttempt: null,
+    syncError: null,
+    jobId: null
+  });
+
+  const pollTimeoutRef = useRef(null);
+  const lastJobIdRef = useRef(null);
+
+  // Main data fetching
+  const { data, error, mutate, isValidating } = useSWR(
+    roomId ? `/api/challenges/${roomId}` : null,
+    smartFetcher,
+    {
+      revalidateOnFocus: false,
+      onSuccess: (newData) => {
+        if (newData?.sync_metadata) {
+          handleSyncMetadata(newData.sync_metadata);
+        }
+      }
+    }
+  );
+
+  // Handle sync metadata from API responses
+  const handleSyncMetadata = useCallback((syncMetadata) => {
+    setSyncState(prev => ({
+      ...prev,
+      isBackgroundSyncing: syncMetadata.sync_in_progress,
+      jobId: syncMetadata.job_id,
+      syncError: null
+    }));
+
+    // If sync just completed (job finished), refresh data
+    if (lastJobIdRef.current && !syncMetadata.job_id && lastJobIdRef.current !== syncMetadata.job_id) {
+      console.log('🔄 Background sync completed, refreshing data');
+      mutate();
+      if (onSyncComplete) {
+        onSyncComplete();
+      }
+    }
+
+    lastJobIdRef.current = syncMetadata.job_id;
+  }, [mutate, onSyncComplete]);
+
+  // Poll for sync status updates when background sync is active
+  useEffect(() => {
+    if (!syncState.isBackgroundSyncing || !syncState.jobId || !autoRefresh) {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    const pollSyncStatus = async () => {
+      try {
+        const response = await fetch(`/api/sync/status?type=challenge&id=${roomId}`);
+        if (response.ok) {
+          const statusData = await response.json();
+          const syncStatus = statusData.data?.sync_status;
+
+          if (syncStatus && !syncStatus.inProgress && syncState.isBackgroundSyncing) {
+            // Sync completed, refresh main data
+            console.log('🔄 Background sync detected as complete via polling, refreshing data');
+            setSyncState(prev => ({
+              ...prev,
+              isBackgroundSyncing: false,
+              jobId: null
+            }));
+            mutate();
+            if (onSyncComplete) {
+              onSyncComplete();
+            }
+          } else if (syncStatus?.inProgress) {
+            // Schedule next poll
+            pollTimeoutRef.current = setTimeout(pollSyncStatus, pollInterval);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to poll sync status:', error);
+        // Continue polling despite error
+        pollTimeoutRef.current = setTimeout(pollSyncStatus, pollInterval * 2);
+      }
+    };
+
+    // Start polling
+    pollTimeoutRef.current = setTimeout(pollSyncStatus, pollInterval);
+
+    return () => {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
+      }
+    };
+  }, [syncState.isBackgroundSyncing, syncState.jobId, roomId, autoRefresh, pollInterval, mutate, onSyncComplete]);
+
+  // Manual sync trigger
+  const triggerSync = useCallback(async (force = false) => {
+    if (!roomId) return { success: false, error: 'No room ID' };
+
+    setSyncState(prev => ({
+      ...prev,
+      lastSyncAttempt: Date.now(),
+      syncError: null
+    }));
+
+    try {
+      const response = await fetch('/api/sync/challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          roomId: parseInt(roomId), 
+          force,
+          priority: 3 // Manual syncs get high priority
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data.queued) {
+        setSyncState(prev => ({
+          ...prev,
+          isBackgroundSyncing: true,
+          jobId: result.data.jobId
+        }));
+
+        return {
+          success: true,
+          queued: true,
+          jobId: result.data.jobId,
+          message: result.data.message
+        };
+      } else {
+        return {
+          success: true,
+          queued: false,
+          reason: result.data.reason,
+          message: result.data.message
+        };
+      }
+    } catch (error) {
+      setSyncState(prev => ({
+        ...prev,
+        syncError: error.message
+      }));
+
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }, [roomId]);
+
+  const refresh = useCallback(() => {
+    return mutate();
+  }, [mutate]);
+
+  return {
+    // Main data
+    challenge: data?.challenge,
+    rulesetInfo: data?.ruleset_info,
+    rulesetWinner: data?.ruleset_winner,
+    syncMetadata: data?.sync_metadata,
+    
+    // Loading states
+    loading: !error && !data,
+    isValidating,
+    
+    // Sync states
+    isBackgroundSyncing: syncState.isBackgroundSyncing,
+    syncError: syncState.syncError,
+    lastSyncAttempt: syncState.lastSyncAttempt,
+    
+    // Actions
+    refresh,
+    triggerSync,
+    
+    // Error
+    error
+  };
+}
+
+// Enhanced hook for challenges list with background sync
+export function useChallengesWithSync(options = {}) {
+  const {
+    active = null,
+    seasonId = null,
+    autoSync = true,
+    refreshInterval = 60000, // Refresh every minute for lists
+    onSyncProgress = null
+  } = options;
+
+  // Build endpoint with parameters
+  const endpoint = useMemo(() => {
+    const params = new URLSearchParams();
+    if (active !== null) params.append('active', active.toString());
+    if (seasonId) params.append('season_id', seasonId.toString());
+    if (autoSync !== null) params.append('auto_sync', autoSync.toString());
+    
+    return `/api/challenges?${params.toString()}`;
+  }, [active, seasonId, autoSync]);
+
+  const [syncProgress, setSyncProgress] = useState({
+    totalSyncing: 0,
+    backgroundSyncsTriggered: 0,
+    lastUpdate: null
+  });
+
+  const { data, error, mutate, isValidating } = useSWR(
+    endpoint,
+    smartFetcher,
+    {
+      refreshInterval: autoSync ? refreshInterval : null,
+      revalidateOnFocus: false,
+      onSuccess: (newData) => {
+        if (newData?.sync_summary) {
+          const progress = {
+            totalSyncing: newData.sync_summary.total_syncing || 0,
+            backgroundSyncsTriggered: newData.sync_summary.background_syncs_triggered || 0,
+            lastUpdate: Date.now()
+          };
+          
+          setSyncProgress(progress);
+          
+          if (onSyncProgress) {
+            onSyncProgress(progress);
+          }
+        }
+      }
+    }
+  );
+
+  const refresh = useCallback(() => {
+    return mutate();
+  }, [mutate]);
+
+  return {
+    challenges: data?.challenges || [],
+    syncSummary: data?.sync_summary,
+    syncProgress,
+    pagination: data?.pagination,
+    loading: !error && !data,
+    isValidating,
+    refresh,
+    error
+  };
+}
+
+// Legacy compatibility exports
 export function useAPIForm(endpoint, options = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -112,7 +367,6 @@ export function useAPIForm(endpoint, options = {}) {
     setError(null);
     
     try {
-      // Let middleware handle all tracking - no client-side tracking
       const response = await fetch(endpoint, {
         method: options.method || 'POST',
         headers: {
@@ -163,295 +417,16 @@ export function useAPIForm(endpoint, options = {}) {
   };
 }
 
-export function useRealtimeAPI(endpoint, options = {}) {
-  const { data, error, loading, refresh } = useAPI(endpoint, {
-    ...options,
-    refreshInterval: options.refreshInterval || 60000
-  });
-
-  useEffect(() => {
-    if (!options.websocket) return;
-
-    const ws = new WebSocket(options.websocket);
-    
-    ws.onmessage = (event) => {
-      const update = JSON.parse(event.data);
-      if (update.type === 'refresh') {
-        refresh();
-      }
-    };
-
-    return () => ws.close();
-  }, [options.websocket, refresh]);
-
-  return { data, error, loading, refresh };
-}
-
-// Better challenge update management with rate limiting
-export function useChallengeAutoUpdate() {
-  const instanceId = Math.random().toString(36).substr(2, 9);
-  console.log('🏭 NEW useChallengeAutoUpdate instance:', instanceId);
+// Helper to use memo in the hook
+function useMemo(factory, deps) {
+  const ref = useRef();
   
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [lastUpdateCheck, setLastUpdateCheck] = useState(null);
-  const [updateStats, setUpdateStats] = useState({
-    successCount: 0,
-    errorCount: 0,
-    lastError: null
-  });
-
-  // rate limiting and caching
-  const shouldUpdateChallenge = useCallback((challenge) => {
-    if (!challenge || !challenge.is_active) return false;
-    
-    const now = Date.now();
-    const lastUpdated = Math.max(
-      challenge.updated_at ? new Date(challenge.updated_at).getTime() : 0,
-      challengeUpdateCache[challenge.room_id] || 0
-    );
-    
-    // More conservative update frequency: 10 minutes instead of 5
-    const updateThreshold = 10 * 60 * 1000;
-    const needsUpdate = now - lastUpdated > updateThreshold;
-    
-    console.log(`🔍 Challenge ${challenge.room_id}: Last updated ${Math.floor((now - lastUpdated) / 60000)} minutes ago, needs update: ${needsUpdate}`);
-    
-    return needsUpdate;
-  }, []);
-
-  const updateChallenge = useCallback(async (roomId) => {
-    const now = Date.now();
-    
-    // Check rate limiting
-    if (challengeUpdateCache[roomId] && now - challengeUpdateCache[roomId] < 10 * 60 * 1000) {
-      console.log(`♻️ Challenge ${roomId} updated recently, skipping`);
-      return { success: true, skipped: true, reason: 'Recently updated' };
-    }
-    
-    if (isUpdating) {
-      return { success: false, skipped: true, reason: 'Already updating' };
-    }
-    
-    setIsUpdating(true);
-    
-    try {
-      console.log(`🔄 Auto-updating challenge ${roomId}`);
-      
-      const response = await fetch('/api/update-challenge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log(`✅ Challenge ${roomId} updated successfully`);
-        challengeUpdateCache[roomId] = Date.now();
-        
-        setUpdateStats(prev => ({
-          ...prev,
-          successCount: prev.successCount + 1,
-          lastError: null
-        }));
-      } else {
-        console.warn(`⚠️ Challenge ${roomId} update failed:`, result.error);
-        
-        setUpdateStats(prev => ({
-          ...prev,
-          errorCount: prev.errorCount + 1,
-          lastError: result.error
-        }));
-      }
-      
-      return result;
-    } catch (error) {
-      console.error(`❌ Error updating challenge ${roomId}:`, error);
-      
-      setUpdateStats(prev => ({
-        ...prev,
-        errorCount: prev.errorCount + 1,
-        lastError: error.message
-      }));
-      
-      return { success: false, error: error.message };
-    } finally {
-      setIsUpdating(false);
-      setLastUpdateCheck(Date.now());
-    }
-  }, [isUpdating]);
-
-  const smartUpdateChallenge = useCallback(async (challenge, force = false) => {
-    if (!force && !shouldUpdateChallenge(challenge)) {
-      return { success: true, skipped: true, reason: 'Recently updated' };
-    }
-    
-    return updateChallenge(challenge.room_id);
-  }, [shouldUpdateChallenge, updateChallenge]);
-
-  const updateActiveChallenges = useCallback(async (challenges, options = {}) => {
-    const { force = false, maxUpdates = 3 } = options; // Reduced from 5 to 3
-    
-    if (isUpdating) return { success: false, error: 'Already updating' };
-    
-    const challengesToUpdate = challenges
-      .filter(c => c.is_active)
-      .map(c => ({
-        ...c,
-        lastUpdated: Math.max(
-          c.updated_at ? new Date(c.updated_at).getTime() : 0,
-          challengeUpdateCache[c.room_id] || 0
-        )
-      }))
-      .filter(c => force || shouldUpdateChallenge(c))
-      .sort((a, b) => a.lastUpdated - b.lastUpdated)
-      .slice(0, maxUpdates);
-    
-    if (challengesToUpdate.length === 0) {
-      console.log('📝 No active challenges need updating');
-      return { 
-        success: true, 
-        total: challenges.length,
-        updated: 0, 
-        skipped: challenges.filter(c => c.is_active).length,
-        message: 'All challenges up to date'
-      };
-    }
-
-    console.log(`📊 Auto-updating ${challengesToUpdate.length} of ${challenges.length} challenges`);
-    setIsUpdating(true);
-    
-    const results = [];
-    let updateCount = 0;
-    
-    try {
-      for (const challenge of challengesToUpdate) {
-        const result = await updateChallenge(challenge.room_id);
-        results.push({ roomId: challenge.room_id, ...result });
-        
-        if (result.success && !result.skipped) {
-          updateCount++;
-        }
-        
-        // Longer delays between updates to be more API-friendly
-        if (challengesToUpdate.length > 1) {
-          await new Promise(resolve => setTimeout(resolve, 2500)); // Increased from 1500ms
-        }
-      }
-      
-      return {
-        success: true,
-        total: challenges.length,
-        updated: updateCount,
-        skipped: challenges.length - challengesToUpdate.length,
-        results,
-        stats: updateStats
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-        results,
-        stats: updateStats
-      };
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [isUpdating, shouldUpdateChallenge, updateChallenge, updateStats]);
-
-  // Cleanup function to clear cache
-  const clearUpdateCache = useCallback(() => {
-    Object.keys(challengeUpdateCache).forEach(key => {
-      delete challengeUpdateCache[key];
-    });
-    console.log('🧹 Cleared challenge update cache');
-  }, []);
-
-  return {
-    updateChallenge,
-    smartUpdateChallenge,
-    updateActiveChallenges,
-    shouldUpdateChallenge,
-    isUpdating,
-    lastUpdateCheck,
-    updateStats,
-    clearUpdateCache
-  };
-}
-
-export function useAutoUpdateActiveChallenges(challenges, options = {}) {
-  const { autoUpdate = true, delay = 5000, maxUpdates = 2, loading = false } = options; // Reduced maxUpdates
-  const { updateActiveChallenges, isUpdating } = useChallengeAutoUpdate();
-  const [hasTriggered, setHasTriggered] = useState(false);
-
-  console.log('🔍 useAutoUpdateActiveChallenges called with:', {
-    challengesCount: challenges?.length,
-    autoUpdate,
-    hasTriggered,
-    challenges: challenges?.map(c => ({ 
-      id: c.room_id, 
-      updated_at: c.updated_at, 
-      last_cached: challengeUpdateCache[c.room_id] || 'never',
-      is_active: c.is_active 
-    }))
-  });
-
-  useEffect(() => {
-    if (!challenges || challenges.length === 0 || !autoUpdate || hasTriggered || loading) {
-      console.log('🚫 Skipping auto-update because:', {
-        noChallenges: !challenges || challenges.length === 0,
-        autoUpdateOff: !autoUpdate,
-        alreadyTriggered: hasTriggered,
-        stillLoading: loading
-      });
-      return;
-    }
-
-    console.log('⏰ Setting timer for auto-update...');
-    
-    const timer = setTimeout(() => {
-      console.log('🚀 Timer triggered, calling updateActiveChallenges...');
-      updateActiveChallenges(challenges, { maxUpdates }).then(() => {
-        setHasTriggered(true);
-      });
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [challenges, autoUpdate, delay, maxUpdates, updateActiveChallenges, hasTriggered, loading]);
-
-  useEffect(() => {
-    setHasTriggered(false);
-  }, [challenges?.length]);
-
-  return { isUpdating };
-}
-
-export function useAutoUpdateChallenge(challenge, options = {}) {
-  const { autoUpdate = true, delay = 3000, onUpdate } = options; // Increased delay
-  const { smartUpdateChallenge, isUpdating } = useChallengeAutoUpdate();
-
-  useEffect(() => {
-    if (!challenge || !autoUpdate || !challenge.room_id) return;
-
-    const lastUpdated = challengeUpdateCache[challenge.room_id] || 0;
-    const shouldUpdate = Date.now() - lastUpdated > 10 * 60 * 1000; // 10 minutes
-
-    if (!shouldUpdate) {
-      console.log(`⏭️ Skipping auto-update for ${challenge.room_id}, recently updated`);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      const result = await smartUpdateChallenge(challenge);
-      
-      if (result.success && !result.skipped && onUpdate) {
-        console.log('🔄 Calling onUpdate callback to refresh UI...');
-        onUpdate(result);
-      }
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [challenge, autoUpdate, delay, smartUpdateChallenge, onUpdate]);
-
-  return { isUpdating };
+  if (!ref.current || deps.some((dep, i) => dep !== ref.current.deps[i])) {
+    ref.current = {
+      value: factory(),
+      deps
+    };
+  }
+  
+  return ref.current.value;
 }

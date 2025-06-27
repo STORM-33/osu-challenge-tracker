@@ -1,3 +1,4 @@
+// pages/challenges/[roomId].js - Updated to use background sync
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -6,14 +7,10 @@ import Layout from '../../components/Layout';
 import ScoreTable from '../../components/ScoreTable';
 import CombinedLeaderboard from '../../components/CombinedLeaderboard';
 import { challengeQueries } from '../../lib/supabase';
-import { ArrowLeft, Loader2, Users, Calendar, Music, Star, Trophy } from 'lucide-react';
-import { shouldUpdateChallenge, markChallengeUpdated } from '../../lib/global-update-tracker';
+import { ArrowLeft, Loader2, Users, Calendar, Music, Star, Trophy, RefreshCw, CheckCircle, Clock } from 'lucide-react';
 import { Crown, Target } from 'lucide-react';
 import { generateRulesetName, generateRulesetDescription } from '../../lib/ruleset-name-generator';
-
-
-const fetcher = (roomId) => challengeQueries.getChallengeDetails(roomId);
-const leaderboardFetcher = ([_, challengeId]) => challengeQueries.getChallengeLeaderboard(challengeId);
+import { useChallengeWithSync } from '../../hooks/useAPI';
 
 // Constants
 const UPDATE_THRESHOLD = 4 * 60 * 1000; // 4 minutes in milliseconds
@@ -22,7 +19,6 @@ const UPDATE_THRESHOLD = 4 * 60 * 1000; // 4 minutes in milliseconds
 const formatUTCDateTime = (utcDateString) => {
   if (!utcDateString) return 'N/A';
   
-  // Ensure the string is treated as UTC by appending 'Z' if not present
   const utcString = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
   const date = new Date(utcString);
   
@@ -45,40 +41,44 @@ const getUTCTimestamp = (utcDateString) => {
 
 // Difficulty color function matching osu! colors
 const getDifficultyColor = (difficulty) => {
-  // Use osu!'s difficulty ranges but map to Tailwind classes
-  if (difficulty < 1.25) return 'text-blue-700 bg-blue-100 border-blue-200'; // Easy (Blue)
-  if (difficulty < 2.0) return 'text-cyan-700 bg-cyan-100 border-cyan-200'; // Easy-Normal (Cyan)
-  if (difficulty < 2.5) return 'text-green-700 bg-green-100 border-green-200'; // Normal (Green)
-  if (difficulty < 3.3) return 'text-lime-700 bg-lime-100 border-lime-200'; // Normal-Hard (Lime)
-  if (difficulty < 4.2) return 'text-yellow-700 bg-yellow-100 border-yellow-200'; // Hard (Yellow)
-  if (difficulty < 4.9) return 'text-orange-700 bg-orange-100 border-orange-200'; // Hard-Insane (Orange)
-  if (difficulty < 5.8) return 'text-red-700 bg-red-100 border-red-200'; // Insane (Red)
-  if (difficulty < 6.7) return 'text-pink-700 bg-pink-100 border-pink-200'; // Insane-Expert (Pink/Purple)
-  if (difficulty < 7.7) return 'text-purple-700 bg-purple-100 border-purple-200'; // Expert (Purple)
-  return 'text-indigo-700 bg-indigo-100 border-indigo-200'; // Expert+ (Dark Blue)
+  if (difficulty < 1.25) return 'text-blue-700 bg-blue-100 border-blue-200';
+  if (difficulty < 2.0) return 'text-cyan-700 bg-cyan-100 border-cyan-200';
+  if (difficulty < 2.5) return 'text-green-700 bg-green-100 border-green-200';
+  if (difficulty < 3.3) return 'text-lime-700 bg-lime-100 border-lime-200';
+  if (difficulty < 4.2) return 'text-yellow-700 bg-yellow-100 border-yellow-200';
+  if (difficulty < 4.9) return 'text-orange-700 bg-orange-100 border-orange-200';
+  if (difficulty < 5.8) return 'text-red-700 bg-red-100 border-red-200';
+  if (difficulty < 6.7) return 'text-pink-700 bg-pink-100 border-pink-200';
+  if (difficulty < 7.7) return 'text-purple-700 bg-purple-100 border-purple-200';
+  return 'text-indigo-700 bg-indigo-100 border-indigo-200';
 };
 
 export default function ChallengeDetail() {
   const router = useRouter();
   const { roomId } = router.query;
   
-  // Smart refresh states
-  const [isUpdatingChallenge, setIsUpdatingChallenge] = useState(false);
-  const [updateComplete, setUpdateComplete] = useState(false);
-  
-  const { data: challenge, error, isLoading, mutate } = useSWR(
-    roomId ? ['challenge', roomId] : null,
-    () => fetcher(roomId),
-    {
-      revalidateOnFocus: false,
-      onSuccess: (data) => {
-        // After getting data from Supabase, check if we need to update from osu! API
-        if (data && data.is_active) {
-          checkAndUpdateIfStale(data);
-        }
-      }
+  // Use the enhanced hook with background sync
+  const {
+    challenge,
+    rulesetInfo,
+    rulesetWinner,
+    syncMetadata,
+    loading,
+    error,
+    isBackgroundSyncing,
+    syncError,
+    refresh,
+    triggerSync
+  } = useChallengeWithSync(roomId, {
+    autoRefresh: true,
+    onSyncComplete: () => {
+      console.log('✅ Background sync completed, data refreshed');
     }
-  );
+  });
+
+  // State for manual sync
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+  const [showSyncSuccess, setShowSyncSuccess] = useState(false);
 
   // Fetch combined leaderboard when we have a challenge with multiple maps that have scores
   const shouldShowCombinedLeaderboard = challenge && challenge.playlists && 
@@ -86,71 +86,36 @@ export default function ChallengeDetail() {
 
   const { data: combinedLeaderboard, isLoading: leaderboardLoading } = useSWR(
     shouldShowCombinedLeaderboard ? ['leaderboard', challenge.id] : null,
-    leaderboardFetcher,
-    {
-      revalidateOnFocus: false,
-    }
+    () => challengeQueries.getChallengeLeaderboard(challenge.id),
+    { revalidateOnFocus: false }
   );
 
-  // Check if challenge data needs updating from osu! API
-  const checkAndUpdateIfStale = async (challengeData) => {
-  if (!challengeData || !challengeData.is_active || isUpdatingChallenge) {
-    return;
-  }
-
-  if (shouldUpdateChallenge(challengeData)) {
-    console.log(`🔄 Challenge needs osu! API update (global check)`);
-    await updateChallengeFromOsuAPI(challengeData.room_id);
-  } else {
-    console.log(`✅ Challenge is up to date (global check)`);
-  }
-};
-
-  // Update challenge data from osu! API
-  const updateChallengeFromOsuAPI = async (roomId) => {
+  // Manual sync handler
+  const handleManualSync = async (force = false) => {
+    setIsManualSyncing(true);
+    
     try {
-      setIsUpdatingChallenge(true);
+      const result = await triggerSync(force);
       
-      console.log(`🚀 Calling osu! API to update challenge ${roomId}...`);
-      
-      const response = await fetch('/api/update-challenge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId })
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        console.log(`✅ Challenge ${roomId} updated successfully from osu! API`);
-        
-        // Mark as updated globally
-        markChallengeUpdated(roomId);
-        
-        // Show success indicator
-        setUpdateComplete(true);
-        setTimeout(() => setUpdateComplete(false), 3000);
-        
-        // Refresh the data from Supabase
-        await mutate();
-      } else {
-        console.error(`❌ Failed to update challenge ${roomId}:`, result.error);
+      if (result.success && result.queued) {
+        setShowSyncSuccess(true);
+        setTimeout(() => setShowSyncSuccess(false), 3000);
       }
     } catch (error) {
-      console.error(`❌ Error updating challenge ${roomId}:`, error);
+      console.error('Manual sync failed:', error);
     } finally {
-      setIsUpdatingChallenge(false);
+      setIsManualSyncing(false);
     }
   };
 
-  const RulesetNote = ({ challenge }) => {
-    if (!challenge?.has_ruleset || !challenge?.required_mods) {
+  const RulesetNote = ({ challenge, rulesetInfo }) => {
+    if (!challenge?.has_ruleset || !rulesetInfo?.required_mods) {
       return null;
     }
 
     const getRulesetName = () => {
       try {
-        return generateRulesetName(challenge.required_mods, challenge.ruleset_match_type || 'exact');
+        return generateRulesetName(rulesetInfo.required_mods, rulesetInfo.ruleset_match_type || 'exact');
       } catch (error) {
         console.warn('Error generating ruleset name:', error);
         return 'Custom Ruleset';
@@ -159,7 +124,7 @@ export default function ChallengeDetail() {
 
     const getRulesetDescription = () => {
       try {
-        return generateRulesetDescription(challenge.required_mods, challenge.ruleset_match_type || 'exact');
+        return generateRulesetDescription(rulesetInfo.required_mods, rulesetInfo.ruleset_match_type || 'exact');
       } catch (error) {
         console.warn('Error generating ruleset description:', error);
         return 'Custom ruleset is active';
@@ -181,10 +146,47 @@ export default function ChallengeDetail() {
     );
   };
 
+  // Format sync status for display
+  const getSyncStatusDisplay = () => {
+    if (!syncMetadata) return null;
 
-  // Check if data appears stale (for UI indicator)
-  const isDataStale = challenge && challenge.updated_at && challenge.is_active &&
-    (Date.now() - getUTCTimestamp(challenge.updated_at)) > UPDATE_THRESHOLD;
+    if (isBackgroundSyncing) {
+      return {
+        type: 'syncing',
+        message: 'Fetching latest scores from osu!...',
+        color: 'blue'
+      };
+    }
+
+    if (showSyncSuccess) {
+      return {
+        type: 'success',
+        message: 'Challenge updated with latest data!',
+        color: 'green'
+      };
+    }
+
+    if (syncMetadata.background_sync_triggered) {
+      return {
+        type: 'triggered',
+        message: 'Background sync started - data will update automatically',
+        color: 'blue'
+      };
+    }
+
+    if (syncMetadata.is_stale && challenge?.is_active) {
+      const ageMinutes = Math.floor(syncMetadata.time_since_update / 60000);
+      return {
+        type: 'stale',
+        message: `Data is ${ageMinutes} minutes old - consider refreshing`,
+        color: 'yellow'
+      };
+    }
+
+    return null;
+  };
+
+  const syncStatus = getSyncStatusDisplay();
 
   if (!roomId) return null;
 
@@ -200,45 +202,92 @@ export default function ChallengeDetail() {
           Back to challenges
         </Link>
 
-        {/* Update status indicators */}
-        {isUpdatingChallenge && (
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
-              <div>
-                <p className="text-blue-800 font-medium">🔄 Fetching latest scores from osu!...</p>
-                <p className="text-blue-600 text-sm">Getting fresh challenge data</p>
+        {/* Sync status indicators */}
+        {syncStatus && (
+          <div className={`border p-4 rounded-lg mb-6 ${
+            syncStatus.color === 'blue' ? 'bg-blue-50 border-blue-200' :
+            syncStatus.color === 'green' ? 'bg-green-50 border-green-200' :
+            syncStatus.color === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
+            'bg-gray-50 border-gray-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                {syncStatus.type === 'syncing' ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                ) : syncStatus.type === 'success' ? (
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
+                ) : syncStatus.type === 'stale' ? (
+                  <Clock className="w-5 h-5 text-yellow-600 mr-3" />
+                ) : (
+                  <RefreshCw className="w-5 h-5 text-blue-600 mr-3" />
+                )}
+                <div>
+                  <p className={`font-medium ${
+                    syncStatus.color === 'blue' ? 'text-blue-800' :
+                    syncStatus.color === 'green' ? 'text-green-800' :
+                    syncStatus.color === 'yellow' ? 'text-yellow-800' :
+                    'text-gray-800'
+                  }`}>
+                    {syncStatus.message}
+                  </p>
+                  {syncMetadata?.sync_stage && (
+                    <p className={`text-sm ${
+                      syncStatus.color === 'blue' ? 'text-blue-600' :
+                      syncStatus.color === 'green' ? 'text-green-600' :
+                      syncStatus.color === 'yellow' ? 'text-yellow-600' :
+                      'text-gray-600'
+                    }`}>
+                      Stage: {syncMetadata.sync_stage}
+                    </p>
+                  )}
+                </div>
               </div>
+              
+              {/* Manual sync button */}
+              {challenge?.is_active && !isBackgroundSyncing && (
+                <button
+                  onClick={() => handleManualSync(false)}
+                  disabled={isManualSyncing || syncMetadata?.next_sync_available_in > 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                >
+                  {isManualSyncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Refresh Data
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         )}
 
-        {updateComplete && (
-          <div className="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
-            <div className="flex items-center">
-              <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <p className="text-green-800 font-medium">✅ Challenge updated with latest data!</p>
-            </div>
-          </div>
-        )}
-
-        {isLoading ? (
+        {loading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
           </div>
         ) : error || !challenge ? (
           <div className="glass-card rounded-2xl p-12 text-center">
             <p className="text-red-600 mb-4">Failed to load challenge</p>
-            <Link 
-              href="/"
-              className="btn-primary inline-block"
-            >
-              Back to challenges
-            </Link>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={refresh}
+                className="btn-primary"
+              >
+                Try Again
+              </button>
+              <Link 
+                href="/"
+                className="btn-secondary"
+              >
+                Back to challenges
+              </Link>
+            </div>
           </div>
         ) : (
           <>
@@ -246,7 +295,14 @@ export default function ChallengeDetail() {
             <div className="glass-card rounded-2xl p-8 mb-8">
               <div className="mb-6">
                 <div className="flex justify-between items-start mb-3">
-                  <h1 className="text-4xl font-bold text-neutral-800">{challenge.name}</h1>
+                  <h1 className="text-4xl font-bold text-neutral-800">
+                    {challenge.custom_name || challenge.name}
+                  </h1>
+                  {challenge.custom_name && (
+                    <span className="text-sm text-purple-600 font-medium bg-purple-100 px-2 py-1 rounded-full">
+                      Custom Name
+                    </span>
+                  )}
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-6 text-neutral-600">
@@ -291,17 +347,26 @@ export default function ChallengeDetail() {
                     </span>
                   </div>
                   
-                  <div className="text-xs text-gray-500">
-                    Last updated: {formatUTCDateTime(challenge.updated_at)}
-                    {isDataStale && !isUpdatingChallenge && (
-                      <span className="text-yellow-600 ml-2">⚠️ Data may be outdated</span>
+                  <div className="text-xs text-gray-500 flex items-center gap-4">
+                    <span>
+                      Last updated: {formatUTCDateTime(challenge.updated_at)}
+                    </span>
+                    {syncMetadata?.is_stale && challenge.is_active && (
+                      <span className="text-yellow-600 font-medium">
+                        ⚠️ Data may be outdated
+                      </span>
+                    )}
+                    {syncError && (
+                      <span className="text-red-600 font-medium">
+                        ❌ Sync error: {syncError}
+                      </span>
                     )}
                   </div>
                 </div>
               </div>
             </div>
 
-            <RulesetNote challenge={challenge} />
+            <RulesetNote challenge={challenge} rulesetInfo={rulesetInfo} />
 
             {/* Combined Leaderboard - Only show when there are 2+ maps with scores */}
             {shouldShowCombinedLeaderboard && (
@@ -344,7 +409,7 @@ export default function ChallengeDetail() {
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
                               filter: 'blur(8px)',
-                              transform: 'scale(1.1)' // Prevent blur edges from showing
+                              transform: 'scale(1.1)'
                             }}
                           />
                           <div className="absolute inset-0 bg-gradient-to-r from-primary-500/90 via-primary-500/80 to-purple-500/90" />
@@ -386,7 +451,6 @@ export default function ChallengeDetail() {
                               alt={`${playlist.beatmap_title} cover`}
                               className="w-40 h-28 object-cover rounded-lg shadow-lg transition-transform duration-300 group-hover:scale-105"
                               onError={(e) => {
-                                // Fallback to cover URL if list/card URLs fail
                                 if (e.target.src !== playlist.beatmap_cover_url) {
                                   e.target.src = playlist.beatmap_cover_url;
                                 }
@@ -414,12 +478,30 @@ export default function ChallengeDetail() {
               ))}
             </div>
 
-            {/* Update indicator */}
-            <div className="mt-8 text-center text-sm text-neutral-500">
-              {isUpdatingChallenge ? 
-                'Fetching latest data from osu!...' : 
-                'Data updates automatically when you visit this page'
-              }
+            {/* Footer with sync info */}
+            <div className="mt-8 text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 rounded-full border border-neutral-200">
+                <div className={`w-2 h-2 rounded-full ${
+                  isBackgroundSyncing ? 'bg-blue-500 animate-pulse' : 
+                  syncMetadata?.is_stale ? 'bg-yellow-500' : 'bg-green-500'
+                }`}></div>
+                <p className="text-sm text-neutral-600 font-medium">
+                  {isBackgroundSyncing ? 'Syncing latest data...' : 
+                   syncMetadata?.is_stale ? 'Data updates available' : 'Data is up to date'}
+                </p>
+              </div>
+              
+              {/* Debug info in development */}
+              {process.env.NODE_ENV === 'development' && syncMetadata && (
+                <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                  <div>Sync Debug:</div>
+                  <div>Last synced: {syncMetadata.last_synced ? new Date(syncMetadata.last_synced).toLocaleString() : 'Never'}</div>
+                  <div>Is stale: {syncMetadata.is_stale ? 'Yes' : 'No'}</div>
+                  <div>Can sync: {syncMetadata.can_sync ? 'Yes' : 'No'}</div>
+                  <div>Next sync in: {Math.max(0, Math.ceil(syncMetadata.next_sync_available_in / 1000))}s</div>
+                  {syncMetadata.job_id && <div>Job ID: {syncMetadata.job_id}</div>}
+                </div>
+              )}
             </div>
           </>
         )}
