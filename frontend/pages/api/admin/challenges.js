@@ -120,7 +120,6 @@ async function handleGetAllChallenges(req, res) {
       query = query.lte('created_at', dateTo);
     }
 
-    // Fixed sorting: Always sort by end_date DESC (most recent first)
     // For challenges with null end_date (active challenges), they'll be sorted last
     console.log('🔍 Sorting by end_date DESC (most recent first)');
     

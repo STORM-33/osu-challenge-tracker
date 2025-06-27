@@ -1,4 +1,3 @@
-// pages/challenges/[roomId].js - Updated to use background sync
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -13,9 +12,8 @@ import { generateRulesetName, generateRulesetDescription } from '../../lib/rules
 import { useChallengeWithSync } from '../../hooks/useAPI';
 
 // Constants
-const UPDATE_THRESHOLD = 4 * 60 * 1000; // 4 minutes in milliseconds
+const UPDATE_THRESHOLD = 10 * 60 * 1000; // 10 minutes in milliseconds
 
-// Fixed UTC time formatting function
 const formatUTCDateTime = (utcDateString) => {
   if (!utcDateString) return 'N/A';
   
@@ -135,64 +133,76 @@ export default function ChallengeDetail() {
     const rulesetDescription = getRulesetDescription();
 
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
-        <div className="flex items-center gap-2 text-sm">
-          <Target className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-          <span className="text-yellow-800">
-            <strong>Ruleset Active:</strong> <code className="bg-yellow-100 text-yellow-900 px-1.5 py-0.5 rounded font-mono text-xs">{rulesetName}</code> - {rulesetDescription}
-          </span>
+      <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-xl p-4 mb-6">
+        <div className="flex items-center gap-2.5">
+          <Target className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+          <div className="text-sm">
+            <span className="text-yellow-800 font-semibold">Ruleset Active:</span>{' '}
+            <code className="bg-yellow-100 text-yellow-900 px-2 py-0.5 rounded font-mono text-xs border border-yellow-200">
+              {rulesetName}
+            </code>{' '}
+            <span className="text-yellow-700">- {rulesetDescription}</span>
+          </div>
         </div>
       </div>
     );
   };
 
-  // Format sync status for display
-  const getSyncStatusDisplay = () => {
-    if (!syncMetadata) return null;
+  // Sync Status Indicator Component
+  const SyncStatusIndicator = () => {
+    const getSyncStatusDisplay = () => {
+      if (!syncMetadata) return null;
 
-    if (isBackgroundSyncing) {
-      return {
-        type: 'syncing',
-        message: 'Fetching latest scores from osu!...',
-        color: 'blue'
-      };
-    }
+      if (isBackgroundSyncing) {
+        return {
+          type: 'syncing',
+          message: 'Syncing latest scores',
+          color: 'blue'
+        };
+      }
 
-    if (showSyncSuccess) {
-      return {
-        type: 'success',
-        message: 'Challenge updated with latest data!',
-        color: 'green'
-      };
-    }
+      if (showSyncSuccess) {
+        return {
+          type: 'success',
+          message: 'Data updated',
+          color: 'green'
+        };
+      }
 
-    if (syncMetadata.background_sync_triggered) {
-      return {
-        type: 'triggered',
-        message: 'Background sync started - data will update automatically',
-        color: 'blue'
-      };
-    }
+      return null;
+    };
 
-    if (syncMetadata.is_stale && challenge?.is_active) {
-      const ageMinutes = Math.floor(syncMetadata.time_since_update / 60000);
-      return {
-        type: 'stale',
-        message: `Data is ${ageMinutes} minutes old - consider refreshing`,
-        color: 'yellow'
-      };
-    }
+    const syncStatus = getSyncStatusDisplay();
 
-    return null;
+    if (!syncStatus) return null;
+
+    return (
+      <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-right fade-in duration-300">
+        <div className="flex items-center gap-3 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-full border border-neutral-200 shadow-lg">
+          {syncStatus.type === 'syncing' ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span className="text-sm text-neutral-700 font-medium">{syncStatus.message}</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm text-neutral-700 font-medium">{syncStatus.message}</span>
+            </>
+          )}
+        </div>
+      </div>
+    );
   };
-
-  const syncStatus = getSyncStatusDisplay();
 
   if (!roomId) return null;
 
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Sync Status Indicator - Fixed positioned */}
+        <SyncStatusIndicator />
+
         {/* Back button */}
         <Link 
           href="/"
@@ -202,309 +212,256 @@ export default function ChallengeDetail() {
           Back to challenges
         </Link>
 
-        {/* Sync status indicators */}
-        {syncStatus && (
-          <div className={`border p-4 rounded-lg mb-6 ${
-            syncStatus.color === 'blue' ? 'bg-blue-50 border-blue-200' :
-            syncStatus.color === 'green' ? 'bg-green-50 border-green-200' :
-            syncStatus.color === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
-            'bg-gray-50 border-gray-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                {syncStatus.type === 'syncing' ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
-                ) : syncStatus.type === 'success' ? (
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                ) : syncStatus.type === 'stale' ? (
-                  <Clock className="w-5 h-5 text-yellow-600 mr-3" />
-                ) : (
-                  <RefreshCw className="w-5 h-5 text-blue-600 mr-3" />
-                )}
-                <div>
-                  <p className={`font-medium ${
-                    syncStatus.color === 'blue' ? 'text-blue-800' :
-                    syncStatus.color === 'green' ? 'text-green-800' :
-                    syncStatus.color === 'yellow' ? 'text-yellow-800' :
-                    'text-gray-800'
-                  }`}>
-                    {syncStatus.message}
-                  </p>
-                  {syncMetadata?.sync_stage && (
-                    <p className={`text-sm ${
-                      syncStatus.color === 'blue' ? 'text-blue-600' :
-                      syncStatus.color === 'green' ? 'text-green-600' :
-                      syncStatus.color === 'yellow' ? 'text-yellow-600' :
-                      'text-gray-600'
-                    }`}>
-                      Stage: {syncMetadata.sync_stage}
-                    </p>
-                  )}
-                </div>
+        {/* Main Content */}
+        <div className="relative">
+          {/* Loading Indicator */}
+          {loading && (
+            <div className="absolute top-4 right-4 z-10">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full border border-neutral-200 shadow-sm">
+                <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                <span className="text-sm text-neutral-600 font-medium">Loading challenge</span>
               </div>
-              
-              {/* Manual sync button */}
-              {challenge?.is_active && !isBackgroundSyncing && (
+            </div>
+          )}
+
+          {error || !challenge ? (
+            <div className="glass-card rounded-2xl p-12 text-center">
+              <p className="text-red-600 mb-4">Failed to load challenge</p>
+              <div className="flex gap-4 justify-center">
                 <button
-                  onClick={() => handleManualSync(false)}
-                  disabled={isManualSyncing || syncMetadata?.next_sync_available_in > 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                  onClick={refresh}
+                  className="btn-primary"
                 >
-                  {isManualSyncing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4" />
-                      Refresh Data
-                    </>
-                  )}
+                  Try Again
                 </button>
-              )}
+                <Link 
+                  href="/"
+                  className="btn-secondary"
+                >
+                  Back to challenges
+                </Link>
+              </div>
             </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-          </div>
-        ) : error || !challenge ? (
-          <div className="glass-card rounded-2xl p-12 text-center">
-            <p className="text-red-600 mb-4">Failed to load challenge</p>
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={refresh}
-                className="btn-primary"
-              >
-                Try Again
-              </button>
-              <Link 
-                href="/"
-                className="btn-secondary"
-              >
-                Back to challenges
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Challenge header */}
-            <div className="glass-card rounded-2xl p-8 mb-8">
-              <div className="mb-6">
-                <div className="flex justify-between items-start mb-3">
-                  <h1 className="text-4xl font-bold text-neutral-800">
-                    {challenge.custom_name || challenge.name}
-                  </h1>
-                  {challenge.custom_name && (
-                    <span className="text-sm text-purple-600 font-medium bg-purple-100 px-2 py-1 rounded-full">
-                      Custom Name
-                    </span>
-                  )}
-                </div>
-                
-                <div className="flex flex-wrap items-center gap-6 text-neutral-600">
-                  <span className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-primary-500" />
-                    Hosted by <span className="font-medium text-neutral-800">{challenge.host}</span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-purple-500" />
-                    <span className="font-medium text-neutral-800">{challenge.participant_count}</span> participants
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <Music className="w-5 h-5 text-orange-500" />
-                    <span className="font-medium text-neutral-800">{challenge.playlists?.length || 0}</span> maps
-                  </span>
-                  {challenge.start_date && challenge.end_date && (
-                    <span className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-green-500" />
-                      <span className="font-medium text-neutral-800">
-                        {new Date(challenge.start_date).toLocaleDateString(undefined, {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric'
-                        })} - {new Date(challenge.end_date).toLocaleDateString(undefined, {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric'
-                        })}
-                      </span>
-                    </span>
-                  )}
-                </div>
-
-                {/* Data freshness indicator */}
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className={`inline-block w-2 h-2 rounded-full ${
-                      challenge.is_active ? 'bg-green-400' : 'bg-gray-400'
-                    }`}></span>
-                    <span className="text-sm text-gray-600">
-                      {challenge.is_active ? 'Active Challenge' : 'Inactive Challenge'}
-                    </span>
+          ) : (
+            <div className={`transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
+              {/* Challenge header */}
+              <div className="glass-card rounded-2xl p-8 mb-8">
+                <div className="mb-6">
+                  <div className="flex justify-between items-start mb-3">
+                    <h1 className="text-4xl font-bold text-neutral-800">
+                      {challenge.custom_name || challenge.name}
+                    </h1>
+                    <div className="flex items-center gap-2">
+                      {challenge.custom_name && (
+                        <span className="text-sm text-purple-600 font-medium bg-purple-100 px-3 py-1 rounded-full border border-purple-200">
+                          Custom Name
+                        </span>
+                      )}
+                      {/* Manual sync button */}
+                      {challenge?.is_active && !isBackgroundSyncing && (
+                        <button
+                          onClick={() => handleManualSync(false)}
+                          disabled={isManualSyncing || syncMetadata?.next_sync_available_in > 0}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-neutral-200 rounded-full hover:bg-white hover:border-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-all shadow-sm hover:shadow-md"
+                        >
+                          {isManualSyncing ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span className="text-xs">Syncing</span>
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              <span className="text-xs">Refresh</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="text-xs text-gray-500 flex items-center gap-4">
-                    <span>
-                      Last updated: {formatUTCDateTime(challenge.updated_at)}
+                  <div className="flex flex-wrap items-center gap-6 text-neutral-600">
+                    <span className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-primary-500" />
+                      Hosted by <span className="font-medium text-neutral-800">{challenge.host}</span>
                     </span>
-                    {syncMetadata?.is_stale && challenge.is_active && (
-                      <span className="text-yellow-600 font-medium">
-                        ⚠️ Data may be outdated
-                      </span>
-                    )}
-                    {syncError && (
-                      <span className="text-red-600 font-medium">
-                        ❌ Sync error: {syncError}
+                    <span className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-purple-500" />
+                      <span className="font-medium text-neutral-800">{challenge.participant_count}</span> participants
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Music className="w-5 h-5 text-orange-500" />
+                      <span className="font-medium text-neutral-800">{challenge.playlists?.length || 0}</span> maps
+                    </span>
+                    {challenge.start_date && challenge.end_date && (
+                      <span className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-green-500" />
+                        <span className="font-medium text-neutral-800">
+                          {new Date(challenge.start_date).toLocaleDateString(undefined, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })} - {new Date(challenge.end_date).toLocaleDateString(undefined, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </span>
                       </span>
                     )}
                   </div>
-                </div>
-              </div>
-            </div>
 
-            <RulesetNote challenge={challenge} rulesetInfo={rulesetInfo} />
-
-            {/* Combined Leaderboard - Only show when there are 2+ maps with scores */}
-            {shouldShowCombinedLeaderboard && (
-              <div className="glass-card rounded-2xl overflow-hidden mb-8">
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6">
-                  <div className="flex items-center gap-3">
-                    <Trophy className="w-8 h-8 text-white" />
-                    <div>
-                      <h2 className="text-2xl font-bold text-white">Combined Leaderboard</h2>
-                      <p className="text-white/90 text-sm mt-1">
-                        Total scores across all {challenge.playlists.length} maps
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <CombinedLeaderboard 
-                    leaderboard={combinedLeaderboard || []} 
-                    loading={leaderboardLoading}
-                    totalMaps={challenge.playlists.length}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Playlists */}
-            <div className="space-y-8">
-              {challenge.playlists?.map((playlist, index) => (
-                <div key={playlist.id} className="glass-card rounded-2xl overflow-hidden">
-                  {/* Enhanced Map Header */}
-                  <div className="relative overflow-hidden">
-                    {/* Background with map cover */}
-                    <div className="absolute inset-0">
-                      {playlist.beatmap_cover_url && (
-                        <>
-                          <div 
-                            className="absolute inset-0 opacity-20"
-                            style={{
-                              backgroundImage: `url(${playlist.beatmap_cover_url})`,
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center',
-                              filter: 'blur(8px)',
-                              transform: 'scale(1.1)'
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-r from-primary-500/90 via-primary-500/80 to-purple-500/90" />
-                        </>
-                      )}
-                      {!playlist.beatmap_cover_url && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-purple-500" />
-                      )}
+                  {/* Data freshness indicator */}
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block w-2 h-2 rounded-full ${
+                        challenge.is_active ? 'bg-green-400' : 'bg-gray-400'
+                      }`}></span>
+                      <span className="text-sm text-gray-600">
+                        {challenge.is_active ? 'Active Challenge' : 'Inactive Challenge'}
+                      </span>
                     </div>
                     
-                    {/* Content */}
-                    <div className="relative z-10 p-6 flex items-center justify-between">
-                      <div className="flex-1">
-                        <h2 className="text-2xl font-bold mb-1 text-white">
-                          {index + 1}. {playlist.beatmap_title}
-                        </h2>
-                        <p className="text-white/90 mb-2">
-                          by {playlist.beatmap_artist}
-                        </p>
-                        <div className="flex items-center gap-4 flex-wrap">
-                          <span className="text-white/80 font-medium">
-                            [{playlist.beatmap_version}]
-                          </span>
-                          {playlist.beatmap_difficulty && (
-                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold transition-all duration-300 ${getDifficultyColor(playlist.beatmap_difficulty)}`}>
-                              <Star className="w-4 h-4 fill-current" />
-                              <span>{playlist.beatmap_difficulty.toFixed(2)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Map thumbnail on the right for larger screens */}
-                      {playlist.beatmap_cover_url && (
-                        <div className="hidden md:block ml-6 flex-shrink-0">
-                          <div className="relative group">
-                            <img 
-                              src={playlist.beatmap_list_url || playlist.beatmap_card_url || playlist.beatmap_cover_url}
-                              alt={`${playlist.beatmap_title} cover`}
-                              className="w-40 h-28 object-cover rounded-lg shadow-lg transition-transform duration-300 group-hover:scale-105"
-                              onError={(e) => {
-                                if (e.target.src !== playlist.beatmap_cover_url) {
-                                  e.target.src = playlist.beatmap_cover_url;
-                                }
-                              }}
-                            />
-                            <div className="absolute inset-0 rounded-lg ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-300" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    {playlist.scores?.length > 0 ? (
-                      <ScoreTable scores={playlist.scores} challenge={challenge} />
-                    ) : (
-                      <div className="text-center py-8">
-                        <Music className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
-                        <p className="text-neutral-500">No scores submitted yet</p>
-                        <p className="text-sm text-neutral-400 mt-1">Be the first to set a score!</p>
+                    {syncMetadata?.is_stale && challenge.is_active && (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-yellow-50 rounded-full border border-yellow-200">
+                        <Clock className="w-3.5 h-3.5 text-yellow-600" />
+                        <span className="text-xs text-yellow-700 font-medium">
+                          Data may be outdated
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Footer with sync info */}
-            <div className="mt-8 text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 rounded-full border border-neutral-200">
-                <div className={`w-2 h-2 rounded-full ${
-                  isBackgroundSyncing ? 'bg-blue-500 animate-pulse' : 
-                  syncMetadata?.is_stale ? 'bg-yellow-500' : 'bg-green-500'
-                }`}></div>
-                <p className="text-sm text-neutral-600 font-medium">
-                  {isBackgroundSyncing ? 'Syncing latest data...' : 
-                   syncMetadata?.is_stale ? 'Data updates available' : 'Data is up to date'}
-                </p>
               </div>
-              
-              {/* Debug info in development */}
-              {process.env.NODE_ENV === 'development' && syncMetadata && (
-                <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-                  <div>Sync Debug:</div>
-                  <div>Last synced: {syncMetadata.last_synced ? new Date(syncMetadata.last_synced).toLocaleString() : 'Never'}</div>
-                  <div>Is stale: {syncMetadata.is_stale ? 'Yes' : 'No'}</div>
-                  <div>Can sync: {syncMetadata.can_sync ? 'Yes' : 'No'}</div>
-                  <div>Next sync in: {Math.max(0, Math.ceil(syncMetadata.next_sync_available_in / 1000))}s</div>
-                  {syncMetadata.job_id && <div>Job ID: {syncMetadata.job_id}</div>}
+
+              <RulesetNote challenge={challenge} rulesetInfo={rulesetInfo} />
+
+              {/* Combined Leaderboard - Only show when there are 2+ maps with scores */}
+              {shouldShowCombinedLeaderboard && (
+                <div className="glass-card rounded-2xl overflow-hidden mb-8">
+                  <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6">
+                    <div className="flex items-center gap-3">
+                      <Trophy className="w-8 h-8 text-white" />
+                      <div>
+                        <h2 className="text-2xl font-bold text-white">Combined Leaderboard</h2>
+                        <p className="text-white/90 text-sm mt-1">
+                          Total scores across all {challenge.playlists.length} maps
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <CombinedLeaderboard 
+                      leaderboard={combinedLeaderboard || []} 
+                      loading={leaderboardLoading}
+                      totalMaps={challenge.playlists.length}
+                    />
+                  </div>
                 </div>
               )}
+
+              {/* Playlists */}
+              <div className="space-y-8">
+                {challenge.playlists?.map((playlist, index) => (
+                  <div key={playlist.id} className="glass-card rounded-2xl overflow-hidden">
+                    {/* Enhanced Map Header */}
+                    <div className="relative overflow-hidden">
+                      {/* Background with map cover */}
+                      <div className="absolute inset-0">
+                        {playlist.beatmap_cover_url && (
+                          <>
+                            <div 
+                              className="absolute inset-0 opacity-20"
+                              style={{
+                                backgroundImage: `url(${playlist.beatmap_cover_url})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                filter: 'blur(8px)',
+                                transform: 'scale(1.1)'
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary-500/90 via-primary-500/80 to-purple-500/90" />
+                          </>
+                        )}
+                        {!playlist.beatmap_cover_url && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-purple-500" />
+                        )}
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="relative z-10 p-6 flex items-center justify-between">
+                        <div className="flex-1">
+                          <h2 className="text-2xl font-bold mb-1 text-white">
+                            {index + 1}. {playlist.beatmap_title}
+                          </h2>
+                          <p className="text-white/90 mb-2">
+                            by {playlist.beatmap_artist}
+                          </p>
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <span className="text-white/80 font-medium">
+                              [{playlist.beatmap_version}]
+                            </span>
+                            {playlist.beatmap_difficulty && (
+                              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold transition-all duration-300 ${getDifficultyColor(playlist.beatmap_difficulty)}`}>
+                                <Star className="w-4 h-4 fill-current" />
+                                <span>{playlist.beatmap_difficulty.toFixed(2)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Map thumbnail on the right for larger screens */}
+                        {playlist.beatmap_cover_url && (
+                          <div className="hidden md:block ml-6 flex-shrink-0">
+                            <div className="relative group">
+                              <img 
+                                src={playlist.beatmap_list_url || playlist.beatmap_card_url || playlist.beatmap_cover_url}
+                                alt={`${playlist.beatmap_title} cover`}
+                                className="w-40 h-28 object-cover rounded-lg shadow-lg transition-transform duration-300 group-hover:scale-105"
+                                onError={(e) => {
+                                  if (e.target.src !== playlist.beatmap_cover_url) {
+                                    e.target.src = playlist.beatmap_cover_url;
+                                  }
+                                }}
+                              />
+                              <div className="absolute inset-0 rounded-lg ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-300" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      {playlist.scores?.length > 0 ? (
+                        <ScoreTable scores={playlist.scores} challenge={challenge} />
+                      ) : (
+                        <div className="text-center py-8">
+                          <Music className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                          <p className="text-neutral-500">No scores submitted yet</p>
+                          <p className="text-sm text-neutral-400 mt-1">Be the first to set a score!</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer with sync info */}
+              <div className="mt-8 text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 rounded-full border border-neutral-200">
+                  <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                    isBackgroundSyncing ? 'bg-blue-500 animate-pulse' : 
+                    syncMetadata?.is_stale ? 'bg-yellow-500' : 'bg-green-500'
+                  }`}></div>
+                  <p className="text-sm text-neutral-600 font-medium">
+                    {isBackgroundSyncing ? 'Syncing latest data...' : 
+                     syncMetadata?.is_stale ? 'Data updates available' : 'Data is up to date'}
+                  </p>
+                </div>
+              </div>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </Layout>
   );

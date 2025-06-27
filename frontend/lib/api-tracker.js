@@ -274,7 +274,6 @@ class MemoryManagedAPITracker {
       if (endpointData && endpointData.length > 0) {
         console.log(`📊 Loading ${endpointData.length} endpoint records from database`);
         endpointData.forEach(endpoint => {
-          // FIXED: Generate keys consistently
           let key;
           if (endpoint.type === 'internal') {
             key = `${endpoint.method}:${endpoint.endpoint}`;
@@ -386,7 +385,6 @@ class MemoryManagedAPITracker {
         }
       }
 
-      // FIXED: Process endpoint performance data with proper key handling
       if (this.pendingWrites.endpoints.size > 0) {
         console.log(`💾 Processing ${this.pendingWrites.endpoints.size} endpoint updates`);
         
@@ -467,7 +465,6 @@ class MemoryManagedAPITracker {
     };
 
     try {
-      // FIXED: Build the correct query based on whether it's internal or external
       let query = supabase
         .from('api_endpoint_performance')
         .select('id, call_count, total_duration, error_count')
@@ -543,7 +540,6 @@ class MemoryManagedAPITracker {
 
     this.checkMonthlyReset();
     
-    // FIXED: Use consistent key format that matches sync logic
     const key = `${method}:${endpoint}`;
     const timestamp = new Date().toISOString();
     
@@ -638,7 +634,7 @@ class MemoryManagedAPITracker {
 
     this.checkMonthlyReset();
     
-    // FIXED: Use consistent key format - this should match what you already have
+    // Use consistent key format
     const key = `${apiName}:${method}:${endpoint}`;
     const timestamp = new Date().toISOString();
     

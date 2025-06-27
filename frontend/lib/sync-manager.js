@@ -6,8 +6,8 @@ class SyncManager {
   constructor() {
     this.activeJobs = new Map(); // jobId -> job info
     this.globalCooldowns = new Map(); // resourceType:resourceId -> timestamp
-    this.SYNC_THRESHOLD = 4 * 60 * 1000; // 4 minutes
-    this.GLOBAL_COOLDOWN = 2 * 60 * 1000; // 2 minutes global cooldown
+    this.SYNC_THRESHOLD = 10 * 60 * 1000; // 10 minutes
+    this.GLOBAL_COOLDOWN = 10 * 60 * 1000; // 10 minutes global cooldown
   }
 
   /**

@@ -42,6 +42,8 @@ export default function Home() {
   } = useSWR(activeChallengesEndpoint, fetcher, {
     refreshInterval: 30000, // Refresh every 30 seconds
     revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 5000, // Dedupe requests within 5 seconds
     onSuccess: (data) => {
       if (data?.sync_summary) {
         console.log('Sync summary:', data.sync_summary);
@@ -78,26 +80,17 @@ export default function Home() {
     }
   };
 
-  // 🔧 FIXED: Updated to handle the correct API response structure
   const fetchHistoricalChallenges = async (seasonId) => {
     try {
       setLoadingHistorical(true);
-      console.log('🔍 Fetching historical challenges for season:', seasonId);
-      
       const response = await fetch(`/api/challenges?season_id=${seasonId}&active=false`);
       
-      console.log('📡 Historical challenges response status:', response.status);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Historical challenges fetch failed:', response.status, errorText);
         throw new Error(`Failed to fetch historical challenges: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('📊 Historical challenges data structure:', data);
       
-      // 🔧 FIXED: Handle the correct response structure
       let challenges = [];
       if (data.success && data.data && data.data.challenges) {
         challenges = data.data.challenges;
@@ -107,15 +100,13 @@ export default function Home() {
         challenges = data.data;
       }
       
-      console.log(`✅ Loaded ${challenges.length} historical challenges`);
-      console.log('🔍 Historical challenges preview:', challenges.slice(0, 2));
       setHistoricalChallenges(challenges);
       
       if (selectedSeason?.is_current) {
         setExpandedSeasons(new Set([selectedSeason.name]));
       }
     } catch (err) {
-      console.error('🚨 Historical challenges fetch error:', err);
+      console.error('Historical challenges fetch error:', err);
       setHistoricalChallenges([]);
     } finally {
       setLoadingHistorical(false);
@@ -157,7 +148,6 @@ export default function Home() {
   // Track completion of background syncs
   useEffect(() => {
     if (syncSummary?.background_syncs_triggered > lastBackgroundSyncs && syncSummary?.total_syncing === 0) {
-      // New syncs completed, show banner briefly
       setCompletionBannerVisible(true);
       
       const timer = setTimeout(() => {
@@ -170,53 +160,44 @@ export default function Home() {
     setLastBackgroundSyncs(syncSummary?.background_syncs_triggered || 0);
   }, [syncSummary?.background_syncs_triggered, syncSummary?.total_syncing, lastBackgroundSyncs]);
 
-  // 🔧 FIXED: Improved sync status logic to only show when actually relevant
-  const SyncStatusBanner = () => {
+  const SyncStatusIndicator = () => {
     if (!syncSummary) return null;
 
-    const { total_syncing, background_syncs_triggered, auto_sync_enabled } = syncSummary;
+    const { total_syncing, background_syncs_triggered } = syncSummary;
     
-    // Only show syncing banner if there are actually active syncs
-    if (total_syncing > 0) {
+    // Only show if there's active syncing or recent completion
+    if (total_syncing > 0 || (completionBannerVisible && background_syncs_triggered > 0)) {
       return (
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
-          <div className="flex items-center">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
-            <div>
-              <p className="text-blue-800 font-medium">🔄 Fetching latest scores from osu!...</p>
-              <p className="text-blue-600 text-sm">
-                Updating {total_syncing} challenge{total_syncing !== 1 ? 's' : ''} with fresh data
-              </p>
-            </div>
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-right fade-in duration-300">
+          <div className="flex items-center gap-3 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-full border border-neutral-200 shadow-lg">
+            {total_syncing > 0 ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm text-neutral-700 font-medium">
+                  Syncing {total_syncing} challenge{total_syncing !== 1 ? 's' : ''}
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-neutral-700 font-medium">
+                  Sync complete
+                </span>
+              </>
+            )}
           </div>
         </div>
       );
     }
 
-    // 🔧 FIXED: Only show completion banner when controlled by state
-    if (completionBannerVisible && background_syncs_triggered > 0) {
-      return (
-        <div className="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
-          <div className="flex items-center">
-            <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-            <div>
-              <p className="text-green-800 font-medium">✅ Background updates completed!</p>
-              <p className="text-green-600 text-sm">
-                {background_syncs_triggered} challenge{background_syncs_triggered !== 1 ? 's' : ''} updated with latest data
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Don't show any banner if no active syncs and no recent completions
     return null;
   };
 
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Sync Status Indicator - Fixed positioned */}
+        <SyncStatusIndicator />
         
         {/* Active Challenges Section */}
         <div className="mb-16">
@@ -244,7 +225,7 @@ export default function Home() {
             {/* About Challenges Button */}
             <div className="text-right flex-shrink-0 ml-8">
               <Link href="/about-challengers">
-                <button className="flex items-center gap-3 px-6 py-3 glass-card hover:glass-card-enhanced text-neutral-700 font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 border border-neutral-200 hover:border-primary-300">
+                <button className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-primary-50 to-purple-50 hover:from-primary-100 hover:to-purple-100 text-neutral-700 font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 border border-primary-200 hover:border-primary-300 shadow-sm hover:shadow-md">
                   <Info className="w-5 h-5 text-primary-600" />
                   About Challengers
                 </button>
@@ -255,62 +236,66 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Sync Status Banner */}
-          <SyncStatusBanner />
+          {/* Challenges Display Area */}
+          <div className="relative">
+            {/* Subtle Loading Indicator */}
+            {loading && (
+              <div className="absolute top-4 right-4 z-10">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full border border-neutral-200 shadow-sm">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                  <span className="text-sm text-neutral-600 font-medium">Loading challenges</span>
+                </div>
+              </div>
+            )}
 
-          {loading ? (
-            <div className="flex items-center justify-center h-80 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-3xl border border-neutral-200">
-              <div className="text-center">
-                <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" />
-                <p className="text-neutral-600 font-medium">Loading challenges...</p>
+            {/* Content */}
+            {error ? (
+              <div className="bg-gradient-to-br from-red-50 to-rose-100 rounded-3xl p-12 text-center border border-red-200">
+                <div className="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="w-8 h-8 text-red-600" />
+                </div>
+                <p className="text-red-700 mb-6 font-medium">Failed to load challenges: {error.message}</p>
+                <button 
+                  onClick={refreshActiveChallenges}
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
+                >
+                  Try Again
+                </button>
               </div>
-            </div>
-          ) : error ? (
-            <div className="bg-gradient-to-br from-red-50 to-rose-100 rounded-3xl p-12 text-center border border-red-200">
-              <div className="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+            ) : activeChallenges.length === 0 && !loading ? (
+              <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-3xl p-16 text-center border border-neutral-200">
+                <div className="w-20 h-20 bg-neutral-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Trophy className="w-10 h-10 text-neutral-400" />
+                </div>
+                <h3 className="text-xl font-bold text-neutral-700 mb-3">No Active Challenges</h3>
+                <p className="text-neutral-600 mb-2">Check back soon for new challenges!</p>
+                <p className="text-sm text-neutral-500">New challenges are added regularly</p>
               </div>
-              <p className="text-red-700 mb-6 font-medium">Failed to load challenges: {error.message}</p>
-              <button 
-                onClick={refreshActiveChallenges}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
-              >
-                Try Again
-              </button>
-            </div>
-          ) : activeChallenges.length === 0 ? (
-            <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-3xl p-16 text-center border border-neutral-200">
-              <div className="w-20 h-20 bg-neutral-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Trophy className="w-10 h-10 text-neutral-400" />
+            ) : (
+              <div className={`grid gap-8 transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
+                {activeChallenges.map(challenge => {
+                  const isUpdating = challenge.sync_metadata?.sync_in_progress;
+                  const isStale = challenge.sync_metadata?.is_stale;
+                  
+                  return (
+                    <Link key={challenge.id} href={`/challenges/${challenge.room_id}`}>
+                      <div className={`transform transition-all duration-300 ${
+                        isUpdating ? 'opacity-75' : ''
+                      } ${isStale ? 'ring-2 ring-yellow-200' : ''}`}>
+                        <ChallengeCard 
+                          challenge={challenge} 
+                          size="large"
+                          challengeType={getChallengeType(challenge)}
+                          showBackground={true}
+                          isUpdating={isUpdating}
+                        />
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
-              <h3 className="text-xl font-bold text-neutral-700 mb-3">No Active Challenges</h3>
-              <p className="text-neutral-600 mb-2">Check back soon for new challenges!</p>
-              <p className="text-sm text-neutral-500">New challenges are added regularly</p>
-            </div>
-          ) : (
-            <div className="grid gap-8">
-              {activeChallenges.map(challenge => {
-                const isUpdating = challenge.sync_metadata?.sync_in_progress;
-                const isStale = challenge.sync_metadata?.is_stale;
-                
-                return (
-                  <Link key={challenge.id} href={`/challenges/${challenge.room_id}`}>
-                    <div className={`transform transition-all duration-300 ${
-                      isUpdating ? 'opacity-75' : ''
-                    } ${isStale ? 'ring-2 ring-yellow-200' : ''}`}>
-                      <ChallengeCard 
-                        challenge={challenge} 
-                        size="large"
-                        challengeType={getChallengeType(challenge)}
-                        showBackground={true}
-                        isUpdating={isUpdating}
-                      />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* History Section */}
@@ -357,116 +342,124 @@ export default function Home() {
             </div>
           )}
 
-          {loadingHistorical ? (
-            <div className="flex items-center justify-center h-40">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-            </div>
-          ) : filteredChallenges.length > 0 ? (
-            <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-neutral-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Challenge
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Maps
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Participants
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Ended
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {filteredChallenges.map((challenge, index) => {
-                      const challengeType = getChallengeType(challenge);
-                      const displayName = challenge.custom_name || challenge.name;
-                      
-                      return (
-                        <tr key={challenge.id} className="hover:bg-neutral-50 transition-colors">
-                          <td className="px-6 py-4">
-                            <Link href={`/challenges/${challenge.room_id}`}>
-                              <div className="cursor-pointer">
-                                <div className="font-medium text-neutral-800 hover:text-primary-600 transition-colors">
-                                  {displayName || `Challenge #${challenge.id}`}
+          {/* Historical Challenges with Subtle Loading */}
+          <div className="relative">
+            {loadingHistorical && (
+              <div className="absolute top-4 right-4 z-10">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full border border-neutral-200 shadow-sm">
+                  <Loader2 className="w-3 h-3 animate-spin text-primary-500" />
+                  <span className="text-xs text-neutral-600">Loading history</span>
+                </div>
+              </div>
+            )}
+
+            {filteredChallenges.length > 0 ? (
+              <div className={`bg-white rounded-xl border border-neutral-200 overflow-hidden transition-opacity duration-300 ${loadingHistorical ? 'opacity-60' : 'opacity-100'}`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-neutral-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Challenge
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Maps
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Participants
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Ended
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {filteredChallenges.map((challenge, index) => {
+                        const challengeType = getChallengeType(challenge);
+                        const displayName = challenge.custom_name || challenge.name;
+                        
+                        return (
+                          <tr key={challenge.id} className="hover:bg-neutral-50 transition-colors">
+                            <td className="px-6 py-4">
+                              <Link href={`/challenges/${challenge.room_id}`}>
+                                <div className="cursor-pointer">
+                                  <div className="font-medium text-neutral-800 hover:text-primary-600 transition-colors">
+                                    {displayName || `Challenge #${challenge.id}`}
+                                  </div>
+                                  {challenge.description && (
+                                    <div className="text-sm text-neutral-500 truncate max-w-xs">
+                                      {challenge.description}
+                                    </div>
+                                  )}
+                                  {challenge.custom_name && (
+                                    <div className="text-xs text-purple-600 font-medium mt-1">
+                                      Custom Name
+                                    </div>
+                                  )}
                                 </div>
-                                {challenge.description && (
-                                  <div className="text-sm text-neutral-500 truncate max-w-xs">
-                                    {challenge.description}
-                                  </div>
-                                )}
-                                {challenge.custom_name && (
-                                  <div className="text-xs text-purple-600 font-medium mt-1">
-                                    Custom Name
-                                  </div>
-                                )}
+                              </Link>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                challengeType === 'weekly' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                {challengeType}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-neutral-600">
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {challenge.playlists?.length || 0}
                               </div>
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              challengeType === 'weekly' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : 'bg-purple-100 text-purple-800'
-                            }`}>
-                              {challengeType}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-neutral-600">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              {challenge.playlists?.length || 0}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-neutral-600">
-                            <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
-                              {challenge.participant_count || 0}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-neutral-500">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {challenge.end_date ? formatDate(challenge.end_date) : 'N/A'}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-neutral-600">
+                              <div className="flex items-center gap-1">
+                                <Users className="w-4 h-4" />
+                                {challenge.participant_count || 0}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-neutral-500">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {challenge.end_date ? formatDate(challenge.end_date) : 'N/A'}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-3xl p-16 text-center border border-neutral-200">
-              <div className="w-20 h-20 bg-neutral-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <History className="w-10 h-10 text-neutral-400" />
-              </div>
-              <h3 className="text-xl font-bold text-neutral-700 mb-3">No Historical Challenges</h3>
-              <p className="text-neutral-600 mb-2">
-                {selectedSeason?.is_current 
-                  ? 'Completed challenges will appear here as they finish'
-                  : 'This season had no completed challenges'
+            ) : !loadingHistorical && (
+              <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-3xl p-16 text-center border border-neutral-200">
+                <div className="w-20 h-20 bg-neutral-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <History className="w-10 h-10 text-neutral-400" />
+                </div>
+                <h3 className="text-xl font-bold text-neutral-700 mb-3">No Historical Challenges</h3>
+                <p className="text-neutral-600 mb-2">
+                  {selectedSeason?.is_current 
+                    ? 'Completed challenges will appear here as they finish'
+                    : 'This season had no completed challenges'
                 }
-              </p>
-              <p className="text-sm text-neutral-500">
-                Challenge history helps track your progress over time
-              </p>
-            </div>
-          )}
+                </p>
+                <p className="text-sm text-neutral-500">
+                  Challenge history helps track your progress over time
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Footer note with enhanced sync info */}
+        {/* Footer Status Indicator */}
         <div className="mt-20 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 rounded-full border border-neutral-200">
-            <div className={`w-2 h-2 rounded-full ${
+            <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
               syncSummary?.total_syncing > 0 ? 'bg-blue-500 animate-pulse' : 
               syncSummary?.auto_sync_enabled ? 'bg-green-500' : 'bg-gray-500'
             }`}></div>
@@ -479,17 +472,6 @@ export default function Home() {
               }
             </p>
           </div>
-          
-          {/* Sync statistics for development */}
-          {process.env.NODE_ENV === 'development' && syncSummary && (
-            <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg max-w-md mx-auto">
-              <div className="font-medium mb-2">Sync Debug Info:</div>
-              <div>Auto-sync: {syncSummary.auto_sync_enabled ? 'Enabled' : 'Disabled'}</div>
-              <div>Currently syncing: {syncSummary.total_syncing || 0}</div>
-              <div>Stale challenges: {syncSummary.total_stale || 0}</div>
-              <div>Background syncs triggered: {syncSummary.background_syncs_triggered || 0}</div>
-            </div>
-          )}
           
           {/* Manual refresh button */}
           <div className="mt-4">
