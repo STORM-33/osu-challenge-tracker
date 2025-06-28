@@ -240,30 +240,7 @@ class MemoryManagedAPITracker {
     const currentMonth = this.getCurrentMonth();
     
     try {
-      // Load monthly data
-      const { data: monthlyData } = await supabase
-        .from('api_usage_monthly')
-        .select('*')
-        .eq('month', currentMonth)
-        .single();
-
-      if (monthlyData) {
-        this.memoryCache.monthly = {
-          internal: monthlyData.internal_calls || 0,
-          external: monthlyData.external_calls || 0,
-          total: monthlyData.total_calls || 0,
-          edgeExecutionUnits: monthlyData.edge_execution_units || 0,
-          middlewareInvocations: monthlyData.middleware_invocations || 0,
-          functionDurationGBHours: parseFloat(monthlyData.function_duration_gb_hours || 0),
-          imageOptimizations: monthlyData.image_optimizations || 0,
-          bandwidth: parseInt(monthlyData.bandwidth_bytes || 0),
-          resetDate: monthlyData.reset_date || this.getNextResetDate(),
-          startDate: monthlyData.created_at || new Date().toISOString()
-        };
-        console.log('📊 Loaded monthly data from database');
-      }
-
-      // Load endpoint data (with limit to prevent memory issues)
+      // Load endpoint data with validation
       const { data: endpointData } = await supabase
         .from('api_endpoint_performance')
         .select('*')
@@ -274,7 +251,15 @@ class MemoryManagedAPITracker {
       if (endpointData && endpointData.length > 0) {
         console.log(`📊 Loading ${endpointData.length} endpoint records from database`);
         endpointData.forEach(endpoint => {
-          // FIXED: Generate keys consistently
+          // VALIDATION: Reject impossibly large numbers
+          const callCount = Math.min(endpoint.call_count || 0, 10000000); // Max 10M calls per endpoint
+          const totalDuration = Math.min(endpoint.total_duration || 0, callCount * 60000); // Max 1min per call
+          const errorCount = Math.min(endpoint.error_count || 0, callCount); // Errors can't exceed calls
+          
+          if (callCount > 1000000) {
+            console.warn(`⚠️ Suspicious call count for ${endpoint.endpoint}: ${endpoint.call_count}, capping at ${callCount}`);
+          }
+          
           let key;
           if (endpoint.type === 'internal') {
             key = `${endpoint.method}:${endpoint.endpoint}`;
@@ -285,14 +270,14 @@ class MemoryManagedAPITracker {
           const stats = {
             endpoint: endpoint.endpoint,
             method: endpoint.method,
-            count: endpoint.call_count || 0,
-            errors: endpoint.error_count || 0,
-            totalDuration: endpoint.total_duration || 0,
+            count: callCount,
+            errors: errorCount,
+            totalDuration: totalDuration,
             lastCall: endpoint.last_called,
-            recentCalls: [], // Start fresh for recent calls
-            lastSyncCount: endpoint.call_count || 0,
-            lastSyncDuration: endpoint.total_duration || 0,
-            lastSyncErrors: endpoint.error_count || 0
+            recentCalls: [],
+            lastSyncCount: callCount, // Start with current count as synced
+            lastSyncDuration: totalDuration,
+            lastSyncErrors: errorCount
           };
 
           if (endpoint.type === 'internal') {
@@ -305,12 +290,12 @@ class MemoryManagedAPITracker {
           }
         });
       }
-
     } catch (error) {
       console.error('Database load error:', error);
       throw error;
     }
   }
+
 
   setupPeriodicSync() {
     if (!this.isServer) return;
@@ -456,6 +441,29 @@ class MemoryManagedAPITracker {
   }
 
   async syncSingleEndpoint(stats, month) {
+    // SAFETY: Validate incremental values before sync
+    const incrementalCount = stats.lastSyncCount ? stats.count - stats.lastSyncCount : stats.count;
+    const incrementalDuration = stats.lastSyncDuration ? stats.totalDuration - stats.lastSyncDuration : stats.totalDuration;
+    const incrementalErrors = stats.lastSyncErrors ? stats.errors - stats.lastSyncErrors : stats.errors;
+
+    // SAFETY: Reject impossible incremental values
+    if (incrementalCount < 0 || incrementalCount > 100000) {
+      console.error(`🚨 Invalid incremental count for ${stats.endpoint}: ${incrementalCount}, resetting sync tracking`);
+      stats.lastSyncCount = stats.count;
+      stats.lastSyncDuration = stats.totalDuration;
+      stats.lastSyncErrors = stats.errors;
+      return; // Skip this sync
+    }
+
+    if (incrementalDuration < 0 || incrementalDuration > incrementalCount * 60000) {
+      console.error(`🚨 Invalid incremental duration for ${stats.endpoint}: ${incrementalDuration}ms, resetting sync tracking`);
+      stats.lastSyncCount = stats.count;
+      stats.lastSyncDuration = stats.totalDuration;
+      stats.lastSyncErrors = stats.errors;
+      return; // Skip this sync
+    }
+
+    // Rest of your syncSingleEndpoint logic...
     const recordData = {
       month: month,
       endpoint: stats.endpoint,
@@ -470,7 +478,6 @@ class MemoryManagedAPITracker {
     };
 
     try {
-      // Build the correct query based on whether it's internal or external
       let query = supabase
         .from('api_endpoint_performance')
         .select('id, call_count, total_duration, error_count')
@@ -479,7 +486,6 @@ class MemoryManagedAPITracker {
         .eq('type', stats.type)
         .eq('month', month);
 
-      // Handle the conditional api_name constraint properly
       if (stats.type === 'internal') {
         query = query.is('api_name', null);
       } else {
@@ -494,22 +500,23 @@ class MemoryManagedAPITracker {
       }
 
       if (existing) {
-        // FIXED: Only add the INCREMENTAL values since last sync, not total accumulated values
-        const incrementalCount = stats.lastSyncCount ? stats.count - stats.lastSyncCount : stats.count;
-        const incrementalDuration = stats.lastSyncDuration ? stats.totalDuration - stats.lastSyncDuration : stats.totalDuration;
-        const incrementalErrors = stats.lastSyncErrors ? stats.errors - stats.lastSyncErrors : stats.errors;
+        // SAFETY: Final validation before database update
+        const newCallCount = existing.call_count + incrementalCount;
+        const newDuration = (existing.total_duration || 0) + incrementalDuration;
+        const newErrors = (existing.error_count || 0) + incrementalErrors;
 
-        // Ensure we don't add negative values (safety check)
-        const safeIncrementalCount = Math.max(0, incrementalCount);
-        const safeIncrementalDuration = Math.max(0, incrementalDuration);
-        const safeIncrementalErrors = Math.max(0, incrementalErrors);
+        // SAFETY: Don't let database values get corrupted
+        if (newCallCount > 50000000) { // 50M calls seems impossible
+          console.error(`🚨 Would create impossible call count ${newCallCount} for ${stats.endpoint}, aborting sync`);
+          return;
+        }
 
         const { error: updateError } = await supabase
           .from('api_endpoint_performance')
           .update({
-            call_count: existing.call_count + safeIncrementalCount,
-            total_duration: (existing.total_duration || 0) + safeIncrementalDuration,
-            error_count: (existing.error_count || 0) + safeIncrementalErrors,
+            call_count: newCallCount,
+            total_duration: newDuration,
+            error_count: newErrors,
             last_called: recordData.last_called,
             updated_at: recordData.updated_at
           })
@@ -520,10 +527,15 @@ class MemoryManagedAPITracker {
           throw updateError;
         }
 
-        console.log(`✅ Updated ${stats.endpoint}: +${safeIncrementalCount} calls, +${safeIncrementalDuration}ms duration`);
+        console.log(`✅ Updated ${stats.endpoint}: +${incrementalCount} calls (total: ${newCallCount})`);
 
       } else {
-        // Insert new record
+        // SAFETY: Validate new inserts too
+        if (stats.count > 10000000) {
+          console.error(`🚨 Would insert impossible call count ${stats.count} for ${stats.endpoint}, aborting`);
+          return;
+        }
+
         const { error: insertError } = await supabase
           .from('api_endpoint_performance')
           .insert([{
@@ -539,7 +551,7 @@ class MemoryManagedAPITracker {
         console.log(`✅ Inserted new endpoint ${stats.endpoint}: ${recordData.call_count} calls`);
       }
 
-      // CRITICAL: Update the "last sync" values to track what we've already synced
+      // Update sync tracking
       stats.lastSyncCount = stats.count;
       stats.lastSyncDuration = stats.totalDuration;
       stats.lastSyncErrors = stats.errors;
@@ -662,7 +674,7 @@ class MemoryManagedAPITracker {
 
     this.checkMonthlyReset();
     
-    // FIXED: Use consistent key format - this should match what you already have
+    // Use consistent key format
     const key = `${apiName}:${method}:${endpoint}`;
     const timestamp = new Date().toISOString();
     
@@ -689,21 +701,29 @@ class MemoryManagedAPITracker {
         totalResponseSize: 0,
         firstCall: timestamp,
         lastCall: timestamp,
+        recentCalls: [],
         lastSyncCount: 0,
         lastSyncDuration: 0,
         lastSyncErrors: 0
       });
     }
 
-    // Get and update endpoint stats
+    // Get the stats object
     const stats = this.memoryCache.external.get(key);
+    
+    // Get and update endpoint stats
     stats.count++;
     stats.lastCall = timestamp;
     stats.totalDuration += duration;
     stats.totalResponseSize += responseSize;
-    
+
     if (!success) {
       stats.errors++;
+    }
+
+    // SAFETY: Ensure recentCalls exists before pushing (extra safety)
+    if (!stats.recentCalls) {
+      stats.recentCalls = [];
     }
 
     // Limit recent calls to prevent memory growth
