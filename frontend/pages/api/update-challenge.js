@@ -3,6 +3,8 @@ import { trackedOsuAPI } from '../../lib/osu-api';
 import apiTracker from '../../lib/api-tracker';
 import { withAPITracking } from '../../middleware';
 import { handleAPIError, validateRequest } from '../../lib/api-utils';
+import { markChallengeUpdated } from '../../lib/global-update-tracker';
+import pLimit from 'p-limit';
 
 // Helper function to process mods and ensure proper format
 function processModsData(mods) {
@@ -51,6 +53,232 @@ async function executeAtomicUpdateWithMods(challengeData, playlistsData, scoresD
   }
   
   return data;
+}
+
+// Optimized parallel processing for playlists
+async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRetries = 3) {
+  console.log(`🚀 Request ${requestId}: Processing ${roomData.playlist?.length || 0} playlists in parallel`);
+  
+  if (!roomData.playlist || roomData.playlist.length === 0) {
+    return {
+      playlistsData: [],
+      scoresData: [],
+      usersData: [],
+      totalApiCallsForPlaylists: 0,
+      playlistsProcessed: 0,
+      scoresProcessed: 0
+    };
+  }
+
+  // Limit concurrent API calls to avoid overwhelming the osu! API
+  const concurrencyLimit = pLimit(4); // Process 4 playlists at once
+  const batchSize = 8; // Process playlists in batches of 8
+  
+  let totalApiCallsForPlaylists = 0;
+  let playlistsProcessed = 0;
+  let scoresProcessed = 0;
+  
+  const allPlaylistsData = [];
+  const allScoresData = [];
+  const allUsersData = [];
+  const userMap = new Map(); // Deduplicate users
+
+  // Helper function to process a single playlist
+  const processPlaylist = async (playlist, index) => {
+    const playlistStart = performance.now();
+    
+    try {
+      // Check API limits before processing
+      const currentLimitStatus = apiTracker.checkLimits();
+      if (currentLimitStatus === 'critical') {
+        console.warn(`🚨 Request ${requestId}: Hit critical limit during playlist ${index + 1}, skipping remaining`);
+        return null;
+      }
+
+      // Prepare playlist data
+      const covers = playlist.beatmap?.beatmapset?.covers || {};
+      const playlistRecord = {
+        playlist_id: playlist.id,
+        beatmap_id: playlist.beatmap_id,
+        beatmap_title: playlist.beatmap?.beatmapset?.title || 'Unknown',
+        beatmap_artist: playlist.beatmap?.beatmapset?.artist || 'Unknown',
+        beatmap_version: playlist.beatmap?.version || 'Unknown',
+        beatmap_difficulty: playlist.beatmap?.difficulty_rating || 0,
+        beatmap_cover_url: covers.cover || null,
+        beatmap_card_url: covers.card || null,
+        beatmap_list_url: covers.list || null,
+        beatmap_slimcover_url: covers.slimcover || null,
+      };
+
+      // Fetch scores with retry logic
+      let scores;
+      let scoreRetryCount = 0;
+      
+      while (scoreRetryCount < maxRetries) {
+        try {
+          scores = await trackedOsuAPI.getAllRoomScores(roomIdNum, playlist.id);
+          break;
+        } catch (scoreError) {
+          scoreRetryCount++;
+          if (scoreRetryCount >= maxRetries) {
+            console.error(`❌ Request ${requestId}: Failed to fetch scores for playlist ${playlist.id} after ${maxRetries} attempts`);
+            throw scoreError;
+          }
+          await new Promise(resolve => setTimeout(resolve, 500 * scoreRetryCount));
+        }
+      }
+      
+      const apiCalls = Math.ceil((scores?.length || 0) / 50);
+      const playlistScoresData = [];
+      const playlistUsersData = [];
+      
+      if (scores && scores.length > 0) {
+        for (const score of scores) {
+          try {
+            // Deduplicate users
+            const userKey = score.user_id.toString();
+            if (!userMap.has(userKey)) {
+              const userData = {
+                osu_id: score.user_id,
+                username: score.user?.username || 'Unknown',
+                avatar_url: score.user?.avatar_url || null,
+                country: score.user?.country_code || null,
+                updated_at: new Date().toISOString()
+              };
+              userMap.set(userKey, userData);
+              playlistUsersData.push(userData);
+            }
+
+            // Process mods with detailed information
+            const modData = processModsData(score.mods);
+            const scoreValue = score.total_score || score.score || 0;
+            
+            const scoreRecord = {
+              playlist_id: playlist.id,
+              user_osu_id: score.user_id,
+              score: scoreValue,
+              accuracy: score.accuracy * 100,
+              max_combo: score.max_combo,
+              mods: modData.legacy,
+              mods_detailed: modData.detailed,
+              rank_position: score.position || 999,
+              submitted_at: score.ended_at || score.started_at || new Date().toISOString()
+            };
+            
+            playlistScoresData.push(scoreRecord);
+          } catch (scoreProcessError) {
+            console.error(`❌ Request ${requestId}: Error processing score in playlist ${playlist.id}:`, scoreProcessError);
+          }
+        }
+      }
+
+      const playlistTime = performance.now() - playlistStart;
+      console.log(`✅ Request ${requestId}: Playlist ${index + 1}/${roomData.playlist.length} processed in ${Math.round(playlistTime)}ms (${scores?.length || 0} scores)`);
+
+      return {
+        playlistRecord,
+        scoresData: playlistScoresData,
+        usersData: playlistUsersData,
+        apiCalls,
+        scoreCount: scores?.length || 0
+      };
+
+    } catch (error) {
+      console.error(`❌ Request ${requestId}: Error processing playlist ${index + 1}:`, error);
+      return null;
+    }
+  };
+
+  // Process playlists in batches to avoid memory issues
+  const playlists = roomData.playlist;
+  for (let batchStart = 0; batchStart < playlists.length; batchStart += batchSize) {
+    const batchEnd = Math.min(batchStart + batchSize, playlists.length);
+    const batch = playlists.slice(batchStart, batchEnd);
+    
+    console.log(`📦 Request ${requestId}: Processing batch ${Math.floor(batchStart / batchSize) + 1} (playlists ${batchStart + 1}-${batchEnd})`);
+    
+    // Process current batch in parallel
+    const batchPromises = batch.map((playlist, batchIndex) => 
+      concurrencyLimit(() => processPlaylist(playlist, batchStart + batchIndex))
+    );
+    
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    // Collect results from successful operations
+    for (const result of batchResults) {
+      if (result.status === 'fulfilled' && result.value) {
+        const { playlistRecord, scoresData, usersData, apiCalls, scoreCount } = result.value;
+        
+        allPlaylistsData.push(playlistRecord);
+        allScoresData.push(...scoresData);
+        allUsersData.push(...usersData);
+        totalApiCallsForPlaylists += apiCalls;
+        playlistsProcessed++;
+        scoresProcessed += scoreCount;
+      } else if (result.status === 'rejected') {
+        console.error(`❌ Request ${requestId}: Batch playlist failed:`, result.reason);
+      }
+    }
+    
+    // Small delay between batches to be nice to the API
+    if (batchEnd < playlists.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+
+  // Deduplicate users data
+  const uniqueUsersData = Array.from(userMap.values());
+
+  console.log(`🎯 Request ${requestId}: Parallel processing complete - ${playlistsProcessed}/${playlists.length} playlists, ${scoresProcessed} scores, ${uniqueUsersData.length} unique users`);
+
+  return {
+    playlistsData: allPlaylistsData,
+    scoresData: allScoresData,
+    usersData: uniqueUsersData,
+    totalApiCallsForPlaylists,
+    playlistsProcessed,
+    scoresProcessed
+  };
+}
+
+// Optimized database transaction with better error handling
+async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scoresData, usersData, requestId) {
+  const maxRetries = 3;
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries) {
+    try {
+      console.log(`💾 Request ${requestId}: Executing atomic database transaction (attempt ${retryCount + 1}/${maxRetries})`);
+      console.log(`📊 Request ${requestId}: Data sizes - Playlists: ${playlistsData.length}, Scores: ${scoresData.length}, Users: ${usersData.length}`);
+      
+      const transactionStart = performance.now();
+      
+      const result = await executeAtomicUpdateWithMods(
+        challengeData,
+        playlistsData,
+        scoresData,
+        usersData
+      );
+      
+      const transactionTime = performance.now() - transactionStart;
+      console.log(`✅ Request ${requestId}: Database transaction completed in ${Math.round(transactionTime)}ms`);
+      
+      return result;
+      
+    } catch (transactionError) {
+      retryCount++;
+      console.error(`❌ Request ${requestId}: Database transaction attempt ${retryCount} failed:`, transactionError);
+      
+      if (retryCount >= maxRetries) {
+        throw new Error(`Database transaction failed after ${maxRetries} attempts: ${transactionError.message}`);
+      }
+      
+      // Exponential backoff
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
+      console.log(`⏳ Request ${requestId}: Retrying database transaction in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
 }
 
 async function updateChallengeRulesetWinner(challengeId, requestId) {
@@ -103,7 +331,7 @@ async function updateChallengeRulesetWinner(challengeId, requestId) {
 }
 
 // Database-based distributed locking
-const LOCK_TIMEOUT = 10 * 60 * 1000; // 10 minutes max lock time
+const LOCK_TIMEOUT = 4 * 60 * 1000; // 4 minutes max lock time
 
 async function acquireDistributedLock(roomId, requestId, timeoutMs = LOCK_TIMEOUT) {
   const lockId = `challenge_update_${roomId}`;
@@ -145,7 +373,7 @@ async function acquireDistributedLock(roomId, requestId, timeoutMs = LOCK_TIMEOU
             .single();
           
           if (!updateError && updatedLock) {
-            console.log(`🔐 Acquired expired lock for room ${roomId}`);
+            console.log(`🔐 Request ${requestId}: Acquired expired lock for room ${roomId}`);
             return { success: true, lock: updatedLock };
           }
         }
@@ -160,11 +388,11 @@ async function acquireDistributedLock(roomId, requestId, timeoutMs = LOCK_TIMEOU
       throw error;
     }
     
-    console.log(`🔐 Acquired new lock for room ${roomId}`);
+    console.log(`🔐 Request ${requestId}: Acquired new lock for room ${roomId}`);
     return { success: true, lock: data };
     
   } catch (error) {
-    console.error('Lock acquisition error:', error);
+    console.error(`❌ Request ${requestId}: Lock acquisition error:`, error);
     return { success: false, error: error.message };
   }
 }
@@ -180,12 +408,12 @@ async function releaseDistributedLock(roomId, requestId) {
       .eq('request_id', requestId);
     
     if (error) {
-      console.error(`Failed to release lock for room ${roomId}:`, error);
+      console.error(`❌ Request ${requestId}: Failed to release lock for room ${roomId}:`, error);
     } else {
-      console.log(`🔓 Released lock for room ${roomId}`);
+      console.log(`🔓 Request ${requestId}: Released lock for room ${roomId}`);
     }
   } catch (error) {
-    console.error('Lock release error:', error);
+    console.error(`❌ Request ${requestId}: Lock release error:`, error);
   }
 }
 
@@ -201,13 +429,16 @@ async function cleanupExpiredLocks() {
       console.log(`🧹 Cleaned up ${data.length} expired locks`);
     }
   } catch (error) {
-    console.error('Lock cleanup error:', error);
+    console.error('❌ Lock cleanup error:', error);
   }
 }
 
+// MAIN OPTIMIZED HANDLER
 async function handler(req, res) {
   const requestId = Math.random().toString(36).substr(2, 9);
-  console.log(`🆔 Request ${requestId}: /api/update-challenge called`);
+  console.log(`🆔 Request ${requestId}: /api/update-challenge called (OPTIMIZED)`);
+
+  const totalStartTime = performance.now();
 
   await cleanupExpiredLocks();
 
@@ -226,6 +457,7 @@ async function handler(req, res) {
       throw new Error('Invalid room ID - must be a positive number');
     }
 
+    // Acquire distributed lock
     const lockResult = await acquireDistributedLock(roomIdNum, requestId);
     
     if (!lockResult.success) {
@@ -249,6 +481,7 @@ async function handler(req, res) {
     }
 
     try {
+      // Check API limits
       const limitStatus = apiTracker.checkLimits();
       const usageStats = apiTracker.getUsageStats();
       
@@ -258,9 +491,10 @@ async function handler(req, res) {
         throw new Error('API usage critical - temporarily limiting requests');
       }
 
-      console.log(`🔄 Request ${requestId}: Starting challenge update for room ${roomIdNum}`);
+      console.log(`🔄 Request ${requestId}: Starting optimized challenge update for room ${roomIdNum}`);
 
       // Fetch room data with retry logic
+      const roomFetchStart = performance.now();
       let roomData;
       let retryCount = 0;
       const maxRetries = 3;
@@ -279,6 +513,9 @@ async function handler(req, res) {
           await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         }
       }
+      
+      const roomFetchTime = performance.now() - roomFetchStart;
+      console.log(`📡 Request ${requestId}: Room data fetched in ${Math.round(roomFetchTime)}ms`);
       
       if (!roomData || !roomData.id) {
         throw new Error('Room not found');
@@ -306,141 +543,44 @@ async function handler(req, res) {
         updated_at: new Date().toISOString()
       };
 
-      let totalApiCallsForPlaylists = 0;
-      let playlistsProcessed = 0;
-      let scoresProcessed = 0;
+      // PARALLEL PLAYLIST PROCESSING
+      const playlistProcessStart = performance.now();
+      const {
+        playlistsData,
+        scoresData,
+        usersData,
+        totalApiCallsForPlaylists,
+        playlistsProcessed,
+        scoresProcessed
+      } = await processPlaylistsInParallel(roomData, roomIdNum, requestId);
       
-      const playlistsData = [];
-      const scoresData = [];
-      const usersData = [];
+      const playlistProcessTime = performance.now() - playlistProcessStart;
+      console.log(`⚡ Request ${requestId}: Parallel playlist processing completed in ${Math.round(playlistProcessTime)}ms`);
 
-      // Process playlists with enhanced mod handling
-      if (roomData.playlist && roomData.playlist.length > 0) {
-        console.log(`📝 Request ${requestId}: Processing ${roomData.playlist.length} playlists`);
-        
-        for (const [index, playlist] of roomData.playlist.entries()) {
-          const currentLimitStatus = apiTracker.checkLimits();
-          
-          if (currentLimitStatus === 'critical') {
-            console.warn(`🚨 Request ${requestId}: Hit critical limit during playlist ${index + 1}/${roomData.playlist.length}. Stopping here.`);
-            break;
-          }
-
-          try {
-            const covers = playlist.beatmap?.beatmapset?.covers || {};
-            
-            const playlistRecord = {
-              playlist_id: playlist.id,
-              beatmap_id: playlist.beatmap_id,
-              beatmap_title: playlist.beatmap?.beatmapset?.title || 'Unknown',
-              beatmap_artist: playlist.beatmap?.beatmapset?.artist || 'Unknown',
-              beatmap_version: playlist.beatmap?.version || 'Unknown',
-              beatmap_difficulty: playlist.beatmap?.difficulty_rating || 0,
-              beatmap_cover_url: covers.cover || null,
-              beatmap_card_url: covers.card || null,
-              beatmap_list_url: covers.list || null,
-              beatmap_slimcover_url: covers.slimcover || null,
-            };
-            
-            playlistsData.push(playlistRecord);
-            playlistsProcessed++;
-
-            // Fetch scores with retry logic
-            try {
-              let scores;
-              let scoreRetryCount = 0;
-              
-              while (scoreRetryCount < maxRetries) {
-                try {
-                  scores = await trackedOsuAPI.getAllRoomScores(roomIdNum, playlist.id);
-                  break;
-                } catch (scoreError) {
-                  scoreRetryCount++;
-                  if (scoreRetryCount >= maxRetries) {
-                    throw scoreError;
-                  }
-                  await new Promise(resolve => setTimeout(resolve, 500 * scoreRetryCount));
-                }
-              }
-              
-              totalApiCallsForPlaylists += Math.ceil(scores.length / 50);
-              
-              if (scores && scores.length > 0) {
-                console.log(`📊 Request ${requestId}: Processing ${scores.length} scores for playlist ${index + 1}`);
-                
-                for (const score of scores) {
-                  try {
-                    const userData = {
-                      osu_id: score.user_id,
-                      username: score.user?.username || 'Unknown',
-                      avatar_url: score.user?.avatar_url || null,
-                      country: score.user?.country_code || null,
-                      updated_at: new Date().toISOString()
-                    };
-                    
-                    usersData.push(userData);
-
-                    // Process mods with detailed information
-                    const modData = processModsData(score.mods);
-                    
-                    console.log(`🎮 Request ${requestId}: Score mods for ${score.user?.username}:`, {
-                      raw: score.mods,
-                      processed: modData
-                    });
-
-                    const scoreValue = score.total_score || score.score || 0;
-                    
-                    const scoreRecord = {
-                      playlist_id: playlist.id,
-                      user_osu_id: score.user_id,
-                      score: scoreValue,
-                      accuracy: score.accuracy * 100,
-                      max_combo: score.max_combo,
-                      mods: modData.legacy, // Keep legacy format for backward compatibility
-                      mods_detailed: modData.detailed, // Store detailed mod information
-                      rank_position: score.position || 999,
-                      submitted_at: score.ended_at || score.started_at || new Date().toISOString()
-                    };
-                    
-                    scoresData.push(scoreRecord);
-                    scoresProcessed++;
-                  } catch (scoreProcessError) {
-                    console.error(`❌ Request ${requestId}: Error processing score:`, scoreProcessError);
-                  }
-                }
-              }
-            } catch (scoreError) {
-              console.error(`❌ Request ${requestId}: Error fetching scores for playlist ${playlist.id}:`, scoreError);
-            }
-          } catch (playlistProcessError) {
-            console.error(`❌ Request ${requestId}: Error processing playlist ${playlist.id}:`, playlistProcessError);
-          }
-        }
-      }
-
-      // Execute atomic transaction with enhanced mod support
-      console.log(`💾 Request ${requestId}: Executing atomic database transaction with mod data...`);
-      
+      // OPTIMIZED DATABASE TRANSACTION
+      const dbStart = performance.now();
       let challengeDbId = null;
+      
       try {
-        const result = await executeAtomicUpdateWithMods(
+        const result = await executeOptimizedAtomicUpdate(
           challengeData,
-          playlistsData, 
+          playlistsData,
           scoresData,
-          usersData
+          usersData,
+          requestId
         );
         
-        console.log(`✅ Request ${requestId}: Atomic transaction with mods completed successfully`);
-        
-        // Extract challenge ID from the result
         challengeDbId = result.challenge_id;
         
       } catch (transactionError) {
-        console.error(`❌ Request ${requestId}: Atomic transaction failed:`, transactionError);
+        console.error(`❌ Request ${requestId}: Database transaction failed:`, transactionError);
         throw new Error(`Database transaction failed: ${transactionError.message}`);
       }
+      
+      const dbTime = performance.now() - dbStart;
 
       // Calculate ruleset winner AFTER successful transaction
+      const rulesetStart = performance.now();
       let rulesetResult = { success: false, has_ruleset: false };
       
       if (challengeDbId) {
@@ -460,32 +600,50 @@ async function handler(req, res) {
           rulesetResult = { success: false, error: rulesetError.message };
         }
       }
+      
+      const rulesetTime = performance.now() - rulesetStart;
+      const totalTime = performance.now() - totalStartTime;
+
+      // Update global tracking cache
+      markChallengeUpdated(roomIdNum);
 
       const finalUsage = apiTracker.getUsageStats();
-      console.log(`✅ Request ${requestId}: Challenge update complete. Processed ${playlistsProcessed} playlists, ${scoresProcessed} scores. Final API usage: ${finalUsage.usage?.functions?.percentage || '0'}%`);
+      
+      console.log(`✅ Request ${requestId}: OPTIMIZED challenge update complete in ${Math.round(totalTime)}ms`);
+      console.log(`📊 Request ${requestId}: Timing breakdown - Room: ${Math.round(roomFetchTime)}ms, Playlists: ${Math.round(playlistProcessTime)}ms, DB: ${Math.round(dbTime)}ms, Ruleset: ${Math.round(rulesetTime)}ms`);
+      console.log(`🎯 Request ${requestId}: Processed ${playlistsProcessed} playlists, ${scoresProcessed} scores. Final API usage: ${finalUsage.usage?.functions?.percentage || '0'}%`);
 
       const response = { 
         success: true, 
         challenge: challengeData,
-        message: 'Challenge data updated successfully with detailed mod information',
+        message: 'Challenge data updated successfully with parallel processing and detailed mod information',
         stats: {
           playlistsProcessed,
           scoresProcessed,
           totalPlaylists: roomData.playlist?.length || 0,
-          estimatedExternalCalls: totalApiCallsForPlaylists
+          estimatedExternalCalls: totalApiCallsForPlaylists,
+          uniqueUsers: usersData.length
+        },
+        performance: {
+          totalTimeMs: Math.round(totalTime),
+          roomFetchMs: Math.round(roomFetchTime),
+          playlistProcessMs: Math.round(playlistProcessTime),
+          databaseMs: Math.round(dbTime),
+          rulesetMs: Math.round(rulesetTime),
+          optimizationType: 'parallel_processing'
         },
         apiUsage: {
           percentage: finalUsage.usage?.functions?.percentage || '0',
           remaining: finalUsage.usage?.functions?.remaining || 100000
         },
-        ruleset: rulesetResult, // Add ruleset result to response
+        ruleset: rulesetResult,
         requestId
       };
 
       res.status(200).json(response);
 
     } catch (error) {
-      console.error(`❌ Request ${requestId}: Update challenge error:`, error);
+      console.error(`❌ Request ${requestId}: Optimized update challenge error:`, error);
       
       const errorUsage = apiTracker.getUsageStats();
       console.log(`💥 Request ${requestId}: Error occurred at ${errorUsage.usage?.functions?.percentage || '0'}% API usage`);

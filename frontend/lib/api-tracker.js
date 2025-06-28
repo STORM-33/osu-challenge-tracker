@@ -274,6 +274,7 @@ class MemoryManagedAPITracker {
       if (endpointData && endpointData.length > 0) {
         console.log(`📊 Loading ${endpointData.length} endpoint records from database`);
         endpointData.forEach(endpoint => {
+          // FIXED: Generate keys consistently
           let key;
           if (endpoint.type === 'internal') {
             key = `${endpoint.method}:${endpoint.endpoint}`;
@@ -288,7 +289,10 @@ class MemoryManagedAPITracker {
             errors: endpoint.error_count || 0,
             totalDuration: endpoint.total_duration || 0,
             lastCall: endpoint.last_called,
-            recentCalls: [] // Start fresh for recent calls
+            recentCalls: [], // Start fresh for recent calls
+            lastSyncCount: endpoint.call_count || 0,
+            lastSyncDuration: endpoint.total_duration || 0,
+            lastSyncErrors: endpoint.error_count || 0
           };
 
           if (endpoint.type === 'internal') {
@@ -385,6 +389,7 @@ class MemoryManagedAPITracker {
         }
       }
 
+      // FIXED: Process endpoint performance data with proper key handling
       if (this.pendingWrites.endpoints.size > 0) {
         console.log(`💾 Processing ${this.pendingWrites.endpoints.size} endpoint updates`);
         
@@ -456,7 +461,7 @@ class MemoryManagedAPITracker {
       endpoint: stats.endpoint,
       method: stats.method,
       type: stats.type,
-      api_name: stats.api_name, // null for internal, string for external
+      api_name: stats.api_name,
       call_count: stats.count,
       total_duration: stats.totalDuration,
       error_count: stats.errors,
@@ -465,6 +470,7 @@ class MemoryManagedAPITracker {
     };
 
     try {
+      // Build the correct query based on whether it's internal or external
       let query = supabase
         .from('api_endpoint_performance')
         .select('id, call_count, total_duration, error_count')
@@ -488,13 +494,22 @@ class MemoryManagedAPITracker {
       }
 
       if (existing) {
-        // Update existing record - add to existing counts
+        // FIXED: Only add the INCREMENTAL values since last sync, not total accumulated values
+        const incrementalCount = stats.lastSyncCount ? stats.count - stats.lastSyncCount : stats.count;
+        const incrementalDuration = stats.lastSyncDuration ? stats.totalDuration - stats.lastSyncDuration : stats.totalDuration;
+        const incrementalErrors = stats.lastSyncErrors ? stats.errors - stats.lastSyncErrors : stats.errors;
+
+        // Ensure we don't add negative values (safety check)
+        const safeIncrementalCount = Math.max(0, incrementalCount);
+        const safeIncrementalDuration = Math.max(0, incrementalDuration);
+        const safeIncrementalErrors = Math.max(0, incrementalErrors);
+
         const { error: updateError } = await supabase
           .from('api_endpoint_performance')
           .update({
-            call_count: existing.call_count + recordData.call_count,
-            total_duration: (existing.total_duration || 0) + (recordData.total_duration || 0),
-            error_count: (existing.error_count || 0) + (recordData.error_count || 0),
+            call_count: existing.call_count + safeIncrementalCount,
+            total_duration: (existing.total_duration || 0) + safeIncrementalDuration,
+            error_count: (existing.error_count || 0) + safeIncrementalErrors,
             last_called: recordData.last_called,
             updated_at: recordData.updated_at
           })
@@ -504,6 +519,8 @@ class MemoryManagedAPITracker {
           console.error(`Update error for ${stats.endpoint}:`, updateError);
           throw updateError;
         }
+
+        console.log(`✅ Updated ${stats.endpoint}: +${safeIncrementalCount} calls, +${safeIncrementalDuration}ms duration`);
 
       } else {
         // Insert new record
@@ -518,7 +535,14 @@ class MemoryManagedAPITracker {
           console.error(`Insert error for ${stats.endpoint}:`, insertError);
           throw insertError;
         }
+
+        console.log(`✅ Inserted new endpoint ${stats.endpoint}: ${recordData.call_count} calls`);
       }
+
+      // CRITICAL: Update the "last sync" values to track what we've already synced
+      stats.lastSyncCount = stats.count;
+      stats.lastSyncDuration = stats.totalDuration;
+      stats.lastSyncErrors = stats.errors;
 
     } catch (error) {
       console.error(`Sync error for endpoint ${stats.endpoint}:`, error);
@@ -540,6 +564,7 @@ class MemoryManagedAPITracker {
 
     this.checkMonthlyReset();
     
+    // FIXED: Use consistent key format that matches sync logic
     const key = `${method}:${endpoint}`;
     const timestamp = new Date().toISOString();
     
@@ -567,7 +592,10 @@ class MemoryManagedAPITracker {
         totalResponseSize: 0,
         firstCall: timestamp,
         lastCall: timestamp,
-        recentCalls: []
+        recentCalls: [],
+        lastSyncCount: 0,
+        lastSyncDuration: 0,
+        lastSyncErrors: 0
       });
     }
 
@@ -634,7 +662,7 @@ class MemoryManagedAPITracker {
 
     this.checkMonthlyReset();
     
-    // Use consistent key format
+    // FIXED: Use consistent key format - this should match what you already have
     const key = `${apiName}:${method}:${endpoint}`;
     const timestamp = new Date().toISOString();
     
@@ -661,7 +689,9 @@ class MemoryManagedAPITracker {
         totalResponseSize: 0,
         firstCall: timestamp,
         lastCall: timestamp,
-        recentCalls: []
+        lastSyncCount: 0,
+        lastSyncDuration: 0,
+        lastSyncErrors: 0
       });
     }
 

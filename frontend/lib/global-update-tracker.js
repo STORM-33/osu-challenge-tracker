@@ -1,6 +1,6 @@
 // Global cache that persists across page navigations
 const updateCache = new Map(); // roomId -> lastUpdateTimestamp
-const UPDATE_THRESHOLD = 10 * 60 * 1000; // 10 minutes
+const UPDATE_THRESHOLD = 4 * 60 * 1000; // 10 minutes
 
 class GlobalUpdateTracker {
   constructor() {
