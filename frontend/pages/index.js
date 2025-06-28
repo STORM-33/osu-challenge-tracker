@@ -394,11 +394,6 @@ export default function Home() {
                                       {challenge.description}
                                     </div>
                                   )}
-                                  {challenge.custom_name && (
-                                    <div className="text-xs text-purple-600 font-medium mt-1">
-                                      Custom Name
-                                    </div>
-                                  )}
                                 </div>
                               </Link>
                             </td>

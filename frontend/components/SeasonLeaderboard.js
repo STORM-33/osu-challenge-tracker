@@ -289,10 +289,6 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                               <Trophy className="w-4 h-4 text-purple-500" />
                               <span className="font-medium">{user.challenges_participated} challenges</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Target className="w-4 h-4 text-blue-500" />
-                              <span className="font-medium">{user.total_maps_played} maps</span>
-                            </div>
                           </div>
                         </div>
                       </div>
