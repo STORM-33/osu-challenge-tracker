@@ -1,5 +1,6 @@
 import { Trophy, Award, Target, Activity } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 
 // Utility function to sanitize user input
 const sanitizeText = (text) => {
@@ -25,6 +26,7 @@ const getCountryFlagUrl = (countryCode) => {
 export default function CombinedLeaderboard({ leaderboard = [], loading = false, totalMaps = 0 }) {
   const [sortBy, setSortBy] = useState('total_score');
   const [sortOrder, setSortOrder] = useState('desc');
+  const router = useRouter();
 
   if (loading) {
     return (
@@ -68,12 +70,15 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
     }
   };
 
-  // Handle clicking on a username to open their osu! profile
-  const handleUsernameClick = (user) => {
-    if (!user || !user.user_id) return;
+  // Handle clicking on a username to go to their profile
+  const handleUsernameClick = (player) => {
+    if (!player || !player.user_id) {
+      console.warn('No user ID found for player:', player);
+      return;
+    }
     
-    const profileUrl = `https://osu.ppy.sh/users/${user.user_id}`;
-    window.open(profileUrl, '_blank', 'noopener,noreferrer');
+    // Navigate to the challenger's profile page
+    router.push(`/profile/${player.user_id}`);
   };
 
   // Sort leaderboard based on current sort settings
@@ -261,13 +266,13 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p 
-                        className="font-bold text-gray-900 hover:text-purple-600 hover:underline transition-colors cursor-pointer truncate text-lg" 
-                        title={`Click to view ${username}'s osu! profile`}
+                      <button 
+                        className="font-bold text-gray-900 hover:text-purple-600 hover:underline transition-colors cursor-pointer truncate text-lg text-left" 
+                        title={`View ${username}'s profile`}
                         onClick={() => handleUsernameClick(player)}
                       >
                         {username}
-                      </p>
+                      </button>
                       {country && (
                         <div className="flex items-center gap-1 mt-0.5">
                           {getCountryFlagUrl(country) ? (

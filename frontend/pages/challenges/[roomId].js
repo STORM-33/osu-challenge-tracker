@@ -1,4 +1,4 @@
-// pages/challenges/[roomId].js - Updated to use background sync
+// pages/challenges/[roomId].js - Updated with improved sync indicators
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -7,7 +7,7 @@ import Layout from '../../components/Layout';
 import ScoreTable from '../../components/ScoreTable';
 import CombinedLeaderboard from '../../components/CombinedLeaderboard';
 import { challengeQueries } from '../../lib/supabase';
-import { ArrowLeft, Loader2, Users, Calendar, Music, Star, Trophy, RefreshCw, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Loader2, Users, Calendar, Music, Star, Trophy, RefreshCw, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { Crown, Target } from 'lucide-react';
 import { generateRulesetName, generateRulesetDescription } from '../../lib/ruleset-name-generator';
 import { useChallengeWithSync } from '../../hooks/useAPI';
@@ -75,9 +75,27 @@ export default function ChallengeDetail() {
     }
   });
 
-  // State for manual sync
+  // State for manual sync and completion tracking
   const [isManualSyncing, setIsManualSyncing] = useState(false);
-  const [showSyncSuccess, setShowSyncSuccess] = useState(false);
+  const [completionBannerVisible, setCompletionBannerVisible] = useState(false);
+  const [lastSyncCompleted, setLastSyncCompleted] = useState(false);
+
+  // Track sync completion for banner
+  useEffect(() => {
+    if (lastSyncCompleted && !isBackgroundSyncing && !isManualSyncing) {
+      setCompletionBannerVisible(true);
+      
+      const timer = setTimeout(() => {
+        setCompletionBannerVisible(false);
+      }, 4000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    if (isBackgroundSyncing || isManualSyncing) {
+      setLastSyncCompleted(true);
+    }
+  }, [isBackgroundSyncing, isManualSyncing, lastSyncCompleted]);
 
   // Fetch combined leaderboard when we have a challenge with multiple maps that have scores
   const shouldShowCombinedLeaderboard = challenge && challenge.playlists && 
@@ -97,8 +115,7 @@ export default function ChallengeDetail() {
       const result = await triggerSync(force);
       
       if (result.success && result.queued) {
-        setShowSyncSuccess(true);
-        setTimeout(() => setShowSyncSuccess(false), 3000);
+        // Success will be handled by the completion banner
       }
     } catch (error) {
       console.error('Manual sync failed:', error);
@@ -145,53 +162,46 @@ export default function ChallengeDetail() {
     );
   };
 
-  // Format sync status for display
-  const getSyncStatusDisplay = () => {
-    if (!syncMetadata) return null;
-
-    if (isBackgroundSyncing) {
-      return {
-        type: 'syncing',
-        message: 'Fetching latest scores from osu!...',
-        color: 'blue'
-      };
-    }
-
-    if (showSyncSuccess) {
-      return {
-        type: 'success',
-        message: 'Challenge updated with latest data!',
-        color: 'green'
-      };
-    }
-
-    if (syncMetadata.background_sync_triggered) {
-      return {
-        type: 'triggered',
-        message: 'Background sync started - data will update automatically',
-        color: 'blue'
-      };
-    }
-
-    if (syncMetadata.is_stale && challenge?.is_active) {
-      const ageMinutes = Math.floor(syncMetadata.time_since_update / 60000);
-      return {
-        type: 'stale',
-        message: `Data is ${ageMinutes} minutes old - consider refreshing`,
-        color: 'yellow'
-      };
+  // Fixed Sync Status Indicator (similar to main page)
+  const SyncStatusIndicator = () => {
+    const isSyncing = isBackgroundSyncing || isManualSyncing;
+    
+    // Only show if there's active syncing or recent completion
+    if (isSyncing || completionBannerVisible) {
+      return (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-right fade-in duration-300">
+          <div className="flex items-center gap-3 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-full border border-neutral-200 shadow-lg">
+            {isSyncing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm text-neutral-700 font-medium">
+                  Syncing challenge data...
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-neutral-700 font-medium">
+                  Sync complete
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      );
     }
 
     return null;
   };
-
-  const syncStatus = getSyncStatusDisplay();
 
   if (!roomId) return null;
 
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Fixed Sync Status Indicator */}
+        <SyncStatusIndicator />
+
         {/* Back button */}
         <Link 
           href="/"
@@ -201,88 +211,26 @@ export default function ChallengeDetail() {
           Back to challenges
         </Link>
 
-        {/* Sync status indicators */}
-        {syncStatus && (
-          <div className={`border p-4 rounded-lg mb-6 ${
-            syncStatus.color === 'blue' ? 'bg-blue-50 border-blue-200' :
-            syncStatus.color === 'green' ? 'bg-green-50 border-green-200' :
-            syncStatus.color === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
-            'bg-gray-50 border-gray-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                {syncStatus.type === 'syncing' ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
-                ) : syncStatus.type === 'success' ? (
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                ) : syncStatus.type === 'stale' ? (
-                  <Clock className="w-5 h-5 text-yellow-600 mr-3" />
-                ) : (
-                  <RefreshCw className="w-5 h-5 text-blue-600 mr-3" />
-                )}
-                <div>
-                  <p className={`font-medium ${
-                    syncStatus.color === 'blue' ? 'text-blue-800' :
-                    syncStatus.color === 'green' ? 'text-green-800' :
-                    syncStatus.color === 'yellow' ? 'text-yellow-800' :
-                    'text-gray-800'
-                  }`}>
-                    {syncStatus.message}
-                  </p>
-                  {syncMetadata?.sync_stage && (
-                    <p className={`text-sm ${
-                      syncStatus.color === 'blue' ? 'text-blue-600' :
-                      syncStatus.color === 'green' ? 'text-green-600' :
-                      syncStatus.color === 'yellow' ? 'text-yellow-600' :
-                      'text-gray-600'
-                    }`}>
-                      Stage: {syncMetadata.sync_stage}
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              {/* Manual sync button */}
-              {challenge?.is_active && !isBackgroundSyncing && (
-                <button
-                  onClick={() => handleManualSync(false)}
-                  disabled={isManualSyncing || syncMetadata?.next_sync_available_in > 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                >
-                  {isManualSyncing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4" />
-                      Refresh Data
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
           </div>
         ) : error || !challenge ? (
-          <div className="glass-card rounded-2xl p-12 text-center">
-            <p className="text-red-600 mb-4">Failed to load challenge</p>
+          <div className="bg-gradient-to-br from-red-50 to-rose-100 rounded-3xl p-12 text-center border border-red-200">
+            <div className="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <p className="text-red-700 mb-6 font-medium">Failed to load challenge</p>
             <div className="flex gap-4 justify-center">
               <button
                 onClick={refresh}
-                className="btn-primary"
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
               >
                 Try Again
               </button>
               <Link 
                 href="/"
-                className="btn-secondary"
+                className="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
               >
                 Back to challenges
               </Link>
@@ -351,13 +299,15 @@ export default function ChallengeDetail() {
                       Last updated: {formatUTCDateTime(challenge.updated_at)}
                     </span>
                     {syncMetadata?.is_stale && challenge.is_active && (
-                      <span className="text-yellow-600 font-medium">
-                        ⚠️ Data may be outdated
+                      <span className="text-yellow-600 font-medium flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Data may be outdated
                       </span>
                     )}
                     {syncError && (
-                      <span className="text-red-600 font-medium">
-                        ❌ Sync error: {syncError}
+                      <span className="text-red-600 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Sync error: {syncError}
                       </span>
                     )}
                   </div>
@@ -477,30 +427,18 @@ export default function ChallengeDetail() {
               ))}
             </div>
 
-            {/* Footer with sync info */}
-            <div className="mt-8 text-center">
+            {/* Footer Status - Similar to main page */}
+            <div className="mt-20 text-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 rounded-full border border-neutral-200">
-                <div className={`w-2 h-2 rounded-full ${
-                  isBackgroundSyncing ? 'bg-blue-500 animate-pulse' : 
-                  syncMetadata?.is_stale ? 'bg-yellow-500' : 'bg-green-500'
+                <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                  isBackgroundSyncing || isManualSyncing ? 'bg-blue-500 animate-pulse' : 
+                  syncMetadata?.is_stale && challenge?.is_active ? 'bg-yellow-500' : 'bg-green-500'
                 }`}></div>
                 <p className="text-sm text-neutral-600 font-medium">
-                  {isBackgroundSyncing ? 'Syncing latest data...' : 
-                   syncMetadata?.is_stale ? 'Data updates available' : 'Data is up to date'}
+                  {isBackgroundSyncing || isManualSyncing ? 'Fetching latest scores from osu!...' : 
+                   syncMetadata?.is_stale && challenge?.is_active ? 'Data updates available' : 'Data is up to date'}
                 </p>
               </div>
-              
-              {/* Debug info in development */}
-              {process.env.NODE_ENV === 'development' && syncMetadata && (
-                <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-                  <div>Sync Debug:</div>
-                  <div>Last synced: {syncMetadata.last_synced ? new Date(syncMetadata.last_synced).toLocaleString() : 'Never'}</div>
-                  <div>Is stale: {syncMetadata.is_stale ? 'Yes' : 'No'}</div>
-                  <div>Can sync: {syncMetadata.can_sync ? 'Yes' : 'No'}</div>
-                  <div>Next sync in: {Math.max(0, Math.ceil(syncMetadata.next_sync_available_in / 1000))}s</div>
-                  {syncMetadata.job_id && <div>Job ID: {syncMetadata.job_id}</div>}
-                </div>
-              )}
             </div>
           </>
         )}

@@ -1,5 +1,6 @@
 import { Trophy, Target } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 // Utility function to sanitize user input
 const sanitizeText = (text) => {
@@ -26,6 +27,7 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
   const [sortBy, setSortBy] = useState('rank');
   const [sortOrder, setSortOrder] = useState('asc');
   const [winnerInfo, setWinnerInfo] = useState(null);
+  const router = useRouter();
 
   // Load winner information for this challenge
   useEffect(() => {
@@ -98,20 +100,18 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
     }
   };
 
-  // Handle clicking on a username to open their osu! profile
+  // Handle clicking on a username to go to their profile
   const handleUsernameClick = (user) => {
     if (!user) return;
     
-    // Try different possible ID field names
-    const userId = user.id || user.user_id || user.osu_id;
+    // Get the user ID - check multiple possible field names
+    const userId = user.id || user.user_id;
     
     if (userId) {
-      const profileUrl = `https://osu.ppy.sh/users/${userId}`;
-      window.open(profileUrl, '_blank', 'noopener,noreferrer');
+      // Navigate to the challenger's profile page
+      router.push(`/profile/${userId}`);
     } else {
-      // Fallback: search by username if no ID is available
-      const searchUrl = `https://osu.ppy.sh/users/${encodeURIComponent(user.username)}`;
-      window.open(searchUrl, '_blank', 'noopener,noreferrer');
+      console.warn('No user ID found for user:', user);
     }
   };
 
@@ -284,13 +284,13 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p 
-                          className="font-semibold text-gray-800 hover:text-blue-600 hover:underline transition-colors cursor-pointer truncate" 
-                          title={`Click to view ${username}'s osu! profile`}
+                        <button 
+                          className="font-semibold text-gray-800 hover:text-blue-600 hover:underline transition-colors cursor-pointer truncate text-left" 
+                          title={`View ${username}'s profile`}
                           onClick={() => handleUsernameClick(score.users)}
                         >
                           {username}
-                        </p>
+                        </button>
                         {/* Multiple badges for different winner types */}
                         <div className="flex items-center gap-1">
                           {isWinner && (

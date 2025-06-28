@@ -91,17 +91,31 @@ export default function Layout({ children, backgroundImage }) {
                 challenges
               </Link>
 
+              {/* Season Leaderboard Link */}
+              <Link 
+                href="/leaderboard"
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-medium ${
+                  router.pathname === '/leaderboard'
+                    ? 'bg-neutral-800 text-white'
+                    : 'text-neutral-700 hover:bg-neutral-100'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                leaderboard
+              </Link>
+
+              {/* Profile link - only show if user is logged in */}
               {user && (
                 <Link 
-                  href="/profile"
+                  href={`/profile/${user.id}`}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-medium ${
-                    router.pathname === '/profile'
+                    router.pathname === `/profile/${user.id}` || router.pathname.startsWith('/profile/')
                       ? 'bg-neutral-800 text-white'
                       : 'text-neutral-700 hover:bg-neutral-100'
                   }`}
                 >
-                  <BarChart3 className="w-4 h-4" />
-                  My Scores
+                  <User className="w-4 h-4" />
+                  profile
                 </Link>
               )}
 

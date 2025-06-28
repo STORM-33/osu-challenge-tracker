@@ -1,97 +1,65 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import Layout from '../components/Layout';
-import { auth, challengeQueries, supabase } from '../lib/supabase';
-import { Loader2, Trophy, Target, Calendar, User, Award, BarChart3, Sparkles, Flame, Zap } from 'lucide-react';
+import Layout from '../../components/Layout';
+import { Loader2, Trophy, Target, Calendar, User, Award, BarChart3, Sparkles, Flame, Zap, ArrowLeft, ExternalLink } from 'lucide-react';
 
-export default function Profile() {
-  const [user, setUser] = useState(null);
+export default function UserProfile() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [profileUser, setProfileUser] = useState(null);
   const [scores, setScores] = useState([]);
   const [stats, setStats] = useState(null);
   const [streaks, setStreaks] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const router = useRouter();
+  const { userId } = router.query;
 
   useEffect(() => {
+    if (!userId) return;
     loadUserData();
-  }, []);
+  }, [userId]);
 
   const loadUserData = async () => {
     try {
-      // Get current user
-      const currentUser = await auth.getCurrentUser();
-      if (!currentUser) {
-        router.push('/');
+      setLoading(true);
+      setError(null);
+
+      // Get current authenticated user
+      const authResponse = await fetch('/api/auth/status');
+      const authData = await authResponse.json();
+      
+      if (authData.authenticated) {
+        setCurrentUser(authData.user);
+      }
+
+      // Get profile user data
+      const profileResponse = await fetch(`/api/user/profile/${userId}`);
+      
+      if (!profileResponse.ok) {
+        if (profileResponse.status === 404) {
+          setError('User not found');
+        } else {
+          setError('Failed to load user profile');
+        }
         return;
       }
+
+      const profileData = await profileResponse.json();
       
-      setUser(currentUser);
-
-      // Load user scores, stats, and streaks
-      const [userScores, userStats, userStreaks] = await Promise.all([
-        challengeQueries.getUserScores(currentUser.id),
-        challengeQueries.getUserStats(currentUser.id),
-        challengeQueries.getUserStreaks(currentUser.id)
-      ]);
-
-      // Use batch function instead of N+1 queries
-      let scoresWithCalculatedRanks = userScores;
-      
-      if (userScores && userScores.length > 0) {
-        try {
-          // Extract playlist IDs for batch ranking
-          const playlistIds = userScores.map(score => score.playlist_id);
-          
-          // Single database call to get all ranks
-          const { data: rankData, error: rankError } = await supabase
-            .rpc('get_user_ranks_batch', {
-              p_user_id: currentUser.id,
-              p_playlist_ids: playlistIds
-            });
-
-          if (!rankError && rankData) {
-            // Create a map for quick lookup
-            const rankMap = new Map();
-            rankData.forEach(rank => {
-              rankMap.set(rank.playlist_id, {
-                calculated_rank: rank.user_rank,
-                total_players: rank.total_players
-              });
-            });
-
-            // Apply ranks to scores
-            scoresWithCalculatedRanks = userScores.map(score => {
-              const rankInfo = rankMap.get(score.playlist_id);
-              return {
-                ...score,
-                calculated_rank: rankInfo?.calculated_rank || score.rank_position,
-                total_players: rankInfo?.total_players || null
-              };
-            });
-          } else {
-            console.warn('Batch rank calculation failed, using fallback ranks:', rankError);
-            // Fallback to original ranks
-            scoresWithCalculatedRanks = userScores.map(score => ({
-              ...score,
-              calculated_rank: score.rank_position
-            }));
-          }
-        } catch (batchError) {
-          console.error('Error in batch rank calculation:', batchError);
-          // Fallback to original ranks
-          scoresWithCalculatedRanks = userScores.map(score => ({
-            ...score,
-            calculated_rank: score.rank_position
-          }));
-        }
+      if (!profileData.success) {
+        setError(profileData.error?.message || 'Failed to load profile');
+        return;
       }
 
-      setScores(scoresWithCalculatedRanks.slice(0, 5));
-      setStats(userStats);
-      setStreaks(userStreaks);
+      setProfileUser(profileData.user);
+      setScores(profileData.scores || []);
+      setStats(profileData.stats || null);
+      setStreaks(profileData.streaks || null);
+
     } catch (error) {
       console.error('Error loading user data:', error);
+      setError('Failed to load user profile');
     } finally {
       setLoading(false);
     }
@@ -123,6 +91,8 @@ export default function Profile() {
     return 'text-neutral-600';
   };
 
+  const isOwnProfile = currentUser && profileUser && currentUser.id === profileUser.id;
+
   if (loading) {
     return (
       <Layout>
@@ -130,7 +100,7 @@ export default function Profile() {
           <div className="flex items-center justify-center h-80 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-3xl border border-neutral-200">
             <div className="text-center">
               <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" />
-              <p className="text-neutral-600 font-medium">Loading your profile...</p>
+              <p className="text-neutral-600 font-medium">Loading profile...</p>
             </div>
           </div>
         </div>
@@ -138,7 +108,7 @@ export default function Profile() {
     );
   }
 
-  if (!user) {
+  if (error) {
     return (
       <Layout>
         <div className="max-w-7xl mx-auto px-4 py-8">
@@ -146,13 +116,44 @@ export default function Profile() {
             <div className="w-20 h-20 bg-neutral-200 rounded-full flex items-center justify-center mx-auto mb-6">
               <User className="w-10 h-10 text-neutral-400" />
             </div>
-            <h3 className="text-xl font-bold text-neutral-700 mb-3">Login Required</h3>
-            <p className="text-neutral-600 mb-8">Please login with your osu! account to view your profile</p>
+            <h3 className="text-xl font-bold text-neutral-700 mb-3">{error}</h3>
+            <p className="text-neutral-600 mb-8">The user you're looking for could not be found or their profile is unavailable.</p>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => router.back()}
+                className="flex items-center gap-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-semibold px-6 py-3 rounded-full transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Go Back
+              </button>
+              <Link 
+                href="/"
+                className="bg-primary-600 hover:bg-primary-700 text-white font-semibold px-8 py-3 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
+              >
+                Browse Challenges
+              </Link>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!profileUser) {
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-3xl p-16 text-center border border-neutral-200">
+            <div className="w-20 h-20 bg-neutral-200 rounded-full flex items-center justify-center mx-auto mb-6">
+              <User className="w-10 h-10 text-neutral-400" />
+            </div>
+            <h3 className="text-xl font-bold text-neutral-700 mb-3">User Not Found</h3>
+            <p className="text-neutral-600 mb-8">This user profile does not exist or has been removed.</p>
             <Link 
-              href="/api/auth/login"
+              href="/"
               className="bg-primary-600 hover:bg-primary-700 text-white font-semibold px-8 py-4 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
             >
-              Login with osu!
+              Browse Challenges
             </Link>
           </div>
         </div>
@@ -164,34 +165,61 @@ export default function Profile() {
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
         
+        {/* Navigation */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 font-medium transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        </div>
+
         {/* User Profile Header */}
         <div className="bg-gradient-to-r from-primary-50 to-purple-50 rounded-3xl p-8 mb-12 border border-primary-100 shadow-sm">
           <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 flex-1">
               <div className="relative">
-                {user.avatar_url ? (
+                {profileUser.avatar_url ? (
                   <img 
-                    src={user.avatar_url} 
-                    alt={user.username}
+                    src={profileUser.avatar_url} 
+                    alt={profileUser.username}
                     className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
                   />
                 ) : (
                   <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
-                    <span className="text-3xl font-bold text-white">{user.username[0]}</span>
+                    <span className="text-3xl font-bold text-white">{profileUser.username[0]}</span>
                   </div>
                 )}
               </div>
               
               <div className="flex-1">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-                  <h1 className="text-3xl font-bold text-neutral-800">{user.username}</h1>
                   <div className="flex items-center gap-3">
-                    {user.country && (
+                    <h1 className="text-3xl font-bold text-neutral-800">
+                      {profileUser.osu_id ? (
+                        <a
+                          href={`https://osu.ppy.sh/users/${profileUser.osu_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-primary-600 transition-colors flex items-center gap-2 group"
+                        >
+                          {profileUser.username}
+                          <ExternalLink className="w-5 h-5 text-neutral-400 group-hover:text-primary-500 transition-colors" />
+                        </a>
+                      ) : (
+                        profileUser.username
+                      )}
+                    </h1>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {profileUser.country && (
                       <span className="px-3 py-1 bg-white/80 text-neutral-700 text-sm font-medium rounded-full border border-neutral-200 shadow-sm flex items-center gap-2">
-                        {getCountryFlagUrl(user.country) ? (
+                        {getCountryFlagUrl(profileUser.country) ? (
                           <img 
-                            src={getCountryFlagUrl(user.country)} 
-                            alt={`${user.country} flag`}
+                            src={getCountryFlagUrl(profileUser.country)} 
+                            alt={`${profileUser.country} flag`}
                             className="w-4 h-3 object-cover border border-neutral-400"
                             onError={(e) => {
                               e.target.style.display = 'none';
@@ -199,10 +227,10 @@ export default function Profile() {
                             }}
                           />
                         ) : null}
-                        <span style={{ display: getCountryFlagUrl(user.country) ? 'none' : 'inline' }}>
+                        <span style={{ display: getCountryFlagUrl(profileUser.country) ? 'none' : 'inline' }}>
                           🌍
                         </span>
-                        {user.country.toUpperCase()}
+                        {profileUser.country.toUpperCase()}
                       </span>
                     )}
                   </div>
@@ -263,7 +291,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Average Performance Overview */}
+        {/* Performance Statistics */}
         <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl p-8 mb-12 border border-indigo-100 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
             <h2 className="text-2xl font-bold text-neutral-800">Performance Statistics</h2>
@@ -339,13 +367,20 @@ export default function Profile() {
                 <Trophy className="w-10 h-10 text-neutral-400" />
               </div>
               <h3 className="text-xl font-bold text-neutral-700 mb-3">No Challenge Scores Yet</h3>
-              <p className="text-neutral-600 mb-8">Start participating in challenges to see your scores here!</p>
-              <Link 
-                href="/"
-                className="bg-primary-600 hover:bg-primary-700 text-white font-semibold px-8 py-4 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
-              >
-                Browse Active Challenges
-              </Link>
+              <p className="text-neutral-600 mb-8">
+                {isOwnProfile 
+                  ? "Start participating in challenges to see your scores here!" 
+                  : `${profileUser.username} hasn't participated in any challenges yet.`
+                }
+              </p>
+              {isOwnProfile && (
+                <Link 
+                  href="/"
+                  className="bg-primary-600 hover:bg-primary-700 text-white font-semibold px-8 py-4 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
+                >
+                  Browse Active Challenges
+                </Link>
+              )}
             </div>
           ) : (
             <div className="grid gap-6">
