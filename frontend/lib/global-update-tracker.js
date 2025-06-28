@@ -25,30 +25,37 @@ class GlobalUpdateTracker {
   
   // Load cache from sessionStorage
   loadFromStorage() {
-    try {
-      const stored = sessionStorage.getItem('challenge-update-cache');
-      if (stored) {
-        const data = JSON.parse(stored);
-        Object.entries(data).forEach(([roomId, timestamp]) => {
-          updateCache.set(roomId, timestamp);
-        });
-        console.log(`📥 Loaded ${updateCache.size} cached update timestamps`);
+    // Only try to load if we're in a browser environment
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      try {
+        const stored = sessionStorage.getItem('challenge-update-cache');
+        if (stored) {
+          const data = JSON.parse(stored);
+          Object.entries(data).forEach(([roomId, timestamp]) => {
+            updateCache.set(roomId, timestamp);
+          });
+          console.log(`📥 Loaded ${updateCache.size} cached update timestamps`);
+        }
+      } catch (error) {
+        console.warn('Failed to load update cache from storage:', error);
       }
-    } catch (error) {
-      console.warn('Failed to load update cache from storage:', error);
     }
   }
   
   // Save cache to sessionStorage
   saveToStorage() {
-    try {
-      const data = Object.fromEntries(updateCache.entries());
-      sessionStorage.setItem('challenge-update-cache', JSON.stringify(data));
-    } catch (error) {
-      console.warn('Failed to save update cache to storage:', error);
+    // Only try to save if we're in a browser environment
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      try {
+        const data = Object.fromEntries(updateCache.entries());
+        sessionStorage.setItem('challenge-update-cache', JSON.stringify(data));
+      } catch (error) {
+        console.warn('Failed to save update cache to storage:', error);
+      }
     }
+    // On server side, we just skip storage (cache still works in memory)
   }
-  
+    
   // Check if challenge needs updating (global check)
   needsUpdate(challenge) {
     if (!challenge || !challenge.is_active) {

@@ -40,7 +40,7 @@ export default function Home() {
     mutate: refreshActiveChallenges,
     isValidating
   } = useSWR(activeChallengesEndpoint, fetcher, {
-    refreshInterval: 30000, // Refresh every 30 seconds
+    refreshInterval: 15000, // Refresh every 15 seconds
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     dedupingInterval: 5000, // Dedupe requests within 5 seconds
