@@ -177,14 +177,15 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                       <img
                         src={leaderboard[1].avatar_url || '/default-avatar.png'}
                         alt={leaderboard[1].username}
-                        className="w-full h-full rounded-full border-4 border-purple-300 shadow-lg"
+                        className="w-full h-full rounded-full border-4 border-purple-300 shadow-lg cursor-pointer"
+                        onClick={() => router.push(`/profile/${leaderboard[1].user_id}`)}
                         onError={(e) => { e.target.src = '/default-avatar.png'; }}
                       />
                       <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs px-3 py-1 rounded-full font-bold">
                         2nd
                       </div>
                     </div>
-                    <h3 className="font-bold text-gray-900 truncate">{leaderboard[1].username}</h3>
+                    <h3 className="font-bold text-gray-900 truncate cursor-pointer hover:text-purple-600 transition-colors" onClick={() => router.push(`/profile/${leaderboard[1].user_id}`)}>{leaderboard[1].username}</h3>
                     <p className="text-2xl font-black text-purple-700 mt-2">{formatNumber(leaderboard[1].total_score)}</p>
                   </div>
                 </div>
@@ -199,14 +200,15 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                       <img
                         src={leaderboard[0].avatar_url || '/default-avatar.png'}
                         alt={leaderboard[0].username}
-                        className="w-full h-full rounded-full border-4 border-blue-400 shadow-xl"
+                        className="w-full h-full rounded-full border-4 border-blue-400 shadow-xl cursor-pointer"
+                        onClick={() => router.push(`/profile/${leaderboard[0].user_id}`)}
                         onError={(e) => { e.target.src = '/default-avatar.png'; }}
                       />
                       <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm px-3 py-1 rounded-full font-bold shadow-lg">
                         1st
                       </div>
                     </div>
-                    <h3 className="font-bold text-gray-900 text-lg truncate">{leaderboard[0].username}</h3>
+                    <h3 className="font-bold text-gray-900 text-lg truncate cursor-pointer hover:text-purple-600 transition-colors" onClick={() => router.push(`/profile/${leaderboard[0].user_id}`)}>{leaderboard[0].username}</h3>
                     <p className="text-3xl font-black bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent mt-2">
                       {formatNumber(leaderboard[0].total_score)}
                     </p>
@@ -222,14 +224,15 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                       <img
                         src={leaderboard[2].avatar_url || '/default-avatar.png'}
                         alt={leaderboard[2].username}
-                        className="w-full h-full rounded-full border-4 border-red-300 shadow-lg"
+                        className="w-full h-full rounded-full border-4 border-red-300 shadow-lg cursor-pointer"
+                        onClick={() => router.push(`/profile/${leaderboard[2].user_id}`)}
                         onError={(e) => { e.target.src = '/default-avatar.png'; }}
                       />
                       <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs px-3 py-1 rounded-full font-bold">
                         3rd
                       </div>
                     </div>
-                    <h3 className="font-bold text-gray-900 truncate">{leaderboard[2].username}</h3>
+                    <h3 className="font-bold text-gray-900 truncate cursor-pointer hover:text-purple-600 transition-colors" onClick={() => router.push(`/profile/${leaderboard[2].user_id}`)}>{leaderboard[2].username}</h3>
                     <p className="text-2xl font-black text-red-700 mt-2">{formatNumber(leaderboard[2].total_score)}</p>
                   </div>
                 </div>
