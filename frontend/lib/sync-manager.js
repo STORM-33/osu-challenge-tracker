@@ -1,13 +1,14 @@
 // Central background sync coordination
 import { supabaseAdmin } from './supabase-admin';
 import apiTracker from './api-tracker';
+import syncLogger from './sync-logger';
 
 class SyncManager {
   constructor() {
-    this.activeJobs = new Map(); // jobId -> job info
-    this.globalCooldowns = new Map(); // resourceType:resourceId -> timestamp
-    this.SYNC_THRESHOLD = 4 * 60 * 1000; // 4 minutes
-    this.GLOBAL_COOLDOWN = 4 * 60 * 1000; // 4 minutes global cooldown
+    this.activeJobs = new Map();
+    this.globalCooldowns = new Map();
+    this.SYNC_THRESHOLD = 4 * 60 * 1000;
+    this.GLOBAL_COOLDOWN = 4 * 60 * 1000;
   }
 
   /**
@@ -95,6 +96,153 @@ class SyncManager {
     }
   }
 
+  async queueSync(resourceType, resourceId, options = {}) {
+    const logId = syncLogger.syncStart('sync-manager', resourceId, {
+      resourceType,
+      options,
+      priority: options.priority || 0
+    });
+
+    const { priority = 0, force = false } = options;
+    const jobId = `${resourceType}_${resourceId}_${Date.now()}`;
+    const startTime = Date.now();
+
+    try {
+      // Check if sync is allowed
+      const syncCheck = await this.canSync(resourceType, resourceId, force);
+      if (!syncCheck.canSync && !force) {
+        syncLogger.log('sync-manager', 'sync-rejected', `Sync rejected for ${resourceType}:${resourceId} - ${syncCheck.reason}`, startTime, {
+          resourceType,
+          resourceId,
+          reason: syncCheck.reason,
+          details: syncCheck,
+          parentLogId: logId
+        });
+
+        return {
+          success: false,
+          queued: false,
+          reason: syncCheck.reason,
+          details: syncCheck
+        };
+      }
+
+      // Create job
+      const job = {
+        jobId,
+        resourceType,
+        resourceId,
+        priority,
+        startedAt: Date.now(),
+        stage: 'queued',
+        options,
+        logId
+      };
+
+      this.activeJobs.set(jobId, job);
+
+      syncLogger.log('sync-manager', 'sync-queued', `Sync queued: ${jobId}`, startTime, {
+        jobId,
+        resourceType,
+        resourceId,
+        estimatedDuration: 30000,
+        parentLogId: logId
+      });
+
+      // Start processing immediately (non-blocking)
+      this.processJob(job).catch(error => {
+        syncLogger.syncError('sync-manager', resourceId, error, startTime, {
+          jobId,
+          resourceType,
+          parentLogId: logId
+        });
+        this.activeJobs.delete(jobId);
+      });
+
+      return {
+        success: true,
+        queued: true,
+        jobId,
+        estimatedDuration: 30000
+      };
+
+    } catch (error) {
+      syncLogger.syncError('sync-manager', resourceId, error, startTime, {
+        resourceType,
+        options,
+        parentLogId: logId
+      });
+      throw error;
+    }
+  }
+
+  async processJob(job) {
+    const { jobId, resourceType, resourceId, logId } = job;
+    const startTime = Date.now();
+    
+    syncLogger.log('sync-manager', 'job-processing', `Processing job ${jobId}`, null, {
+      jobId,
+      resourceType,
+      resourceId,
+      parentLogId: logId
+    });
+
+    try {
+      // Update job stage
+      job.stage = 'syncing';
+      this.activeJobs.set(jobId, job);
+
+      syncLogger.log('sync-manager', 'job-stage', `Job ${jobId} stage: syncing`, null, {
+        jobId,
+        stage: 'syncing',
+        parentLogId: logId
+      });
+
+      // Perform the actual sync based on resource type
+      let result;
+      switch (resourceType) {
+        case 'challenge':
+          result = await this.syncChallenge(resourceId, job);
+          break;
+        default:
+          throw new Error(`Unknown resource type: ${resourceType}`);
+      }
+
+      // Mark global cooldown
+      const key = `${resourceType}:${resourceId}`;
+      this.globalCooldowns.set(key, Date.now());
+
+      // Clean up old cooldowns (keep last 100)
+      if (this.globalCooldowns.size > 100) {
+        const entries = Array.from(this.globalCooldowns.entries())
+          .sort(([,a], [,b]) => b - a)
+          .slice(0, 100);
+        this.globalCooldowns.clear();
+        entries.forEach(([k, v]) => this.globalCooldowns.set(k, v));
+      }
+
+      syncLogger.syncComplete('sync-manager', resourceId, startTime, {
+        jobId,
+        resourceType,
+        result,
+        parentLogId: logId
+      });
+
+      return result;
+
+    } catch (error) {
+      syncLogger.syncError('sync-manager', resourceId, error, startTime, {
+        jobId,
+        resourceType,
+        parentLogId: logId
+      });
+      throw error;
+    } finally {
+      // Always clean up job
+      this.activeJobs.delete(jobId);
+    }
+  }
+
   /**
    * Get sync status for a resource
    */
@@ -135,98 +283,6 @@ class SyncManager {
       timeSinceSync: null,
       canSyncIn: 0
     };
-  }
-
-  /**
-   * Queue a background sync job
-   */
-  async queueSync(resourceType, resourceId, options = {}) {
-    const { priority = 0, force = false } = options;
-    const jobId = `${resourceType}_${resourceId}_${Date.now()}`;
-
-    // Check if sync is allowed
-    const syncCheck = await this.canSync(resourceType, resourceId, force);
-    if (!syncCheck.canSync && !force) {
-      return {
-        success: false,
-        queued: false,
-        reason: syncCheck.reason,
-        details: syncCheck
-      };
-    }
-
-    // Create job
-    const job = {
-      jobId,
-      resourceType,
-      resourceId,
-      priority,
-      startedAt: Date.now(),
-      stage: 'queued',
-      options
-    };
-
-    this.activeJobs.set(jobId, job);
-
-    // Start processing immediately (non-blocking)
-    this.processJob(job).catch(error => {
-      console.error(`Background sync job ${jobId} failed:`, error);
-      this.activeJobs.delete(jobId);
-    });
-
-    return {
-      success: true,
-      queued: true,
-      jobId,
-      estimatedDuration: 30000 // 30 seconds estimate
-    };
-  }
-
-  /**
-   * Process a sync job in the background
-   */
-  async processJob(job) {
-    const { jobId, resourceType, resourceId } = job;
-    console.log(`🔄 Starting background sync job ${jobId} for ${resourceType}:${resourceId}`);
-
-    try {
-      // Update job stage
-      job.stage = 'syncing';
-      this.activeJobs.set(jobId, job);
-
-      // Perform the actual sync based on resource type
-      let result;
-      switch (resourceType) {
-        case 'challenge':
-          result = await this.syncChallenge(resourceId, job);
-          break;
-        default:
-          throw new Error(`Unknown resource type: ${resourceType}`);
-      }
-
-      // Mark global cooldown
-      const key = `${resourceType}:${resourceId}`;
-      this.globalCooldowns.set(key, Date.now());
-
-      // Clean up old cooldowns (keep last 100)
-      if (this.globalCooldowns.size > 100) {
-        const entries = Array.from(this.globalCooldowns.entries())
-          .sort(([,a], [,b]) => b - a)
-          .slice(0, 100);
-        this.globalCooldowns.clear();
-        entries.forEach(([k, v]) => this.globalCooldowns.set(k, v));
-      }
-
-      console.log(`✅ Background sync job ${jobId} completed successfully`);
-      return result;
-
-    } catch (error) {
-      console.error(`❌ Background sync job ${jobId} failed:`, error);
-      throw error;
-    } finally {
-      // Always clean up job
-      this.activeJobs.delete(jobId);
-    }
   }
 
   /**

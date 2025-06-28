@@ -5,6 +5,7 @@ import { withAPITracking } from '../../middleware';
 import { handleAPIError, validateRequest } from '../../lib/api-utils';
 import { markChallengeUpdated } from '../../lib/global-update-tracker';
 import pLimit from 'p-limit';
+import syncLogger from '../../lib/sync-logger';
 
 // Helper function to process mods and ensure proper format
 function processModsData(mods) {
@@ -16,13 +17,11 @@ function processModsData(mods) {
   }
   
   try {
-    // Create detailed mods array with settings
     const detailedMods = mods.map(mod => ({
       acronym: mod.acronym || 'Unknown',
       settings: mod.settings || {}
     }));
     
-    // Create legacy string for backward compatibility
     const legacyString = mods.map(mod => mod.acronym).join('');
     
     return {
@@ -40,7 +39,6 @@ function processModsData(mods) {
 
 // Enhanced atomic update function with mod support
 async function executeAtomicUpdateWithMods(challengeData, playlistsData, scoresData, participationData) {
-  // Use the enhanced atomic function that handles detailed mods
   const { data, error } = await supabaseAdmin.rpc('update_challenge_atomic_with_mods', {
     challenge_data: challengeData,
     playlists_data: playlistsData,
@@ -71,8 +69,8 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
   }
 
   // Limit concurrent API calls to avoid overwhelming the osu! API
-  const concurrencyLimit = pLimit(4); // Process 4 playlists at once
-  const batchSize = 8; // Process playlists in batches of 8
+  const concurrencyLimit = pLimit(4);
+  const batchSize = 8;
   
   let totalApiCallsForPlaylists = 0;
   let playlistsProcessed = 0;
@@ -81,12 +79,10 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
   const allPlaylistsData = [];
   const allScoresData = [];
   const allUsersData = [];
-  const userMap = new Map(); // Deduplicate users
+  const userMap = new Map();
 
   // Helper function to process a single playlist
   const processPlaylist = async (playlist, index) => {
-    const playlistStart = performance.now();
-    
     try {
       // Check API limits before processing
       const currentLimitStatus = apiTracker.checkLimits();
@@ -172,8 +168,7 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
         }
       }
 
-      const playlistTime = performance.now() - playlistStart;
-      console.log(`✅ Request ${requestId}: Playlist ${index + 1}/${roomData.playlist.length} processed in ${Math.round(playlistTime)}ms (${scores?.length || 0} scores)`);
+      console.log(`✅ Request ${requestId}: Playlist ${index + 1}/${roomData.playlist.length} processed (${scores?.length || 0} scores)`);
 
       return {
         playlistRecord,
@@ -189,7 +184,7 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
     }
   };
 
-  // Process playlists in batches to avoid memory issues
+  // Process playlists in batches
   const playlists = roomData.playlist;
   for (let batchStart = 0; batchStart < playlists.length; batchStart += batchSize) {
     const batchEnd = Math.min(batchStart + batchSize, playlists.length);
@@ -220,7 +215,7 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
       }
     }
     
-    // Small delay between batches to be nice to the API
+    // Small delay between batches
     if (batchEnd < playlists.length) {
       await new Promise(resolve => setTimeout(resolve, 200));
     }
@@ -241,7 +236,7 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
   };
 }
 
-// Optimized database transaction with better error handling
+// Optimized database transaction
 async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scoresData, usersData, requestId) {
   const maxRetries = 3;
   let retryCount = 0;
@@ -249,9 +244,6 @@ async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scores
   while (retryCount < maxRetries) {
     try {
       console.log(`💾 Request ${requestId}: Executing atomic database transaction (attempt ${retryCount + 1}/${maxRetries})`);
-      console.log(`📊 Request ${requestId}: Data sizes - Playlists: ${playlistsData.length}, Scores: ${scoresData.length}, Users: ${usersData.length}`);
-      
-      const transactionStart = performance.now();
       
       const result = await executeAtomicUpdateWithMods(
         challengeData,
@@ -260,9 +252,7 @@ async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scores
         usersData
       );
       
-      const transactionTime = performance.now() - transactionStart;
-      console.log(`✅ Request ${requestId}: Database transaction completed in ${Math.round(transactionTime)}ms`);
-      
+      console.log(`✅ Request ${requestId}: Database transaction completed`);
       return result;
       
     } catch (transactionError) {
@@ -273,7 +263,6 @@ async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scores
         throw new Error(`Database transaction failed after ${maxRetries} attempts: ${transactionError.message}`);
       }
       
-      // Exponential backoff
       const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
       console.log(`⏳ Request ${requestId}: Retrying database transaction in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -281,11 +270,11 @@ async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scores
   }
 }
 
+// Ruleset winner calculation
 async function updateChallengeRulesetWinner(challengeId, requestId) {
   try {
     console.log(`🏆 Request ${requestId}: Calculating ruleset winner for challenge ${challengeId}`);
     
-    // Check if challenge has a ruleset
     const { data: challenge, error: challengeError } = await supabaseAdmin
       .from('challenges')
       .select('id, has_ruleset, ruleset_name, required_mods, ruleset_match_type')
@@ -302,7 +291,6 @@ async function updateChallengeRulesetWinner(challengeId, requestId) {
       return { success: true, has_ruleset: false };
     }
 
-    // Use the PostgreSQL function to update winner
     const { data: winnerResult, error: winnerError } = await supabaseAdmin
       .rpc('update_challenge_ruleset_winner', { challenge_id_param: challengeId });
 
@@ -331,7 +319,7 @@ async function updateChallengeRulesetWinner(challengeId, requestId) {
 }
 
 // Database-based distributed locking
-const LOCK_TIMEOUT = 4 * 60 * 1000; // 4 minutes max lock time
+const LOCK_TIMEOUT = 4 * 60 * 1000;
 
 async function acquireDistributedLock(roomId, requestId, timeoutMs = LOCK_TIMEOUT) {
   const lockId = `challenge_update_${roomId}`;
@@ -433,12 +421,13 @@ async function cleanupExpiredLocks() {
   }
 }
 
-// MAIN OPTIMIZED HANDLER
+// MAIN HANDLER - CLEAN VERSION
 async function handler(req, res) {
   const requestId = Math.random().toString(36).substr(2, 9);
-  console.log(`🆔 Request ${requestId}: /api/update-challenge called (OPTIMIZED)`);
+  const totalStartTime = Date.now();
 
-  const totalStartTime = performance.now();
+  // MINIMAL LOGGING: Start
+  const logId = syncLogger.syncStart('update-challenge', req.body?.roomId || 'unknown', { requestId });
 
   await cleanupExpiredLocks();
 
@@ -451,8 +440,8 @@ async function handler(req, res) {
     });
 
     const { roomId } = req.body;
-    
     const roomIdNum = parseInt(roomId);
+    
     if (isNaN(roomIdNum) || roomIdNum <= 0) {
       throw new Error('Invalid room ID - must be a positive number');
     }
@@ -463,17 +452,11 @@ async function handler(req, res) {
     if (!lockResult.success) {
       console.log(`🔒 Request ${requestId}: Room ${roomIdNum} is locked: ${lockResult.error}`);
       
-      let lockAge = 0;
-      if (lockResult.existingLock) {
-        lockAge = Math.floor((Date.now() - new Date(lockResult.existingLock.created_at)) / 1000);
-      }
-      
       return res.status(429).json({ 
         success: false,
         error: 'Challenge update already in progress',
         details: {
           roomId: roomIdNum,
-          lockAge,
           requestId,
           message: 'Another instance is currently updating this challenge'
         }
@@ -485,16 +468,15 @@ async function handler(req, res) {
       const limitStatus = apiTracker.checkLimits();
       const usageStats = apiTracker.getUsageStats();
       
-      console.log(`📊 Request ${requestId}: Current API usage: ${usageStats.usage?.functions?.percentage || '0'}% (${usageStats.monthly?.total || 0}/${usageStats.limits?.functions || 100000})`);
+      console.log(`📊 Request ${requestId}: Current API usage: ${usageStats.usage?.functions?.percentage || '0'}%`);
       
       if (limitStatus === 'critical') {
         throw new Error('API usage critical - temporarily limiting requests');
       }
 
-      console.log(`🔄 Request ${requestId}: Starting optimized challenge update for room ${roomIdNum}`);
+      console.log(`🔄 Request ${requestId}: Starting challenge update for room ${roomIdNum}`);
 
-      // Fetch room data with retry logic
-      const roomFetchStart = performance.now();
+      // 1. Fetch room data
       let roomData;
       let retryCount = 0;
       const maxRetries = 3;
@@ -508,20 +490,18 @@ async function handler(req, res) {
           if (retryCount >= maxRetries) {
             throw apiError;
           }
-          
           console.warn(`⚠️ Request ${requestId}: API retry ${retryCount}/${maxRetries} for room ${roomIdNum}`);
           await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         }
       }
       
-      const roomFetchTime = performance.now() - roomFetchStart;
-      console.log(`📡 Request ${requestId}: Room data fetched in ${Math.round(roomFetchTime)}ms`);
+      console.log(`📡 Request ${requestId}: Room data fetched successfully`);
       
       if (!roomData || !roomData.id) {
         throw new Error('Room not found');
       }
 
-      // Extract background image
+      // 2. Prepare challenge data
       let backgroundImageUrl = null;
       if (roomData.playlist && roomData.playlist.length > 0) {
         const firstBeatmap = roomData.playlist[0];
@@ -543,8 +523,7 @@ async function handler(req, res) {
         updated_at: new Date().toISOString()
       };
 
-      // PARALLEL PLAYLIST PROCESSING
-      const playlistProcessStart = performance.now();
+      // 3. Process playlists and scores
       const {
         playlistsData,
         scoresData,
@@ -554,11 +533,9 @@ async function handler(req, res) {
         scoresProcessed
       } = await processPlaylistsInParallel(roomData, roomIdNum, requestId);
       
-      const playlistProcessTime = performance.now() - playlistProcessStart;
-      console.log(`⚡ Request ${requestId}: Parallel playlist processing completed in ${Math.round(playlistProcessTime)}ms`);
+      console.log(`⚡ Request ${requestId}: Processed ${playlistsProcessed} playlists, ${scoresProcessed} scores`);
 
-      // OPTIMIZED DATABASE TRANSACTION
-      const dbStart = performance.now();
+      // 4. Update database
       let challengeDbId = null;
       
       try {
@@ -576,47 +553,40 @@ async function handler(req, res) {
         console.error(`❌ Request ${requestId}: Database transaction failed:`, transactionError);
         throw new Error(`Database transaction failed: ${transactionError.message}`);
       }
-      
-      const dbTime = performance.now() - dbStart;
 
-      // Calculate ruleset winner AFTER successful transaction
-      const rulesetStart = performance.now();
+      // 5. Calculate ruleset winner
       let rulesetResult = { success: false, has_ruleset: false };
       
       if (challengeDbId) {
-        console.log(`🏆 Request ${requestId}: Calculating ruleset winner for challenge ${challengeDbId}...`);
-
         try {
           rulesetResult = await updateChallengeRulesetWinner(challengeDbId, requestId);
-          
-          if (rulesetResult.success && rulesetResult.has_ruleset) {
-            console.log(`✅ Request ${requestId}: Ruleset winner calculation completed for "${rulesetResult.ruleset_name}"`);
-          } else if (rulesetResult.success && !rulesetResult.has_ruleset) {
-            console.log(`📝 Request ${requestId}: Challenge has no ruleset, skipped winner calculation`);
-          }
-          
         } catch (rulesetError) {
-          console.warn(`⚠️ Request ${requestId}: Ruleset winner calculation failed, but challenge update succeeded:`, rulesetError);
+          console.warn(`⚠️ Request ${requestId}: Ruleset winner calculation failed:`, rulesetError);
           rulesetResult = { success: false, error: rulesetError.message };
         }
       }
       
-      const rulesetTime = performance.now() - rulesetStart;
-      const totalTime = performance.now() - totalStartTime;
+      const totalTime = Date.now() - totalStartTime;
 
-      // Update global tracking cache
+      // 6. Update global tracking cache
       markChallengeUpdated(roomIdNum);
 
       const finalUsage = apiTracker.getUsageStats();
       
-      console.log(`✅ Request ${requestId}: OPTIMIZED challenge update complete in ${Math.round(totalTime)}ms`);
-      console.log(`📊 Request ${requestId}: Timing breakdown - Room: ${Math.round(roomFetchTime)}ms, Playlists: ${Math.round(playlistProcessTime)}ms, DB: ${Math.round(dbTime)}ms, Ruleset: ${Math.round(rulesetTime)}ms`);
-      console.log(`🎯 Request ${requestId}: Processed ${playlistsProcessed} playlists, ${scoresProcessed} scores. Final API usage: ${finalUsage.usage?.functions?.percentage || '0'}%`);
+      console.log(`✅ Request ${requestId}: Challenge update complete in ${Math.round(totalTime)}ms`);
 
-      const response = { 
+      // MINIMAL LOGGING: Success
+      syncLogger.syncComplete('update-challenge', roomIdNum, totalStartTime, {
+        requestId,
+        playlistsProcessed,
+        scoresProcessed,
+        totalTime: Math.round(totalTime)
+      });
+
+      return res.status(200).json({ 
         success: true, 
         challenge: challengeData,
-        message: 'Challenge data updated successfully with parallel processing and detailed mod information',
+        message: 'Challenge data updated successfully',
         stats: {
           playlistsProcessed,
           scoresProcessed,
@@ -625,12 +595,7 @@ async function handler(req, res) {
           uniqueUsers: usersData.length
         },
         performance: {
-          totalTimeMs: Math.round(totalTime),
-          roomFetchMs: Math.round(roomFetchTime),
-          playlistProcessMs: Math.round(playlistProcessTime),
-          databaseMs: Math.round(dbTime),
-          rulesetMs: Math.round(rulesetTime),
-          optimizationType: 'parallel_processing'
+          totalTimeMs: Math.round(totalTime)
         },
         apiUsage: {
           percentage: finalUsage.usage?.functions?.percentage || '0',
@@ -638,24 +603,18 @@ async function handler(req, res) {
         },
         ruleset: rulesetResult,
         requestId
-      };
-
-      res.status(200).json(response);
+      });
 
     } catch (error) {
-      console.error(`❌ Request ${requestId}: Optimized update challenge error:`, error);
-      
-      const errorUsage = apiTracker.getUsageStats();
-      console.log(`💥 Request ${requestId}: Error occurred at ${errorUsage.usage?.functions?.percentage || '0'}% API usage`);
-      
+      console.error(`❌ Request ${requestId}: Update challenge error:`, error);
       return handleAPIError(res, error);
     } finally {
       await releaseDistributedLock(roomIdNum, requestId);
-      console.log(`🔓 Request ${requestId}: Released distributed lock for room ${roomIdNum}`);
     }
 
   } catch (error) {
     console.error(`❌ Request validation error:`, error);
+    syncLogger.syncError('update-challenge', req.body?.roomId || 'unknown', error, totalStartTime, { requestId });
     return handleAPIError(res, error);
   }
 }
