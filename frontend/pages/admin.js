@@ -519,8 +519,8 @@ export default function Admin() {
                         <Edit3 className="w-4 h-4 text-purple-600" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-neutral-800">Manage Challenge Names</h4>
-                        <p className="text-xs text-neutral-600">Edit names for all challenges</p>
+                        <h4 className="font-medium text-neutral-800">Manage Challengew</h4>
+                        <p className="text-xs text-neutral-600">Edit names and rulesets for all challenges</p>
                       </div>
                     </div>
                     <ArrowRight className="w-4 h-4 text-purple-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
@@ -772,7 +772,7 @@ export default function Admin() {
                 <p>• Data updates automatically when users view challenges (4-minute cooldown)</p>
                 <p>• Use "Update All" to force refresh all active challenges (can be paused/cancelled)</p>
                 <p>• New challenges are automatically assigned to the current season (6-month cycles)</p>
-                <p>• Use "Manage Challenge Names" to edit names for all challenges (active + inactive)</p>
+                <p>• Use "Manage Challenges" to edit names and rulesets for all challenges (active + inactive)</p>
                 <p>• Ruleset names are auto-generated from selected mods and settings</p>
               </div>
             </div>
