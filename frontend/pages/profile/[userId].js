@@ -302,7 +302,7 @@ export default function UserProfile() {
             
             <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <Trophy className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform" />
+                <Activity className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform" />
                 <span className="text-3xl font-black text-gray-800">
                   #{stats?.avgRank || '--'}
                 </span>
@@ -322,7 +322,7 @@ export default function UserProfile() {
             
             <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <Activity className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform" />
+                <Trophy className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform" />
                 <span className="text-3xl font-black text-gray-800">
                   {stats?.firstPlaceCount || 0}
                 </span>
