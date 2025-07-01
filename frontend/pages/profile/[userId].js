@@ -107,6 +107,25 @@ export default function UserProfile() {
     return num?.toLocaleString() || '0';
   };
 
+  const getNextMilestone = (totalScores) => {
+    const milestones = [10, 25, 50, 100, 250, 500, 1000];
+    const nextMilestone = milestones.find(m => totalScores < m);
+    
+    if (!nextMilestone) {
+      return { 
+        title: '🎉 Legend!', 
+        remaining: 0,
+        isLegend: true 
+      };
+    }
+    
+    return { 
+      title: `${nextMilestone} Plays`, 
+      remaining: nextMilestone - totalScores,
+      isLegend: false
+    };
+  };
+
   const isOwnProfile = currentUser && profileUser && currentUser.id === profileUser.id;
 
   if (loading) {
@@ -170,6 +189,8 @@ export default function UserProfile() {
     acc[month].push(score);
     return acc;
   }, {});
+
+  const milestone = getNextMilestone(stats?.totalScores || 0);
 
   return (
     <Layout>
@@ -653,7 +674,7 @@ export default function UserProfile() {
                   <h4 className="text-lg font-semibold text-gray-800 mb-4">Performance Overview</h4>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-                      <span className="font-medium text-gray-700">Total Challenges Played</span>
+                      <span className="font-medium text-gray-700">Total Maps Played</span>
                       <span className="text-xl font-bold text-purple-600">{stats?.totalScores || 0}</span>
                     </div>
                     <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl">
@@ -831,14 +852,10 @@ export default function UserProfile() {
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6">
                   <p className="text-sm font-medium text-gray-600 mb-2">Next Milestone</p>
                   <p className="text-lg font-bold text-purple-600">
-                    {(stats?.totalScores || 0) < 10 ? '10 Plays' :
-                     (stats?.totalScores || 0) < 25 ? '25 Plays' :
-                     (stats?.totalScores || 0) < 50 ? '50 Plays' :
-                     (stats?.totalScores || 0) < 100 ? '100 Plays' :
-                     '🎉 Legend!'}
+                    {milestone.title}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
-                    {(stats?.totalScores || 0) < 100 ? `${100 - (stats?.totalScores || 0)} to go` : 'Achieved!'}
+                    {milestone.isLegend ? 'Achieved!' : `${milestone.remaining} to go`}
                   </p>
                 </div>
               </div>
