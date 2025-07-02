@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
+import Loading from '../components/Loading'; // Import the new loading component
 import SeasonLeaderboard from '../components/SeasonLeaderboard';
 import SeasonSelector from '../components/SeasonSelector';
 import { Trophy, Sparkles, TrendingUp, Zap, Target } from 'lucide-react';
@@ -61,12 +62,7 @@ export default function SeasonLeaderboardPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-500 mx-auto mb-4"></div>
-            <p className="text-gray-600 font-medium">Loading season data...</p>
-          </div>
-        </div>
+        <Loading.FullPage message="Loading season data..." />
       </Layout>
     );
   }

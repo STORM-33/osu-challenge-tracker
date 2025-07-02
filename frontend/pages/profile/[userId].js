@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
+import Loading from '../../components/Loading'; // Import the new loading component
 import { 
-  Loader2, Trophy, Target, Calendar, User, Award, BarChart3, 
+  Trophy, Target, Calendar, User, Award, BarChart3, 
   Sparkles, Flame, Zap, ArrowLeft, ExternalLink, TrendingUp,
   Star, Clock, MapPin, Music, ChevronRight, Activity
 } from 'lucide-react';
@@ -131,15 +132,7 @@ export default function UserProfile() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 animate-pulse"></div>
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 animate-ping opacity-75"></div>
-            </div>
-            <p className="mt-6 text-lg font-medium text-gray-600">Loading profile...</p>
-          </div>
-        </div>
+        <Loading.FullPage message="Loading profile..." />
       </Layout>
     );
   }
