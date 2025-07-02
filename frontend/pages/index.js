@@ -29,7 +29,7 @@ export default function Home() {
   const activeChallengesEndpoint = useMemo(() => {
     const params = new URLSearchParams();
     params.append('active', 'true');
-    params.append('auto_sync', 'true');
+    params.append('auto_sync', 'false');
     return `/api/challenges?${params.toString()}`;
   }, []);
 
@@ -40,7 +40,9 @@ export default function Home() {
     mutate: refreshActiveChallenges,
     isValidating
   } = useSWR(activeChallengesEndpoint, fetcher, {
-    refreshInterval: 15000, // Refresh every 15 seconds
+    refreshInterval: 300000, // Refresh every 5 minutes
+    refreshWhenHidden: false,
+    refreshWhenOffline: false,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     dedupingInterval: 5000, // Dedupe requests within 5 seconds

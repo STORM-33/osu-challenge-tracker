@@ -6,6 +6,8 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  res.setHeader('Cache-Control', 'private, max-age=300'); // 5 min cache
+
   try {
     // Get user ID from HttpOnly cookie
     const userId = req.cookies.osu_session;
