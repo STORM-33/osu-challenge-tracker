@@ -118,8 +118,15 @@ export default function Admin() {
       const response = await fetch('/api/challenges?active=true');
       const data = await response.json();
       
+      console.log('API Response:', data); // Add this for debugging
+      
       if (data.success) {
-        setActiveChallenges(data.challenges || []);
+        // Handle the nested structure - challenges are in data.data.challenges
+        const challenges = data.data?.challenges || data.challenges || [];
+        setActiveChallenges(challenges);
+        console.log('Active challenges loaded:', challenges.length);
+      } else {
+        console.error('API returned error:', data.error);
       }
     } catch (error) {
       console.error('Failed to load active challenges:', error);
