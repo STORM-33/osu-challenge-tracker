@@ -14,15 +14,42 @@ export const seasonUtils = {
   },
 
   // Generate season name based on current date (6-month seasons)
-  generateSeasonName: (date = new Date()) => {
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    
-    // Determine if it's first half (Jan-Jun) or second half (Jul-Dec)
-    const half = month <= 6 ? 1 : 2;
-    const seasonName = half === 1 ? 'Spring' : 'Fall';
-    
-    return `${seasonName} ${year}`;
+  generateSeasonName: async (date = new Date(), supabaseInstance = null) => {
+    try {
+      // Use provided instance or default to client supabase
+      const supabaseToUse = supabaseInstance || supabase;
+      
+      // Get all existing seasons to determine next number
+      const { data: seasons, error } = await supabaseToUse
+        .from('seasons')
+        .select('name')
+        .order('id', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching seasons for name generation:', error);
+        return 'Season 1'; // Default fallback
+      }
+      
+      // Find the highest season number
+      let nextSeasonNumber = 1;
+      if (seasons && seasons.length > 0) {
+        const seasonNumbers = seasons
+          .map(season => {
+            const match = season.name.match(/^Season (\d+)$/);
+            return match ? parseInt(match[1]) : 0;
+          })
+          .filter(num => num > 0);
+        
+        if (seasonNumbers.length > 0) {
+          nextSeasonNumber = Math.max(...seasonNumbers) + 1;
+        }
+      }
+      
+      return `Season ${nextSeasonNumber}`;
+    } catch (error) {
+      console.error('Error generating season name:', error);
+      return 'Season 1';
+    }
   },
 
   // Get season date range for a given year and half (1 = Spring, 2 = Fall)
@@ -30,13 +57,13 @@ export const seasonUtils = {
     let start, end;
     
     if (half === 1) {
-      // Spring season: January 1 - June 30
-      start = new Date(year, 0, 1); // January 1
-      end = new Date(year, 5, 30, 23, 59, 59); // June 30
+      // Spring season: January 1 - June 30 (UTC)
+      start = new Date(Date.UTC(year, 0, 1, 0, 0, 0)); // January 1 UTC
+      end = new Date(Date.UTC(year, 5, 30, 23, 59, 59)); // June 30 UTC
     } else {
-      // Fall season: July 1 - December 31
-      start = new Date(year, 6, 1); // July 1
-      end = new Date(year, 11, 31, 23, 59, 59); // December 31
+      // Fall season: July 1 - December 31 (UTC)
+      start = new Date(Date.UTC(year, 6, 1, 0, 0, 0)); // July 1 UTC
+      end = new Date(Date.UTC(year, 11, 31, 23, 59, 59)); // December 31 UTC
     }
     
     return {
@@ -55,9 +82,11 @@ export const seasonUtils = {
   },
 
   // Auto-rotate season if needed (6-month rotation)
-  autoRotateSeason: async () => {
+  autoRotateSeason: async (supabaseInstance = null) => {
     try {
-      const { data: currentSeason } = await supabase
+      const supabaseToUse = supabaseInstance || supabase;
+      
+      const { data: currentSeason } = await supabaseToUse
         .from('seasons')
         .select('*')
         .eq('is_current', true)
@@ -66,19 +95,21 @@ export const seasonUtils = {
       if (seasonUtils.shouldRotateSeason(currentSeason)) {
         const now = new Date();
         const { year, half } = seasonUtils.getCurrentSeasonInfo(now);
-        const newSeasonName = seasonUtils.generateSeasonName(now);
         const dateRange = seasonUtils.getSeasonDateRange(year, half);
+        
+        // Get next season number
+        const newSeasonName = await seasonUtils.generateSeasonName(now, supabaseToUse);
 
         // Mark current season as not current
         if (currentSeason) {
-          await supabase
+          await supabaseToUse
             .from('seasons')
             .update({ is_current: false })
             .eq('id', currentSeason.id);
         }
 
         // Create new current season
-        const { data: newSeason, error } = await supabase
+        const { data: newSeason, error } = await supabaseToUse
           .from('seasons')
           .insert({
             name: newSeasonName,
@@ -288,9 +319,17 @@ export const seasonUtils = {
   },
 
   // Create a new season programmatically
-  createSeason: async (year, half) => {
+  createSeason: async (year, half, customName = null) => {
     try {
-      const seasonName = half === 1 ? `Spring ${year}` : `Fall ${year}`;
+      let seasonName;
+      
+      if (customName) {
+        seasonName = customName;
+      } else {
+        // Generate next incremental name
+        seasonName = await seasonUtils.generateSeasonName();
+      }
+      
       const dateRange = seasonUtils.getSeasonDateRange(year, half);
 
       const { data: season, error } = await supabase
@@ -315,8 +354,14 @@ export const seasonUtils = {
     }
   },
 
+  getSeasonNumber: (seasonName) => {
+    if (!seasonName) return null;
+    const match = seasonName.match(/^Season (\d+)$/);
+    return match ? parseInt(match[1]) : null;
+  },
+
   // Get next season info
-  getNextSeasonInfo: (currentSeason) => {
+  getNextSeasonInfo: async (currentSeason) => {
     if (!currentSeason) return null;
 
     const currentStart = new Date(currentSeason.start_date);
@@ -326,26 +371,27 @@ export const seasonUtils = {
     let nextYear, nextHalf;
     
     if (currentMonth <= 6) {
-      // Current is Spring, next is Fall same year
+      // Current is first half, next is second half same year
       nextYear = currentYear;
       nextHalf = 2;
     } else {
-      // Current is Fall, next is Spring next year
+      // Current is second half, next is first half next year
       nextYear = currentYear + 1;
       nextHalf = 1;
     }
 
-    const nextSeasonName = nextHalf === 1 ? `Spring ${nextYear}` : `Fall ${nextYear}`;
+    const nextSeasonName = await seasonUtils.generateSeasonName();
     const nextDateRange = seasonUtils.getSeasonDateRange(nextYear, nextHalf);
 
     return {
       year: nextYear,
       half: nextHalf,
       name: nextSeasonName,
+      number: seasonUtils.getSeasonNumber(nextSeasonName),
       ...nextDateRange
     };
   },
-
+  
   // Check if it's time to create next season (30 days before current ends)
   shouldCreateNextSeason: (currentSeason) => {
     if (!currentSeason) return false;

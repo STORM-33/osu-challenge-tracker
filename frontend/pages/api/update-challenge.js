@@ -244,6 +244,12 @@ async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scores
   while (retryCount < maxRetries) {
     try {
       console.log(`💾 Request ${requestId}: Executing atomic database transaction (attempt ${retryCount + 1}/${maxRetries})`);
+      console.log(`💾 Request ${requestId}: Challenge data being updated:`, {
+        room_id: challengeData.room_id,
+        name: challengeData.name?.substring(0, 30),
+        playlists_count: playlistsData.length,
+        scores_count: scoresData.length
+      });
       
       const result = await executeAtomicUpdateWithMods(
         challengeData,
@@ -253,6 +259,8 @@ async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scores
       );
       
       console.log(`✅ Request ${requestId}: Database transaction completed`);
+      console.log(`💾 Request ${requestId}: Returned challenge ID:`, result?.challenge_id);
+      
       return result;
       
     } catch (transactionError) {
@@ -275,13 +283,63 @@ async function updateChallengeRulesetWinner(challengeId, requestId) {
   try {
     console.log(`🏆 Request ${requestId}: Calculating ruleset winner for challenge ${challengeId}`);
     
+    // ENHANCED: First, let's see what's actually in the database
+    console.log(`🔍 Request ${requestId}: Checking if challenge ${challengeId} exists...`);
+    
+    const { data: allChallenges, error: allError } = await supabaseAdmin
+      .from('challenges')
+      .select('id, room_id, name, has_ruleset, required_mods')  // ← FIXED: Only existing columns
+      .limit(10);
+    
+    if (allError) {
+      console.error(`❌ Request ${requestId}: Error fetching all challenges:`, allError);
+    } else {
+      console.log(`📋 Request ${requestId}: Recent challenges in DB:`, allChallenges?.map(c => ({ 
+        id: c.id, 
+        room_id: c.room_id, 
+        name: c.name?.substring(0, 30),
+        has_ruleset: c.has_ruleset 
+      })));
+    }
+    
+    // ENHANCED: Check both by ID and by room_id 
     const { data: challenge, error: challengeError } = await supabaseAdmin
       .from('challenges')
-      .select('id, has_ruleset, ruleset_name, required_mods, ruleset_match_type')
+      .select('id, room_id, has_ruleset, required_mods, ruleset_match_type')
       .eq('id', challengeId)
       .single();
 
+    console.log(`🔍 Request ${requestId}: Challenge lookup by ID ${challengeId}:`, { 
+      found: !!challenge, 
+      error: challengeError?.message,
+      challenge: challenge ? {
+        id: challenge.id,
+        room_id: challenge.room_id,
+        has_ruleset: challenge.has_ruleset,
+      } : null
+    });
+
     if (challengeError || !challenge) {
+      // ENHANCED: Try to find by room_id as fallback
+      console.log(`🔍 Request ${requestId}: Challenge ${challengeId} not found by ID, checking by room_id...`);
+      
+      const { data: recentChallenge } = await supabaseAdmin
+        .from('challenges')
+        .select('id, room_id, has_ruleset, name, created_at')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (recentChallenge) {
+        console.log(`🔍 Request ${requestId}: Most recent challenge:`, {
+          id: recentChallenge.id,
+          room_id: recentChallenge.room_id,
+          name: recentChallenge.name?.substring(0, 30),
+          has_ruleset: recentChallenge.has_ruleset,
+          created_at: recentChallenge.created_at
+        });
+      }
+      
       console.warn(`⚠️ Request ${requestId}: Challenge ${challengeId} not found for ruleset update`);
       return { success: false, error: 'Challenge not found' };
     }
@@ -290,6 +348,8 @@ async function updateChallengeRulesetWinner(challengeId, requestId) {
       console.log(`📝 Request ${requestId}: Challenge ${challengeId} has no ruleset, skipping winner calculation`);
       return { success: true, has_ruleset: false };
     }
+
+    console.log(`🏆 Request ${requestId}: Challenge has ruleset, proceeding with winner calculation`);
 
     const { data: winnerResult, error: winnerError } = await supabaseAdmin
       .rpc('update_challenge_ruleset_winner', { challenge_id_param: challengeId });
@@ -302,13 +362,14 @@ async function updateChallengeRulesetWinner(challengeId, requestId) {
     if (winnerResult && winnerResult.winner_updated) {
       console.log(`🏆 Request ${requestId}: Ruleset winner updated - ${winnerResult.winner_username} with score ${winnerResult.winner_score}`);
     } else {
-      console.log(`📝 Request ${requestId}: No qualifying scores found for ruleset "${challenge.ruleset_name}"`);
+      console.log(`📝 Request ${requestId}: No qualifying scores found for ruleset`);
     }
 
     return {
       success: true,
       has_ruleset: true,
-      ruleset_name: challenge.ruleset_name,
+      required_mods: challenge.required_mods,  // ← Optional: add this if you want
+      ruleset_match_type: challenge.ruleset_match_type,  // ← Optional: add this if you want
       winner_result: winnerResult
     };
 

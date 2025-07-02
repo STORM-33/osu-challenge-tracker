@@ -1,5 +1,6 @@
 import { withAPITracking } from '../../../middleware';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { seasonUtils } from '../../../lib/seasons';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -21,61 +22,125 @@ async function handler(req, res) {
       });
     }
 
-    // If no current season, create a default one based on current date
-    if (!currentSeason) {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
+    // Check if current season has expired or doesn't exist
+    const now = new Date();
+    const shouldRotate = !currentSeason || (currentSeason && new Date(currentSeason.end_date) < now);
+
+    if (shouldRotate) {
+      console.log(`🔄 Season rotation needed: ${currentSeason ? `${currentSeason.name} expired on ${currentSeason.end_date}` : 'No current season found'}`);
       
-      // Determine if we're in Spring (Jan-Jun) or Fall (Jul-Dec)
-      const half = month <= 6 ? 1 : 2;
-      const seasonName = half === 1 ? `Spring ${year}` : `Fall ${year}`;
-      
-      let startDate, endDate;
-      if (half === 1) {
-        // Spring: January 1 - June 30
-        startDate = new Date(year, 0, 1);
-        endDate = new Date(year, 5, 30, 23, 59, 59);
-      } else {
-        // Fall: July 1 - December 31
-        startDate = new Date(year, 6, 1);
-        endDate = new Date(year, 11, 31, 23, 59, 59);
+      // Mark any existing current season as not current
+      if (currentSeason) {
+        await supabaseAdmin
+          .from('seasons')
+          .update({ 
+            is_current: false, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', currentSeason.id);
+        
+        console.log(`📅 Marked ${currentSeason.name} as inactive`);
       }
       
-      const { data: newSeason, error: createError } = await supabaseAdmin
+      // Use utility functions to get the season info and name
+      const { year, half } = seasonUtils.getCurrentSeasonInfo(now);
+      const dateRange = seasonUtils.getSeasonDateRange(year, half);
+      
+      // Generate the next season name using the utility function (pass admin instance)
+      const seasonName = await seasonUtils.generateSeasonName(now, supabaseAdmin);
+      
+      // Check if this exact season already exists
+      const { data: existingSeason } = await supabaseAdmin
         .from('seasons')
-        .insert({
-          name: seasonName,
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          is_current: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
+        .select('*')
+        .eq('name', seasonName)
         .single();
+      
+      if (existingSeason) {
+        // Season exists but isn't current - make it current
+        const { data: updatedSeason, error: updateError } = await supabaseAdmin
+          .from('seasons')
+          .update({ 
+            is_current: true, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', existingSeason.id)
+          .select()
+          .single();
+        
+        if (updateError) {
+          console.error('Error updating existing season to current:', updateError);
+          return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to update existing season to current' 
+          });
+        }
+        
+        console.log(`✅ Reactivated existing season: ${seasonName}`);
+        return res.status(200).json({
+          success: true,
+          season: updatedSeason,
+          rotated: true,
+          message: `Season rotated to existing ${seasonName}`
+        });
+        
+      } else {
+        // Create brand new season
+        const { data: newSeason, error: createError } = await supabaseAdmin
+          .from('seasons')
+          .insert({
+            name: seasonName,
+            start_date: dateRange.start_date,
+            end_date: dateRange.end_date,
+            is_current: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
 
-      if (createError) {
-        console.error('Error creating default season:', createError);
-        return res.status(500).json({ 
-          success: false, 
-          error: 'Failed to create default season' 
+        if (createError) {
+          console.error('Error creating new season:', createError);
+          return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to create new season' 
+          });
+        }
+
+        const seasonNumber = seasonUtils.getSeasonNumber(seasonName);
+        console.log(`✅ Created new season: ${seasonName} (${dateRange.start_date} to ${dateRange.end_date})`);
+        
+        return res.status(200).json({
+          success: true,
+          season: newSeason,
+          rotated: true,
+          message: `Season rotated to new ${seasonName}`,
+          season_number: seasonNumber
         });
       }
-
-      return res.status(200).json({
-        success: true,
-        season: newSeason
-      });
     }
 
-    res.status(200).json({
+    // Current season is still valid - return it
+    const seasonEnd = new Date(currentSeason.end_date);
+    const daysUntilExpiry = Math.ceil((seasonEnd - now) / (1000 * 60 * 60 * 24));
+    
+    // Extract season number using utility function
+    const seasonNumber = seasonUtils.getSeasonNumber(currentSeason.name);
+    
+    console.log(`✅ Current season ${currentSeason.name} is valid (${daysUntilExpiry} days remaining)`);
+    
+    return res.status(200).json({
       success: true,
-      season: currentSeason
+      season: currentSeason,
+      rotated: false,
+      daysUntilExpiry,
+      season_number: seasonNumber,
+      message: `Current season ${currentSeason.name} is active`
     });
+
   } catch (error) {
-    console.error('Current season fetch error:', error);
-    res.status(500).json({ 
+    console.error('Current season API error:', error);
+    return res.status(500).json({ 
       success: false, 
       error: 'Internal server error' 
     });
