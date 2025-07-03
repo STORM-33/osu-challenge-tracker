@@ -48,7 +48,6 @@ async function handler(req, res) {
             max_combo,
             mods,
             mods_detailed,
-            rank_position,
             submitted_at,
             users (
               id,
