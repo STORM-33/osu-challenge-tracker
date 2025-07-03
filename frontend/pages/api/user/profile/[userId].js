@@ -224,256 +224,162 @@ async function handler(req, res) {
 }
 
 // Enhanced user statistics function with all missing fields
+// Replace your getEnhancedUserStats function with this fixed version
+
 async function getEnhancedUserStats(userId) {
   try {
-    // Get basic user stats from existing function
-    const basicStats = await challengeQueries.getUserStats(userId);
+    // *** KEY FIX: Get the SAME user scores that the frontend will see ***
+    const allUserScores = await challengeQueries.getUserScores(userId);
     
-    // Get additional statistics that were missing
-    const [
-      firstPlaceCount,
-      perfectScoreCount,
-      rankDistribution,
-      totalScorePoints,
-      monthlyActivity,
-      podiumCount,
-      top10Count,
-      highAccuracyCount
-    ] = await Promise.all([
-      getFirstPlaceCount(userId),
-      getPerfectScoreCount(userId),
-      getRankDistribution(userId),
-      getTotalScorePoints(userId),
-      getMonthlyActivity(userId),
-      getPodiumFinishes(userId),
-      getTop10Finishes(userId),
-      getHighAccuracyCount(userId)
-    ]);
+    if (!allUserScores || allUserScores.length === 0) {
+      return getDefaultStats();
+    }
 
-    // Combine all stats
-    return {
-      ...basicStats,
-      firstPlaceCount,
-      perfectScoreCount,
-      rankDistribution,
-      totalScorePoints,
-      monthlyActivity,
-      podiumCount,
-      top10Count,
-      highAccuracyCount
-    };
+    // Get calculated ranks for ALL scores (same logic as main endpoint)
+    const playlistIds = allUserScores.map(score => score.playlist_id);
+    const { data: rankData, error: rankError } = await supabase
+      .rpc('get_user_ranks_batch', {
+        p_user_id: userId,
+        p_playlist_ids: playlistIds
+      });
+
+    let scoresWithRanks = allUserScores;
+    let ranksArray = [];
+
+    if (!rankError && rankData) {
+      const rankMap = new Map();
+      rankData.forEach(rank => {
+        rankMap.set(rank.playlist_id, {
+          calculated_rank: rank.user_rank,
+          total_players: rank.total_players
+        });
+      });
+
+      scoresWithRanks = allUserScores.map(score => {
+        const rankInfo = rankMap.get(score.playlist_id);
+        return {
+          ...score,
+          calculated_rank: rankInfo?.calculated_rank || score.rank_position,
+          total_players: rankInfo?.total_players || null
+        };
+      });
+
+      ranksArray = rankData;
+    }
+
+    // *** Calculate ALL stats from the SAME dataset ***
+    const stats = calculateStatsFromSameData(scoresWithRanks, ranksArray);
+    
+    return stats;
 
   } catch (error) {
     console.error('Error fetching enhanced user stats:', error);
-    // Return basic stats with defaults for missing fields
-    const basicStats = await challengeQueries.getUserStats(userId);
-    return {
-      ...basicStats,
-      firstPlaceCount: 0,
-      perfectScoreCount: 0,
-      rankDistribution: { first: 0, topThree: 0, topTen: 0, other: 0 },
-      totalScorePoints: 0,
-      monthlyActivity: {},
-      podiumCount: 0,
-      top10Count: 0,
-      highAccuracyCount: 0
-    };
+    return getDefaultStats();
   }
 }
 
-// Get count of first place finishes
-async function getFirstPlaceCount(userId) {
-  try {
-    const { data, error } = await supabase
-      .rpc('get_user_ranks_batch', {
-        p_user_id: userId,
-        p_playlist_ids: await getUserPlaylistIds(userId)
-      });
-
-    if (error) throw error;
-
-    // Count ranks that are 1
-    const firstPlaces = data?.filter(rank => rank.user_rank === 1).length || 0;
-    return firstPlaces;
-  } catch (error) {
-    console.error('Error getting first place count:', error);
-    return 0;
+function calculateStatsFromSameData(scoresWithRanks, ranksArray) {
+  const totalScores = scoresWithRanks.length;
+  
+  if (totalScores === 0) {
+    return getDefaultStats();
   }
-}
 
-// Get count of perfect scores (100% accuracy)
-async function getPerfectScoreCount(userId) {
-  try {
-    const { data, error } = await supabase
-      .from('scores')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('accuracy', 100.00);
+  // Basic aggregations
+  const totalScorePoints = scoresWithRanks.reduce((sum, score) => sum + parseInt(score.score || 0), 0);
+  const avgScore = Math.round(totalScorePoints / totalScores);
+  const avgAccuracy = (scoresWithRanks.reduce((sum, score) => sum + (score.accuracy || 0), 0) / totalScores).toFixed(2);
+  
+  // Rank-based stats (from calculated ranks)
+  const validRanks = ranksArray.filter(rank => rank.user_rank > 0);
+  const avgRank = validRanks.length > 0 ? Math.round(validRanks.reduce((sum, rank) => sum + rank.user_rank, 0) / validRanks.length) : null;
+  
+  const firstPlaceCount = validRanks.filter(rank => rank.user_rank === 1).length;
+  const podiumCount = validRanks.filter(rank => rank.user_rank <= 3).length;
+  const top10Count = validRanks.filter(rank => rank.user_rank <= 10).length;
+  
+  // Rank distribution
+  const rankDistribution = {
+    first: firstPlaceCount,
+    topThree: validRanks.filter(rank => rank.user_rank >= 2 && rank.user_rank <= 3).length,
+    topTen: validRanks.filter(rank => rank.user_rank >= 4 && rank.user_rank <= 10).length,
+    other: validRanks.filter(rank => rank.user_rank > 10).length
+  };
 
-    if (error) throw error;
-    return data?.length || 0;
-  } catch (error) {
-    console.error('Error getting perfect score count:', error);
-    return 0;
-  }
-}
+  // Score-based stats
+  const perfectScoreCount = scoresWithRanks.filter(score => score.accuracy === 100.0).length;
+  const highAccuracyCount = scoresWithRanks.filter(score => score.accuracy >= 98.0).length;
+  
+  // Monthly activity
+  const monthlyActivity = {};
+  scoresWithRanks.forEach(score => {
+    if (score.submitted_at) {
+      const date = new Date(score.submitted_at);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthlyActivity[monthKey] = (monthlyActivity[monthKey] || 0) + 1;
+    }
+  });
 
-// Get rank distribution breakdown
-async function getRankDistribution(userId) {
-  try {
-    const playlistIds = await getUserPlaylistIds(userId);
-    const { data, error } = await supabase
-      .rpc('get_user_ranks_batch', {
-        p_user_id: userId,
-        p_playlist_ids: playlistIds
-      });
+  // Best/worst values
+  const bestRank = validRanks.length > 0 ? Math.min(...validRanks.map(r => r.user_rank)) : null;
+  const worstRank = validRanks.length > 0 ? Math.max(...validRanks.map(r => r.user_rank)) : null;
+  const bestAccuracy = Math.max(...scoresWithRanks.map(s => s.accuracy || 0)).toFixed(2);
+  const highestScore = Math.max(...scoresWithRanks.map(s => s.score || 0));
+  
+  const lastSubmission = scoresWithRanks
+    .filter(s => s.submitted_at)
+    .sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at))[0]?.submitted_at || null;
 
-    if (error) throw error;
-
-    const distribution = {
-      first: 0,
-      topThree: 0,
-      topTen: 0,
-      other: 0
-    };
-
-    data?.forEach(rank => {
-      const position = rank.user_rank;
-      if (position === 1) {
-        distribution.first++;
-      } else if (position <= 3) {
-        distribution.topThree++;
-      } else if (position <= 10) {
-        distribution.topTen++;
-      } else {
-        distribution.other++;
-      }
-    });
-
-    return distribution;
-  } catch (error) {
-    console.error('Error getting rank distribution:', error);
-    return { first: 0, topThree: 0, topTen: 0, other: 0 };
-  }
-}
-
-// Get total score points across all challenges
-async function getTotalScorePoints(userId) {
-  try {
-    const { data, error } = await supabase
-      .from('scores')
-      .select('score')
-      .eq('user_id', userId);
-
-    if (error) throw error;
+  return {
+    // Basic stats - using ALL-TIME data to match frontend
+    totalChallenges: 0, // You can calculate this if needed
+    totalScores,
+    avgAccuracy,
+    avgScore,
+    avgRank,
+    bestRank,
+    worstRank,
+    bestAccuracy,
+    highestScore,
+    participationRate: 0,
+    improvementTrend: 'stable',
+    lastSubmission,
     
-    const total = data?.reduce((sum, score) => sum + parseInt(score.score), 0) || 0;
-    return total;
-  } catch (error) {
-    console.error('Error getting total score points:', error);
-    return 0;
-  }
+    // Enhanced stats
+    firstPlaceCount,
+    perfectScoreCount,
+    rankDistribution,
+    totalScorePoints,
+    monthlyActivity,
+    podiumCount,
+    top10Count,
+    highAccuracyCount
+  };
 }
 
-// Get monthly activity breakdown
-async function getMonthlyActivity(userId) {
-  try {
-    const { data, error } = await supabase
-      .from('scores')
-      .select('submitted_at')
-      .eq('user_id', userId)
-      .order('submitted_at', { ascending: false });
-
-    if (error) throw error;
-
-    const monthlyBreakdown = {};
-    
-    data?.forEach(score => {
-      if (score.submitted_at) {
-        const date = new Date(score.submitted_at);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        monthlyBreakdown[monthKey] = (monthlyBreakdown[monthKey] || 0) + 1;
-      }
-    });
-
-    return monthlyBreakdown;
-  } catch (error) {
-    console.error('Error getting monthly activity:', error);
-    return {};
-  }
-}
-
-// Get podium finishes (top 3)
-async function getPodiumFinishes(userId) {
-  try {
-    const playlistIds = await getUserPlaylistIds(userId);
-    const { data, error } = await supabase
-      .rpc('get_user_ranks_batch', {
-        p_user_id: userId,
-        p_playlist_ids: playlistIds
-      });
-
-    if (error) throw error;
-
-    const podiumFinishes = data?.filter(rank => rank.user_rank <= 3).length || 0;
-    return podiumFinishes;
-  } catch (error) {
-    console.error('Error getting podium finishes:', error);
-    return 0;
-  }
-}
-
-// Get top 10 finishes
-async function getTop10Finishes(userId) {
-  try {
-    const playlistIds = await getUserPlaylistIds(userId);
-    const { data, error } = await supabase
-      .rpc('get_user_ranks_batch', {
-        p_user_id: userId,
-        p_playlist_ids: playlistIds
-      });
-
-    if (error) throw error;
-
-    const top10Finishes = data?.filter(rank => rank.user_rank <= 10).length || 0;
-    return top10Finishes;
-  } catch (error) {
-    console.error('Error getting top 10 finishes:', error);
-    return 0;
-  }
-}
-
-// Get high accuracy count (98%+)
-async function getHighAccuracyCount(userId) {
-  try {
-    const { data, error } = await supabase
-      .from('scores')
-      .select('id')
-      .eq('user_id', userId)
-      .gte('accuracy', 98.00);
-
-    if (error) throw error;
-    return data?.length || 0;
-  } catch (error) {
-    console.error('Error getting high accuracy count:', error);
-    return 0;
-  }
-}
-
-// Helper function to get all playlist IDs for a user
-async function getUserPlaylistIds(userId) {
-  try {
-    const { data, error } = await supabase
-      .from('scores')
-      .select('playlist_id')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data?.map(score => score.playlist_id) || [];
-  } catch (error) {
-    console.error('Error getting user playlist IDs:', error);
-    return [];
-  }
+function getDefaultStats() {
+  return {
+    totalChallenges: 0,
+    totalScores: 0,
+    avgAccuracy: "0.00",
+    avgScore: 0,
+    avgRank: null,
+    bestRank: null,
+    worstRank: null,
+    bestAccuracy: null,
+    highestScore: null,
+    participationRate: 0,
+    improvementTrend: 'stable',
+    lastSubmission: null,
+    firstPlaceCount: 0,
+    perfectScoreCount: 0,
+    rankDistribution: { first: 0, topThree: 0, topTen: 0, other: 0 },
+    totalScorePoints: 0,
+    monthlyActivity: {},
+    podiumCount: 0,
+    top10Count: 0,
+    highAccuracyCount: 0
+  };
 }
 
 export default withOptionalAuth(handler);

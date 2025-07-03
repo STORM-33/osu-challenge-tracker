@@ -421,9 +421,9 @@ export default function UserProfile() {
                               <div className="flex-1">
                                 <div className="flex items-start gap-4">
                                   {/* Rank Badge */}
-                                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${getRankGradient(score.calculated_rank || score.rank_position)} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${getRankGradient(score.calculated_rank || 0)} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
                                     <span className="text-white font-black text-xl">
-                                      #{score.calculated_rank || score.rank_position}
+                                      #{score.calculated_rank || '?'}
                                     </span>
                                   </div>
                                   
@@ -505,10 +505,10 @@ export default function UserProfile() {
                 // Fall back to filtering scores if bestPerformances is empty but we have scores
                 (() => {
                   const fallbackBestScores = scores
-                    .filter(score => (score.calculated_rank || score.rank_position) <= 10)
+                    .filter(score => (score.calculated_rank) <= 10)
                     .sort((a, b) => {
-                      const rankA = a.calculated_rank || a.rank_position;
-                      const rankB = b.calculated_rank || b.rank_position;
+                      const rankA = a.calculated_rank;
+                      const rankB = b.calculated_rank;
                       return rankA - rankB;
                     })
                     .slice(0, 5); // Limit to top 5
@@ -543,10 +543,10 @@ export default function UserProfile() {
                               </div>
                               
                               {/* Trophy for top 3 */}
-                              {(score.calculated_rank || score.rank_position) <= 3 && (
+                              {(score.calculated_rank) <= 3 && (
                                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
-                                  (score.calculated_rank || score.rank_position) === 1 ? 'from-yellow-400 to-amber-600' :
-                                  (score.calculated_rank || score.rank_position) === 2 ? 'from-gray-300 to-gray-500' :
+                                  (score.calculated_rank) === 1 ? 'from-yellow-400 to-amber-600' :
+                                  (score.calculated_rank) === 2 ? 'from-gray-300 to-gray-500' :
                                   'from-orange-400 to-orange-600'
                                 } flex items-center justify-center shadow-lg`}>
                                   <Trophy className="w-8 h-8 text-white" />
@@ -557,12 +557,12 @@ export default function UserProfile() {
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
                                 <span className={`text-2xl font-black ${
-                                  (score.calculated_rank || score.rank_position) === 1 ? 'text-yellow-600' :
-                                  (score.calculated_rank || score.rank_position) === 2 ? 'text-gray-600' :
-                                  (score.calculated_rank || score.rank_position) === 3 ? 'text-orange-600' :
+                                  (score.calculated_rank) === 1 ? 'text-yellow-600' :
+                                  (score.calculated_rank) === 2 ? 'text-gray-600' :
+                                  (score.calculated_rank) === 3 ? 'text-orange-600' :
                                   'text-purple-600'
                                 }`}>
-                                  #{score.calculated_rank || score.rank_position}
+                                  #{score.calculated_rank}
                                 </span>
                                 <h4 className="text-lg font-bold text-gray-800">
                                   {score.playlists?.beatmap_title || 'Unknown Beatmap'}
@@ -624,10 +624,10 @@ export default function UserProfile() {
                           </div>
                           
                           {/* Trophy for top 3 */}
-                          {(score.calculated_rank || score.rank_position) <= 3 && (
+                          {(score.calculated_rank) <= 3 && (
                             <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
-                              (score.calculated_rank || score.rank_position) === 1 ? 'from-yellow-400 to-amber-600' :
-                              (score.calculated_rank || score.rank_position) === 2 ? 'from-gray-300 to-gray-500' :
+                              (score.calculated_rank) === 1 ? 'from-yellow-400 to-amber-600' :
+                              (score.calculated_rank) === 2 ? 'from-gray-300 to-gray-500' :
                               'from-orange-400 to-orange-600'
                             } flex items-center justify-center shadow-lg`}>
                               <Trophy className="w-8 h-8 text-white" />
@@ -638,12 +638,12 @@ export default function UserProfile() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <span className={`text-2xl font-black ${
-                              (score.calculated_rank || score.rank_position) === 1 ? 'text-yellow-600' :
-                              (score.calculated_rank || score.rank_position) === 2 ? 'text-gray-600' :
-                              (score.calculated_rank || score.rank_position) === 3 ? 'text-orange-600' :
+                              (score.calculated_rank) === 1 ? 'text-yellow-600' :
+                              (score.calculated_rank) === 2 ? 'text-gray-600' :
+                              (score.calculated_rank) === 3 ? 'text-orange-600' :
                               'text-purple-600'
                             }`}>
-                              #{score.calculated_rank || score.rank_position}
+                              #{score.calculated_rank}
                             </span>
                             <h4 className="text-lg font-bold text-gray-800">
                               {score.playlists?.beatmap_title || 'Unknown Beatmap'}
