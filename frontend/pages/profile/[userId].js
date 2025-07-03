@@ -12,8 +12,8 @@ import {
 export default function UserProfile() {
   const [currentUser, setCurrentUser] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
-  const [scores, setScores] = useState([]);
-  const [bestPerformances, setBestPerformances] = useState([]);
+  const [allScores, setAllScores] = useState([]);
+  const [allBestPerformances, setAllBestPerformances] = useState([]);
   const [stats, setStats] = useState(null);
   const [streaks, setStreaks] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,10 +22,11 @@ export default function UserProfile() {
   const router = useRouter();
   const { userId } = router.query;
 
+  // Load data only when userId changes, not when tab changes
   useEffect(() => {
     if (!userId) return;
     loadUserData();
-  }, [userId, activeTab]);
+  }, [userId]); // Removed activeTab from dependency array
 
   const loadUserData = async () => {
     try {
@@ -40,8 +41,8 @@ export default function UserProfile() {
         setCurrentUser(authData.user);
       }
 
-      // Get profile user data with tab-specific parameters
-      const profileResponse = await fetch(`/api/user/profile/${userId}?tab=${activeTab}`);
+      // Get profile user data without tab-specific parameters
+      const profileResponse = await fetch(`/api/user/profile/${userId}`);
       
       if (!profileResponse.ok) {
         if (profileResponse.status === 404) {
@@ -60,8 +61,8 @@ export default function UserProfile() {
       }
 
       setProfileUser(profileData.user);
-      setScores(profileData.scores || []);
-      setBestPerformances(profileData.bestPerformances || []);
+      setAllScores(profileData.scores || []);
+      setAllBestPerformances(profileData.bestPerformances || []);
       setStats(profileData.stats || null);
       setStreaks(profileData.streaks || null);
 
@@ -127,6 +128,19 @@ export default function UserProfile() {
     };
   };
 
+  // Get filtered data based on active tab
+  const getScoresForTab = () => {
+    if (activeTab === 'recent') {
+      return allScores;
+    } else if (activeTab === 'best') {
+      return allBestPerformances.length > 0 ? allBestPerformances : 
+        allScores.filter(score => (score.calculated_rank) <= 10)
+          .sort((a, b) => a.calculated_rank - b.calculated_rank)
+          .slice(0, 5);
+    }
+    return [];
+  };
+
   const isOwnProfile = currentUser && profileUser && currentUser.id === profileUser.id;
 
   if (loading) {
@@ -172,8 +186,12 @@ export default function UserProfile() {
     );
   }
 
-  // Group scores by month for better visualization
-  const scoresByMonth = scores.reduce((acc, score) => {
+  // Get current tab data
+  const scores = getScoresForTab();
+  const bestPerformances = activeTab === 'best' ? scores : [];
+
+  // Group scores by month for better visualization (only for recent tab)
+  const scoresByMonth = activeTab === 'recent' ? scores.reduce((acc, score) => {
     const month = new Date(score.submitted_at).toLocaleDateString('en-US', { 
       month: 'short', 
       year: 'numeric' 
@@ -181,7 +199,7 @@ export default function UserProfile() {
     if (!acc[month]) acc[month] = [];
     acc[month].push(score);
     return acc;
-  }, {});
+  }, {}) : {};
 
   const milestone = getNextMilestone(stats?.totalScores || 0);
 
@@ -493,7 +511,7 @@ export default function UserProfile() {
           {activeTab === 'best' && (
             <div className="grid gap-4">
               
-              {(bestPerformances.length === 0 && scores.length === 0) ? (
+              {(bestPerformances.length === 0 && allScores.length === 0) ? (
                 <div className="text-center py-16">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Star className="w-12 h-12 text-purple-400" />
@@ -502,100 +520,14 @@ export default function UserProfile() {
                   <p className="text-gray-600">Start playing challenges to see your best performances!</p>
                 </div>
               ) : bestPerformances.length === 0 ? (
-                // Fall back to filtering scores if bestPerformances is empty but we have scores
-                (() => {
-                  const fallbackBestScores = scores
-                    .filter(score => (score.calculated_rank) <= 10)
-                    .sort((a, b) => {
-                      const rankA = a.calculated_rank;
-                      const rankB = b.calculated_rank;
-                      return rankA - rankB;
-                    })
-                    .slice(0, 5); // Limit to top 5
-                  
-                  return fallbackBestScores.length === 0 ? (
-                    <div className="text-center py-16">
-                      <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Star className="w-12 h-12 text-purple-400" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">No Top 10 Finishes Yet</h3>
-                      <p className="text-gray-600">Keep playing to achieve top rankings!</p>
-                      <p className="text-sm text-gray-500 mt-2">You have {scores.length} total scores</p>
-                    </div>
-                  ) : (
-                    <>
-
-                      {fallbackBestScores.map((score, index) => (
-                        <div 
-                          key={score.id}
-                          className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 group"
-                        >
-                          <div className="flex items-center gap-4">
-                            {/* Position indicator */}
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                index === 0 ? 'bg-yellow-100 text-yellow-700' :
-                                index === 1 ? 'bg-gray-100 text-gray-700' :
-                                index === 2 ? 'bg-orange-100 text-orange-700' :
-                                'bg-purple-100 text-purple-700'
-                              }`}>
-                                {index + 1}
-                              </div>
-                              
-                              {/* Trophy for top 3 */}
-                              {(score.calculated_rank) <= 3 && (
-                                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
-                                  (score.calculated_rank) === 1 ? 'from-yellow-400 to-amber-600' :
-                                  (score.calculated_rank) === 2 ? 'from-gray-300 to-gray-500' :
-                                  'from-orange-400 to-orange-600'
-                                } flex items-center justify-center shadow-lg`}>
-                                  <Trophy className="w-8 h-8 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <span className={`text-2xl font-black ${
-                                  (score.calculated_rank) === 1 ? 'text-yellow-600' :
-                                  (score.calculated_rank) === 2 ? 'text-gray-600' :
-                                  (score.calculated_rank) === 3 ? 'text-orange-600' :
-                                  'text-purple-600'
-                                }`}>
-                                  #{score.calculated_rank}
-                                </span>
-                                <h4 className="text-lg font-bold text-gray-800">
-                                  {score.playlists?.beatmap_title || 'Unknown Beatmap'}
-                                </h4>
-                              </div>
-                              
-                              <div className="flex items-center gap-6 text-sm">
-                                <span className={`font-bold ${getAccuracyColor(score.accuracy)}`}>
-                                  {score.accuracy.toFixed(2)}% accuracy
-                                </span>
-                                <span className="text-gray-600">
-                                  {formatNumber(score.score)} points
-                                </span>
-                                <span className="text-gray-600">
-                                  {score.max_combo}x combo
-                                </span>
-                              </div>
-                            </div>
-                            
-                            {score.playlists?.challenges?.room_id && (
-                              <Link 
-                                href={`/challenges/${score.playlists.challenges.room_id}`}
-                                className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 text-purple-700 font-medium rounded-full transition-all"
-                              >
-                                View Challenge
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  );
-                })()
+                <div className="text-center py-16">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Star className="w-12 h-12 text-purple-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">No Top 10 Finishes Yet</h3>
+                  <p className="text-gray-600">Keep playing to achieve top rankings!</p>
+                  <p className="text-sm text-gray-500 mt-2">You have {allScores.length} total scores</p>
+                </div>
               ) : (
                 <>
                   {/* Header showing count */}
@@ -838,7 +770,7 @@ export default function UserProfile() {
           )}
 
           {/* Progress & Milestones Section */}
-          {scores.length > 0 && (
+          {allScores.length > 0 && (
             <div className="mt-8 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl p-8 shadow-lg">
               <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                 <TrendingUp className="w-8 h-8 text-purple-600" />
