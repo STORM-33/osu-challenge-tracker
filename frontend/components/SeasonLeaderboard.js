@@ -1,28 +1,46 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Trophy, Crown, Star, Target, Users, TrendingUp, Award, Medal, Zap, Sparkles, ChevronUp, ChevronDown, Flame, User } from 'lucide-react';
+import { Trophy, Crown, Star, Target, Users, TrendingUp, Award, Medal, Zap, Sparkles, ChevronUp, ChevronDown, Flame, User, Loader2 } from 'lucide-react';
 
 const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [userPosition, setUserPosition] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('full'); // 'full' or 'context'
+  const [hasMore, setHasMore] = useState(false);
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const [pageSize] = useState(50); // Fixed page size for load more
+  const [initialLoad, setInitialLoad] = useState(true);
   const router = useRouter();
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = async (isLoadMore = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setError(null);
+      }
 
       const params = new URLSearchParams();
       if (selectedSeason?.id) params.append('seasonId', selectedSeason.id);
       if (currentUser?.id) params.append('userId', currentUser.id);
+      
       if (viewMode === 'context') {
         params.append('withUserContext', 'true');
         params.append('contextRange', '5');
       } else {
-        params.append('limit', '100');
+        // For initial load, get 100 records (first 2 pages)
+        // For load more, get the next page
+        if (isLoadMore) {
+          params.append('limit', pageSize.toString());
+          params.append('offset', currentOffset.toString());
+        } else {
+          params.append('limit', '100'); // Initial load gets 100 records
+          params.append('offset', '0');
+        }
       }
 
       const response = await fetch(`/api/seasons/leaderboard?${params}`);
@@ -32,17 +50,39 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
         throw new Error(data.error || 'Failed to fetch leaderboard');
       }
 
-      setLeaderboard(data.leaderboard);
+      if (isLoadMore) {
+        // Append new records to existing leaderboard
+        setLeaderboard(prev => [...prev, ...data.leaderboard]);
+        setCurrentOffset(prev => prev + pageSize);
+      } else {
+        // Replace leaderboard for initial load or refresh
+        setLeaderboard(data.leaderboard);
+        // Set currentOffset to the actual number of records loaded (for proper pagination)
+        setCurrentOffset(data.leaderboard.length);
+        setInitialLoad(false);
+      }
+
       setUserPosition(data.userPosition);
+      setHasMore(data.hasMore || false);
+
     } catch (err) {
       console.error('Error fetching season leaderboard:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    await fetchLeaderboard(true);
+  };
+
   useEffect(() => {
+    // Reset pagination state when season or view mode changes
+    setCurrentOffset(0);
+    setInitialLoad(true);
     fetchLeaderboard();
   }, [selectedSeason, currentUser, viewMode]);
 
@@ -101,7 +141,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
         <Trophy className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <p className="text-red-600 mb-4">Error loading leaderboard: {error}</p>
         <button 
-          onClick={fetchLeaderboard}
+          onClick={() => fetchLeaderboard()}
           className="px-6 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
         >
           Retry
@@ -159,7 +199,8 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
               </h2>
               {selectedSeason && (
                 <p className="text-gray-600 mt-1">
-                  {selectedSeason.name} • {leaderboard.length} participants
+                  {selectedSeason.name} • {leaderboard.length} participants shown
+                  {hasMore && ' (more available)'}
                 </p>
               )}
             </div>
@@ -277,7 +318,8 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
               </div>
             ) : (
               leaderboard.slice(viewMode === 'full' ? 3 : 0).map((user, index) => {
-                const position = user.position || (viewMode === 'full' ? index + 4 : index + 1);
+                // Always use user_position from database as it contains the correct rank
+                const position = user.user_position;
                 const isCurrentUser = currentUser && user.user_id === currentUser.id;
                 const isTop10 = position <= 10;
                 
@@ -361,15 +403,37 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             )}
           </div>
 
-          {/* Load More */}
-          {viewMode === 'full' && leaderboard.length >= 100 && (
+          {/* Load More Button */}
+          {viewMode === 'full' && hasMore && (
             <div className="p-6 text-center border-t border-gray-200 bg-gray-50">
               <button
-                onClick={() => console.log('Load more clicked')}
-                className="px-8 py-3 bg-white text-gray-700 rounded-xl font-semibold hover:shadow-md transform hover:scale-105 transition-all border border-gray-200"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className={`px-8 py-3 rounded-xl font-semibold transform transition-all border ${
+                  loadingMore
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-gray-700 hover:shadow-md hover:scale-105 border-gray-200'
+                }`}
               >
-                Load More Players
+                {loadingMore ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading...
+                  </div>
+                ) : (
+                  `Load More Players (+${pageSize})`
+                )}
               </button>
+            </div>
+          )}
+
+          {/* End of results indicator */}
+          {viewMode === 'full' && !hasMore && leaderboard.length > 50 && (
+            <div className="p-6 text-center border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-center gap-2 text-gray-500">
+                <Trophy className="w-4 h-4" />
+                <span className="text-sm font-medium">You've reached the end of the leaderboard!</span>
+              </div>
             </div>
           )}
         </div>

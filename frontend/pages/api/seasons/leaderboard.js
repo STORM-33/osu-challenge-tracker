@@ -1,4 +1,3 @@
-// frontend/pages/api/seasons/leaderboard.js
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 
 async function handler(req, res) {
@@ -10,19 +9,20 @@ async function handler(req, res) {
     const { 
       seasonId, 
       userId, 
-      limit = 100, 
+      limit = 50, 
+      offset = 0,
       withUserContext = false,
       contextRange = 5 
     } = req.query;
 
-    console.log(`Fetching season leaderboard: seasonId=${seasonId}, userId=${userId}, withUserContext=${withUserContext}`);
+    console.log(`Fetching season leaderboard: seasonId=${seasonId}, userId=${userId}, limit=${limit}, offset=${offset}, withUserContext=${withUserContext}`);
 
     let data, error;
 
     if (withUserContext === 'true' && userId) {
       console.log(`Getting leaderboard with user context for user ${userId}`);
       
-      // Get leaderboard with user context
+      // Get leaderboard with user context (offset not applicable here)
       const { data: leaderboardData, error: leaderboardError } = await supabaseAdmin
         .rpc('get_season_leaderboard_with_user', {
           user_id_param: parseInt(userId),
@@ -33,13 +33,14 @@ async function handler(req, res) {
       data = leaderboardData;
       error = leaderboardError;
     } else {
-      console.log('Getting standard season leaderboard');
+      console.log(`Getting standard season leaderboard with offset ${offset}`);
       
-      // Get standard leaderboard
+      // Get standard leaderboard with offset support
       const { data: leaderboardData, error: leaderboardError } = await supabaseAdmin
         .rpc('get_season_leaderboard', {
           season_id_param: seasonId ? parseInt(seasonId) : null,
-          limit_count: parseInt(limit)
+          limit_count: parseInt(limit),
+          offset_count: parseInt(offset)
         });
 
       data = leaderboardData;
@@ -94,14 +95,20 @@ async function handler(req, res) {
 
     console.log(`Season leaderboard fetched: ${data?.length || 0} entries, user position: ${userPosition ? 'found' : 'none'}`);
 
+    // Determine if there are more records available
+    const hasMore = data && data.length === parseInt(limit);
+
     res.status(200).json({
       success: true,
       leaderboard: data || [],
       userPosition,
       currentSeason,
+      hasMore, // Indicate if more records are available
       meta: {
         seasonId: seasonId || currentSeason?.id,
-        total: data?.length || 0,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        returned: data?.length || 0,
         withUserContext: withUserContext === 'true'
       }
     });
