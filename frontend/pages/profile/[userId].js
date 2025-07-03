@@ -492,19 +492,6 @@ export default function UserProfile() {
 
           {activeTab === 'best' && (
             <div className="grid gap-4">
-              {/* Debug info - remove this after fixing */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-yellow-800">
-                    Debug: bestPerformances.length = {bestPerformances.length}, 
-                    scores.length = {scores.length},
-                    top10Count from stats = {stats?.top10Count}
-                  </p>
-                  <p className="text-xs text-yellow-700 mt-1">
-                    Active tab: {activeTab}
-                  </p>
-                </div>
-              )}
               
               {(bestPerformances.length === 0 && scores.length === 0) ? (
                 <div className="text-center py-16">
@@ -523,7 +510,8 @@ export default function UserProfile() {
                       const rankA = a.calculated_rank || a.rank_position;
                       const rankB = b.calculated_rank || b.rank_position;
                       return rankA - rankB;
-                    });
+                    })
+                    .slice(0, 5); // Limit to top 5
                   
                   return fallbackBestScores.length === 0 ? (
                     <div className="text-center py-16">
@@ -535,121 +523,158 @@ export default function UserProfile() {
                       <p className="text-sm text-gray-500 mt-2">You have {scores.length} total scores</p>
                     </div>
                   ) : (
-                    fallbackBestScores.map((score, index) => (
-                      <div 
-                        key={score.id}
-                        className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 group"
-                      >
-                        <div className="flex items-center gap-4">
+                    <>
+
+                      {fallbackBestScores.map((score, index) => (
+                        <div 
+                          key={score.id}
+                          className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 group"
+                        >
+                          <div className="flex items-center gap-4">
+                            {/* Position indicator */}
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                                index === 1 ? 'bg-gray-100 text-gray-700' :
+                                index === 2 ? 'bg-orange-100 text-orange-700' :
+                                'bg-purple-100 text-purple-700'
+                              }`}>
+                                {index + 1}
+                              </div>
+                              
+                              {/* Trophy for top 3 */}
+                              {(score.calculated_rank || score.rank_position) <= 3 && (
+                                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
+                                  (score.calculated_rank || score.rank_position) === 1 ? 'from-yellow-400 to-amber-600' :
+                                  (score.calculated_rank || score.rank_position) === 2 ? 'from-gray-300 to-gray-500' :
+                                  'from-orange-400 to-orange-600'
+                                } flex items-center justify-center shadow-lg`}>
+                                  <Trophy className="w-8 h-8 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <span className={`text-2xl font-black ${
+                                  (score.calculated_rank || score.rank_position) === 1 ? 'text-yellow-600' :
+                                  (score.calculated_rank || score.rank_position) === 2 ? 'text-gray-600' :
+                                  (score.calculated_rank || score.rank_position) === 3 ? 'text-orange-600' :
+                                  'text-purple-600'
+                                }`}>
+                                  #{score.calculated_rank || score.rank_position}
+                                </span>
+                                <h4 className="text-lg font-bold text-gray-800">
+                                  {score.playlists?.beatmap_title || 'Unknown Beatmap'}
+                                </h4>
+                              </div>
+                              
+                              <div className="flex items-center gap-6 text-sm">
+                                <span className={`font-bold ${getAccuracyColor(score.accuracy)}`}>
+                                  {score.accuracy.toFixed(2)}% accuracy
+                                </span>
+                                <span className="text-gray-600">
+                                  {formatNumber(score.score)} points
+                                </span>
+                                <span className="text-gray-600">
+                                  {score.max_combo}x combo
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {score.playlists?.challenges?.room_id && (
+                              <Link 
+                                href={`/challenges/${score.playlists.challenges.room_id}`}
+                                className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 text-purple-700 font-medium rounded-full transition-all"
+                              >
+                                View Challenge
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  );
+                })()
+              ) : (
+                <>
+                  {/* Header showing count */}
+                  <div className="mb-6 text-center">
+                    <h3 className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">
+                      <Trophy className="w-6 h-6 text-yellow-500" />
+                      Best Performances
+                    </h3>
+                  </div>
+
+                  {bestPerformances.slice(0, 5).map((score, index) => (
+                    <div 
+                      key={score.id}
+                      className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 group"
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Position indicator */}
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                            index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                            index === 1 ? 'bg-gray-100 text-gray-700' :
+                            index === 2 ? 'bg-orange-100 text-orange-700' :
+                            'bg-purple-100 text-purple-700'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          
                           {/* Trophy for top 3 */}
                           {(score.calculated_rank || score.rank_position) <= 3 && (
-                            <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${
+                            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
                               (score.calculated_rank || score.rank_position) === 1 ? 'from-yellow-400 to-amber-600' :
                               (score.calculated_rank || score.rank_position) === 2 ? 'from-gray-300 to-gray-500' :
                               'from-orange-400 to-orange-600'
                             } flex items-center justify-center shadow-lg`}>
-                              <Trophy className="w-10 h-10 text-white" />
+                              <Trophy className="w-8 h-8 text-white" />
                             </div>
                           )}
-                          
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className={`text-2xl font-black ${
-                                (score.calculated_rank || score.rank_position) === 1 ? 'text-yellow-600' :
-                                (score.calculated_rank || score.rank_position) === 2 ? 'text-gray-600' :
-                                (score.calculated_rank || score.rank_position) === 3 ? 'text-orange-600' :
-                                'text-purple-600'
-                              }`}>
-                                #{score.calculated_rank || score.rank_position}
-                              </span>
-                              <h4 className="text-lg font-bold text-gray-800">
-                                {score.playlists?.beatmap_title || 'Unknown Beatmap'}
-                              </h4>
-                            </div>
-                            
-                            <div className="flex items-center gap-6 text-sm">
-                              <span className={`font-bold ${getAccuracyColor(score.accuracy)}`}>
-                                {score.accuracy.toFixed(2)}% accuracy
-                              </span>
-                              <span className="text-gray-600">
-                                {formatNumber(score.score)} points
-                              </span>
-                              <span className="text-gray-600">
-                                {score.max_combo}x combo
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {score.playlists?.challenges?.room_id && (
-                            <Link 
-                              href={`/challenges/${score.playlists.challenges.room_id}`}
-                              className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 text-purple-700 font-medium rounded-full transition-all"
-                            >
-                              View Challenge
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  );
-                })()
-              ) : (
-                bestPerformances.map((score, index) => (
-                  <div 
-                    key={score.id}
-                    className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 group"
-                  >
-                    <div className="flex items-center gap-4">
-                      {/* Trophy for top 3 */}
-                      {(score.calculated_rank || score.rank_position) <= 3 && (
-                        <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${
-                          (score.calculated_rank || score.rank_position) === 1 ? 'from-yellow-400 to-amber-600' :
-                          (score.calculated_rank || score.rank_position) === 2 ? 'from-gray-300 to-gray-500' :
-                          'from-orange-400 to-orange-600'
-                        } flex items-center justify-center shadow-lg`}>
-                          <Trophy className="w-10 h-10 text-white" />
-                        </div>
-                      )}
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className={`text-2xl font-black ${
-                            (score.calculated_rank || score.rank_position) === 1 ? 'text-yellow-600' :
-                            (score.calculated_rank || score.rank_position) === 2 ? 'text-gray-600' :
-                            (score.calculated_rank || score.rank_position) === 3 ? 'text-orange-600' :
-                            'text-purple-600'
-                          }`}>
-                            #{score.calculated_rank || score.rank_position}
-                          </span>
-                          <h4 className="text-lg font-bold text-gray-800">
-                            {score.playlists?.beatmap_title || 'Unknown Beatmap'}
-                          </h4>
                         </div>
                         
-                        <div className="flex items-center gap-6 text-sm">
-                          <span className={`font-bold ${getAccuracyColor(score.accuracy)}`}>
-                            {score.accuracy.toFixed(2)}% accuracy
-                          </span>
-                          <span className="text-gray-600">
-                            {formatNumber(score.score)} points
-                          </span>
-                          <span className="text-gray-600">
-                            {score.max_combo}x combo
-                          </span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className={`text-2xl font-black ${
+                              (score.calculated_rank || score.rank_position) === 1 ? 'text-yellow-600' :
+                              (score.calculated_rank || score.rank_position) === 2 ? 'text-gray-600' :
+                              (score.calculated_rank || score.rank_position) === 3 ? 'text-orange-600' :
+                              'text-purple-600'
+                            }`}>
+                              #{score.calculated_rank || score.rank_position}
+                            </span>
+                            <h4 className="text-lg font-bold text-gray-800">
+                              {score.playlists?.beatmap_title || 'Unknown Beatmap'}
+                            </h4>
+                          </div>
+                          
+                          <div className="flex items-center gap-6 text-sm">
+                            <span className={`font-bold ${getAccuracyColor(score.accuracy)}`}>
+                              {score.accuracy.toFixed(2)}% accuracy
+                            </span>
+                            <span className="text-gray-600">
+                              {formatNumber(score.score)} points
+                            </span>
+                            <span className="text-gray-600">
+                              {score.max_combo}x combo
+                            </span>
+                          </div>
                         </div>
+                        
+                        {score.playlists?.challenges?.room_id && (
+                          <Link 
+                            href={`/challenges/${score.playlists.challenges.room_id}`}
+                            className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 text-purple-700 font-medium rounded-full transition-all"
+                          >
+                            View Challenge
+                          </Link>
+                        )}
                       </div>
-                      
-                      {score.playlists?.challenges?.room_id && (
-                        <Link 
-                          href={`/challenges/${score.playlists.challenges.room_id}`}
-                          className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 text-purple-700 font-medium rounded-full transition-all"
-                        >
-                          View Challenge
-                        </Link>
-                      )}
                     </div>
-                  </div>
-                ))
+                  ))}
+                </>
               )}
             </div>
           )}
