@@ -133,32 +133,6 @@ export default function Partners() {
                   </div>
                 </div>
               </div>
-
-              {/* Call to action */}
-              <div className="mt-16 text-center relative">
-                {/* Decorative elements */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-64 h-64 bg-gradient-to-br from-purple-100/30 to-pink-100/30 rounded-full blur-2xl"></div>
-                </div>
-                
-                <div className="relative glass-card-enhanced bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-200 max-w-2xl mx-auto">
-                  <Sparkles className="w-8 h-8 text-purple-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-neutral-800 mb-3">
-                    Interested in Partnering?
-                  </h3>
-                  <p className="text-neutral-600 mb-6">
-                    If your community or organization would like to partner with osu!Challengers, 
-                    we'd love to hear from you!
-                  </p>
-                  <a
-                    href="mailto:partners@osuchallengers.com"
-                    className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full transition-all font-medium hover:shadow-lg transform hover:scale-105"
-                  >
-                    <Heart className="w-5 h-5" />
-                    Get in Touch
-                  </a>
-                </div>
-              </div>
             </>
           )}
         </div>

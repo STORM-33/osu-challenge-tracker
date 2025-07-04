@@ -132,9 +132,6 @@ export default function Admin() {
     try {
       const response = await fetch('/api/challenges?active=true');
       const data = await response.json();
-      
-      console.log('API Response:', data); // Add this for debugging
-      
       if (data.success) {
         // Handle the nested structure - challenges are in data.data.challenges
         const challenges = data.data?.challenges || data.challenges || [];
@@ -181,56 +178,24 @@ export default function Admin() {
     e.preventDefault();
     
     try {
-      let response;
-      let url;
-      let method;
+      // Always use the index endpoint
+      const url = '/api/partners';
+      const method = editingPartner ? 'PUT' : 'POST';
       
-      if (editingPartner) {
-        // For editing, try the individual endpoint first
-        url = `/api/partners/${editingPartner.id}`;
-        method = 'PUT';
-        
-        console.log(`🔄 Attempting ${method} request to ${url}`);
-        
-        response = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(partnerForm)
-        });
-        
-        console.log('📡 Response status:', response.status);
-        
-        // If the individual endpoint doesn't work, try an alternative approach
-        if (!response.ok && response.status === 404) {
-          console.log('🔄 Individual endpoint failed, trying admin endpoint...');
-          
-          // Try using admin endpoint for updates (if you create this functionality)
-          url = '/api/admin/partners';
-          response = await fetch(url, {
-            method: 'POST', // Use POST with operation type
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              operation: 'update',
-              partnerId: editingPartner.id,
-              updates: partnerForm
-            })
-          });
-        }
-      } else {
-        // For creating new partners
-        url = '/api/partners';
-        method = 'POST';
-        
-        console.log(`🔄 ${method} request to ${url}`);
-        
-        response = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(partnerForm)
-        });
-      }
+      // For editing, include the ID in the body
+      const body = editingPartner 
+        ? { ...partnerForm, id: editingPartner.id }
+        : partnerForm;
       
-      console.log('📡 Final response status:', response.status);
+      console.log(`🔄 ${method} request to ${url}`, body);
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      
+      console.log('📡 Response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -239,7 +204,7 @@ export default function Admin() {
         let errorMessage;
         try {
           const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorData.message || errorText;
+          errorMessage = errorData.error?.message || errorData.error || errorData.message || errorText;
         } catch {
           errorMessage = errorText || `HTTP ${response.status} error`;
         }
@@ -250,10 +215,7 @@ export default function Admin() {
       const data = await response.json();
       console.log('📦 Response data:', data);
       
-      // Handle different response formats
-      const success = data.success !== false && response.ok;
-      
-      if (success) {
+      if (data.success !== false) {
         setResult({
           success: true,
           message: editingPartner 
@@ -279,7 +241,7 @@ export default function Admin() {
         }, 500);
         
       } else {
-        throw new Error(data.error || data.message || 'Failed to save partner');
+        throw new Error(data.error || 'Failed to save partner');
       }
       
     } catch (error) {
@@ -287,9 +249,47 @@ export default function Admin() {
       
       setResult({
         success: false,
-        message: typeof error.message === 'string' 
-          ? error.message 
-          : 'Network error. Please try again.'
+        message: error.message || 'Network error. Please try again.'
+      });
+    }
+  };
+
+  const handleTogglePartnerStatus = async (partner) => {
+    try {
+      // Use the index endpoint with PUT method, including ID in body
+      const response = await fetch('/api/partners', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: partner.id,
+          is_active: !partner.is_active 
+        })
+      });
+      
+      if (response.ok) {
+        loadPartners(); // Reload the partners list
+      } else {
+        const errorText = await response.text();
+        console.error('Toggle status error:', errorText);
+        
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorData.error || errorData.message || errorText;
+        } catch {
+          errorMessage = errorText || 'Failed to update partner status';
+        }
+        
+        setResult({
+          success: false,
+          message: errorMessage
+        });
+      }
+    } catch (error) {
+      console.error('Toggle partner status error:', error);
+      setResult({
+        success: false,
+        message: error.message || 'Network error. Please try again.'
       });
     }
   };
@@ -300,11 +300,16 @@ export default function Admin() {
     }
     
     try {
-      const response = await fetch(`/api/partners/${partnerId}`, {
-        method: 'DELETE'
+      // For delete, we'll need to add DELETE support to the index endpoint or use admin endpoint
+      // Let's use the admin endpoint for bulk operations with a single item
+      const response = await fetch('/api/admin/partners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'delete',
+          partnerIds: [partnerId] // Array with single ID
+        })
       });
-      
-      const data = await response.json();
       
       if (response.ok) {
         setResult({
@@ -313,41 +318,27 @@ export default function Admin() {
         });
         loadPartners();
       } else {
+        const errorText = await response.text();
+        console.error('Delete error:', errorText);
+        
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorData.error || errorData.message || errorText;
+        } catch {
+          errorMessage = errorText || 'Failed to delete partner';
+        }
+        
         setResult({
           success: false,
-          message: data.error || 'Failed to delete partner'
+          message: errorMessage
         });
       }
     } catch (error) {
+      console.error('Delete partner error:', error);
       setResult({
         success: false,
-        message: 'Network error. Please try again.'
-      });
-    }
-  };
-
-  const handleTogglePartnerStatus = async (partner) => {
-    try {
-      const response = await fetch(`/api/partners/${partner.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !partner.is_active })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        loadPartners();
-      } else {
-        setResult({
-          success: false,
-          message: data.error || 'Failed to update partner status'
-        });
-      }
-    } catch (error) {
-      setResult({
-        success: false,
-        message: 'Network error. Please try again.'
+        message: error.message || 'Network error. Please try again.'
       });
     }
   };
@@ -768,7 +759,19 @@ export default function Admin() {
                 )}
                 <div className="flex-1">
                   <p className={result.success ? 'text-green-800' : 'text-red-800'}>
-                    {result.message}
+                    {/* Safe display of message - handle both string and object cases */}
+                    {(() => {
+                      if (typeof result.message === 'string') {
+                        return result.message;
+                      }
+                      if (typeof result.error === 'string') {
+                        return result.error;
+                      }
+                      if (typeof result.error === 'object' && result.error?.message) {
+                        return result.error.message;
+                      }
+                      return 'An error occurred';
+                    })()}
                   </p>
                   {result.challenge && (
                     <div className="mt-2 text-sm text-neutral-600">

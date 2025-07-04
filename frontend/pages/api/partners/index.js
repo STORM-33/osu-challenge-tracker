@@ -9,6 +9,8 @@ async function handler(req, res) {
     return handleGetPartners(req, res);
   } else if (req.method === 'POST') {
     return withAdminAuth(handleCreatePartner)(req, res);
+  } else if (req.method === 'PUT') {
+    return withAdminAuth(handleUpdatePartner)(req, res);
   } else {
     return handleAPIError(res, new Error('Method not allowed'), { status: 405 });
   }
@@ -123,6 +125,106 @@ async function handleCreatePartner(req, res) {
 
   } catch (error) {
     console.error('Create partner error:', error);
+    return handleAPIError(res, error);
+  }
+}
+
+async function handleUpdatePartner(req, res) {
+  try {
+    validateRequest(req, {
+      method: 'PUT',
+      body: {
+        id: { required: true, type: 'number' },
+        name: { type: 'string', maxLength: 255 },
+        icon_url: { type: 'string' },
+        link_url: { type: 'string' },
+        description: { type: 'string', maxLength: 500 },
+        is_active: { type: 'boolean' },
+        display_order: { type: 'number', min: 0 }
+      }
+    });
+
+    const { id: partnerId, ...updateData } = req.body;
+
+    const updates = {};
+    const allowedFields = ['name', 'icon_url', 'link_url', 'description', 'is_active', 'display_order'];
+    
+    // Only include fields that were provided
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        updates[field] = updateData[field];
+      }
+    });
+
+    if (Object.keys(updates).length === 0) {
+      throw new Error('No valid fields to update');
+    }
+
+    // Validate URLs if provided
+    if (updates.icon_url) {
+      try {
+        new URL(updates.icon_url);
+      } catch {
+        throw new Error('Invalid icon_url format');
+      }
+    }
+
+    if (updates.link_url) {
+      try {
+        new URL(updates.link_url);
+      } catch {
+        throw new Error('Invalid link_url format');
+      }
+    }
+
+    // Check if partner exists
+    const { data: existing, error: checkError } = await supabase
+      .from('partners')
+      .select('id, name')
+      .eq('id', partnerId)
+      .single();
+
+    if (checkError || !existing) {
+      return handleAPIError(res, new Error('Partner not found'), { status: 404 });
+    }
+
+    // Check for duplicate name if updating name
+    if (updates.name && updates.name !== existing.name) {
+      const { data: duplicate } = await supabase
+        .from('partners')
+        .select('id')
+        .eq('name', updates.name)
+        .neq('id', partnerId)
+        .single();
+
+      if (duplicate) {
+        throw new Error('A partner with this name already exists');
+      }
+    }
+
+    // Update partner
+    updates.updated_at = new Date().toISOString();
+
+    const { data: partner, error: updateError } = await supabaseAdmin
+      .from('partners')
+      .update(updates)
+      .eq('id', partnerId)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    console.log(`✅ Updated partner ${partnerId}: ${Object.keys(updates).join(', ')}`);
+
+    return handleAPIResponse(res, {
+      partner,
+      message: 'Partner updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Update partner error:', error);
     return handleAPIError(res, error);
   }
 }
