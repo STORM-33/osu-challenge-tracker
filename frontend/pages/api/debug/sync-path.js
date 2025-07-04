@@ -1,5 +1,3 @@
-// Quick diagnostic to test if background sync uses optimized handler
-
 import syncManager from '../../../lib/sync-manager';
 
 export default async function handler(req, res) {
@@ -238,30 +236,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
-// USAGE:
-/*
-1. Add this file as /pages/api/debug/sync-path.js
-
-2. Test direct API call:
-   POST /api/debug/sync-path
-   { "roomId": "1454583", "testType": "direct" }
-
-3. Test background sync:
-   POST /api/debug/sync-path  
-   { "roomId": "1454583", "testType": "background" }
-
-4. Compare both:
-   POST /api/debug/sync-path
-   { "roomId": "1454583", "testType": "compare" }
-
-This will show you:
-- If background sync is using the optimized handler
-- Exact timing differences between direct and background
-- Whether the issue is in sync manager overhead or the handler itself
-
-Expected results:
-- Direct: 6-10 seconds (your optimized handler)
-- Background: Should be similar if using same handler
-- If background is 20+ seconds, the old handler is being used
-*/

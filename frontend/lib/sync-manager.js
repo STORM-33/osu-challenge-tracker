@@ -7,8 +7,8 @@ class SyncManager {
   constructor() {
     this.activeJobs = new Map();
     this.globalCooldowns = new Map();
-    this.SYNC_THRESHOLD = 4 * 60 * 1000;
-    this.GLOBAL_COOLDOWN = 4 * 60 * 1000;
+    this.SYNC_THRESHOLD = 15 * 60 * 1000;
+    this.GLOBAL_COOLDOWN = 5 * 60 * 1000;
   }
 
   /**

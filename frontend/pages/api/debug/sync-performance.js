@@ -1,4 +1,3 @@
-// Quick diagnostic tool - Add this to a new file: /pages/api/debug/sync-performance.js
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { trackedOsuAPI } from '../../../lib/osu-api';
 import globalUpdateTracker from '../../../lib/global-update-tracker';
@@ -347,38 +346,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
-// USAGE INSTRUCTIONS:
-/*
-1. Add this file as: /pages/api/debug/sync-performance.js
-
-2. Test with a problematic challenge:
-   POST /api/debug/sync-performance
-   {
-     "roomId": "12345",
-     "testType": "full"  // or "quick" for faster test
-   }
-
-3. Expected response will show:
-   - Exact timing for each component
-   - Estimated total sync time
-   - Top 3 bottlenecks
-   - Specific recommendations
-
-4. Example quick test (without OSU API):
-   POST /api/debug/sync-performance
-   {
-     "roomId": "12345",
-     "testType": "quick"
-   }
-
-5. Look for these red flags in results:
-   - globalUpdateTracker > 100ms: Cache optimization needed
-   - database.complexQuery > 1000ms: Database indexing needed  
-   - syncManager > 300ms: Too many database calls
-   - apiTracker > 200ms: Memory management issues
-   - databaseTransaction > 5000ms: JSONB/transaction optimization needed
-   - osuAPI.estimatedTotalAPITime > 15000ms: API call optimization needed
-
-The results will tell you exactly which component is causing the 30+ second sync times!
-*/
