@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { auth } from '../lib/supabase';
-import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart } from 'lucide-react';
+import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Users } from 'lucide-react';
 
 export default function Layout({ children, backgroundImage }) {
   const [user, setUser] = useState(null);
@@ -102,6 +102,19 @@ export default function Layout({ children, backgroundImage }) {
               >
                 <BarChart3 className="w-4 h-4" />
                 leaderboard
+              </Link>
+
+              {/* Partners Link - NEW */}
+              <Link 
+                href="/partners"
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-medium ${
+                  router.pathname === '/partners'
+                    ? 'bg-neutral-800 text-white'
+                    : 'text-neutral-700 hover:bg-neutral-100'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                partners
               </Link>
 
               {/* Profile link - only show if user is logged in */}

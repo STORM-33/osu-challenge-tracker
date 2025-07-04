@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play, Edit3, ArrowRight, Info } from 'lucide-react';
+import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play, Edit3, ArrowRight, Info, Users as PartnersIcon, ExternalLink, Trash2, Eye, EyeOff, GripVertical } from 'lucide-react';
 import { auth } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import RulesetManager from '../components/RulesetManager';
@@ -68,6 +68,20 @@ export default function Admin() {
   const [showRulesetManager, setShowRulesetManager] = useState(false);
   const [selectedChallengeForRuleset, setSelectedChallengeForRuleset] = useState(null);
   
+  // Partner management state variables
+  const [partners, setPartners] = useState([]);
+  const [loadingPartners, setLoadingPartners] = useState(false);
+  const [showPartnerForm, setShowPartnerForm] = useState(false);
+  const [editingPartner, setEditingPartner] = useState(null);
+  const [partnerForm, setPartnerForm] = useState({
+    name: '',
+    icon_url: '',
+    link_url: '',
+    description: '',
+    is_active: true,
+    display_order: 0
+  });
+  
   // Non-blocking bulk update state
   const [bulkUpdateState, setBulkUpdateState] = useState({
     isRunning: false,
@@ -88,6 +102,7 @@ export default function Admin() {
   useEffect(() => {
     if (user?.admin) {
       loadActiveChallenges();
+      loadPartners();
     }
   }, [user]);
 
@@ -130,6 +145,210 @@ export default function Admin() {
       }
     } catch (error) {
       console.error('Failed to load active challenges:', error);
+    }
+  };
+
+  // Partner management functions
+  const loadPartners = async () => {
+    try {
+      setLoadingPartners(true);
+      const response = await fetch('/api/admin/partners');
+      const data = await response.json();
+      
+      if (data.success) {
+        const partners = data.data?.partners || data.partners || [];
+        console.log('✅ Partners loaded successfully:', partners.length);
+        setPartners(partners);
+      } else {
+        console.error('API returned error:', data.error);
+        setResult({
+          success: false,
+          message: data.error || 'Failed to load partners'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load partners:', error);
+      setResult({
+        success: false,
+        message: 'Network error loading partners'
+      });
+    } finally {
+      setLoadingPartners(false);
+    }
+  };
+
+  const handlePartnerSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      let response;
+      let url;
+      let method;
+      
+      if (editingPartner) {
+        // For editing, try the individual endpoint first
+        url = `/api/partners/${editingPartner.id}`;
+        method = 'PUT';
+        
+        console.log(`🔄 Attempting ${method} request to ${url}`);
+        
+        response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(partnerForm)
+        });
+        
+        console.log('📡 Response status:', response.status);
+        
+        // If the individual endpoint doesn't work, try an alternative approach
+        if (!response.ok && response.status === 404) {
+          console.log('🔄 Individual endpoint failed, trying admin endpoint...');
+          
+          // Try using admin endpoint for updates (if you create this functionality)
+          url = '/api/admin/partners';
+          response = await fetch(url, {
+            method: 'POST', // Use POST with operation type
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              operation: 'update',
+              partnerId: editingPartner.id,
+              updates: partnerForm
+            })
+          });
+        }
+      } else {
+        // For creating new partners
+        url = '/api/partners';
+        method = 'POST';
+        
+        console.log(`🔄 ${method} request to ${url}`);
+        
+        response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(partnerForm)
+        });
+      }
+      
+      console.log('📡 Final response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ HTTP Error:', response.status, errorText);
+        
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorData.message || errorText;
+        } catch {
+          errorMessage = errorText || `HTTP ${response.status} error`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      const data = await response.json();
+      console.log('📦 Response data:', data);
+      
+      // Handle different response formats
+      const success = data.success !== false && response.ok;
+      
+      if (success) {
+        setResult({
+          success: true,
+          message: editingPartner 
+            ? 'Partner updated successfully'
+            : 'Partner created successfully'
+        });
+        
+        // Reset form
+        setShowPartnerForm(false);
+        setEditingPartner(null);
+        setPartnerForm({
+          name: '',
+          icon_url: '',
+          link_url: '',
+          description: '',
+          is_active: true,
+          display_order: 0
+        });
+        
+        // Reload partners
+        setTimeout(() => {
+          loadPartners();
+        }, 500);
+        
+      } else {
+        throw new Error(data.error || data.message || 'Failed to save partner');
+      }
+      
+    } catch (error) {
+      console.error('❌ Partner submit error:', error);
+      
+      setResult({
+        success: false,
+        message: typeof error.message === 'string' 
+          ? error.message 
+          : 'Network error. Please try again.'
+      });
+    }
+  };
+
+  const handleDeletePartner = async (partnerId) => {
+    if (!confirm('Are you sure you want to delete this partner?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/partners/${partnerId}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setResult({
+          success: true,
+          message: 'Partner deleted successfully'
+        });
+        loadPartners();
+      } else {
+        setResult({
+          success: false,
+          message: data.error || 'Failed to delete partner'
+        });
+      }
+    } catch (error) {
+      setResult({
+        success: false,
+        message: 'Network error. Please try again.'
+      });
+    }
+  };
+
+  const handleTogglePartnerStatus = async (partner) => {
+    try {
+      const response = await fetch(`/api/partners/${partner.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !partner.is_active })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        loadPartners();
+      } else {
+        setResult({
+          success: false,
+          message: data.error || 'Failed to update partner status'
+        });
+      }
+    } catch (error) {
+      setResult({
+        success: false,
+        message: 'Network error. Please try again.'
+      });
     }
   };
 
@@ -783,6 +1002,240 @@ export default function Admin() {
                 <p>• Ruleset names are auto-generated from selected mods and settings</p>
               </div>
             </div>
+          </div>
+
+          {/* Partners Management Section */}
+          <div className="glass-card rounded-xl p-6 border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <PartnersIcon className="w-6 h-6 text-purple-600" />
+                <h2 className="text-xl font-semibold text-neutral-800">Partners Management</h2>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setShowPartnerForm(true);
+                  setEditingPartner(null);
+                  setPartnerForm({
+                    name: '',
+                    icon_url: '',
+                    link_url: '',
+                    description: '',
+                    is_active: true,
+                    display_order: partners.length
+                  });
+                }}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Partner
+              </button>
+            </div>
+
+            {/* Partner Form Modal */}
+            {showPartnerForm && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                  <h3 className="text-lg font-semibold text-neutral-800 mb-4">
+                    {editingPartner ? 'Edit Partner' : 'Add New Partner'}
+                  </h3>
+                  
+                  <form onSubmit={handlePartnerSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-1">
+                        Partner Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={partnerForm.name}
+                        onChange={(e) => setPartnerForm({...partnerForm, name: e.target.value})}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-1">
+                        Icon URL *
+                      </label>
+                      <input
+                        type="url"
+                        value={partnerForm.icon_url}
+                        onChange={(e) => setPartnerForm({...partnerForm, icon_url: e.target.value})}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
+                        placeholder="https://example.com/icon.png"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-1">
+                        Link URL *
+                      </label>
+                      <input
+                        type="url"
+                        value={partnerForm.link_url}
+                        onChange={(e) => setPartnerForm({...partnerForm, link_url: e.target.value})}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
+                        placeholder="https://example.com"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-1">
+                        Description
+                      </label>
+                      <textarea
+                        value={partnerForm.description}
+                        onChange={(e) => setPartnerForm({...partnerForm, description: e.target.value})}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
+                        rows="2"
+                        maxLength="500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-1">
+                        Display Order
+                      </label>
+                      <input
+                        type="number"
+                        value={partnerForm.display_order}
+                        onChange={(e) => setPartnerForm({...partnerForm, display_order: parseInt(e.target.value) || 0})}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
+                        min="0"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="is_active"
+                        checked={partnerForm.is_active}
+                        onChange={(e) => setPartnerForm({...partnerForm, is_active: e.target.checked})}
+                        className="w-4 h-4 text-purple-600"
+                      />
+                      <label htmlFor="is_active" className="text-sm font-medium text-neutral-700">
+                        Active (visible on partners page)
+                      </label>
+                    </div>
+                    
+                    <div className="flex gap-3 mt-6">
+                      <button
+                        type="submit"
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        {editingPartner ? 'Update' : 'Create'} Partner
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPartnerForm(false);
+                          setEditingPartner(null);
+                        }}
+                        className="flex-1 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Partners List */}
+            {loadingPartners ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto" />
+              </div>
+            ) : partners.length === 0 ? (
+              <div className="text-center py-8">
+                <PartnersIcon className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                <p className="text-neutral-500">No partners yet</p>
+                <p className="text-sm text-neutral-400 mt-1">Add your first partner!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {partners.map((partner) => (
+                  <div key={partner.id} className="p-4 bg-white/80 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={partner.icon_url}
+                          alt={partner.name}
+                          className="w-12 h-12 rounded-lg object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=9333ea&color=fff&size=96`;
+                          }}
+                        />
+                        <div>
+                          <h4 className="font-medium text-neutral-800">{partner.name}</h4>
+                          <div className="flex items-center gap-3 text-xs text-neutral-600">
+                            <a href={partner.link_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-purple-600">
+                              <ExternalLink className="w-3 h-3" />
+                              {new URL(partner.link_url).hostname}
+                            </a>
+                            <span>Order: {partner.display_order}</span>
+                            <span className={`px-2 py-0.5 rounded-full ${partner.is_active ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                              {partner.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleTogglePartnerStatus(partner)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            partner.is_active 
+                              ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' 
+                              : 'bg-green-50 text-green-700 hover:bg-green-100'
+                          }`}
+                          title={partner.is_active ? 'Deactivate' : 'Activate'}
+                        >
+                          {partner.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            setEditingPartner(partner);
+                            setPartnerForm({
+                              name: partner.name,
+                              icon_url: partner.icon_url,
+                              link_url: partner.link_url,
+                              description: partner.description || '',
+                              is_active: partner.is_active,
+                              display_order: partner.display_order
+                            });
+                            setShowPartnerForm(true);
+                          }}
+                          className="p-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        
+                        <button
+                          onClick={() => handleDeletePartner(partner.id)}
+                          className="p-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                <div className="text-center pt-3 border-t border-neutral-200">
+                  <Link href="/partners">
+                    <span className="text-sm text-purple-600 hover:text-purple-700 font-medium cursor-pointer">
+                      View partners page →
+                    </span>
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         {/* Ruleset Manager Modal */}
