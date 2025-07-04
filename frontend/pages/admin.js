@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play, Edit3, ArrowRight, Info, Users as PartnersIcon, ExternalLink, Trash2, Eye, EyeOff, GripVertical } from 'lucide-react';
+import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play, Edit3, ArrowRight, Info, Link as PartnersIcon, ExternalLink, Trash2, Eye, EyeOff, GripVertical } from 'lucide-react';
 import { auth } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import RulesetManager from '../components/RulesetManager';
