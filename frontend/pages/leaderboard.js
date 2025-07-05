@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import SeasonLeaderboard from '../components/SeasonLeaderboard';
 import SeasonSelector from '../components/SeasonSelector';
-import { Trophy, Sparkles, TrendingUp, Zap, Target } from 'lucide-react';
+import { Trophy, Sparkles, BookOpen, TrendingUp, Zap, Target } from 'lucide-react';
 
 export default function SeasonLeaderboardPage() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -131,7 +131,6 @@ export default function SeasonLeaderboardPage() {
                   <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
                     <Trophy className="w-6 h-6 text-white" />
                   </div>
-                  <Sparkles className="w-5 h-5 text-yellow-500" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   Current Season
@@ -147,12 +146,7 @@ export default function SeasonLeaderboardPage() {
               <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transform hover:scale-105 transition-all">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl">
-                    <TrendingUp className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex -space-x-2">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-75"></div>
-                    <div className="w-2 h-2 bg-pink-400 rounded-full animate-pulse delay-150"></div>
+                    <BookOpen className="w-6 h-6 text-white" />
                   </div>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
@@ -168,7 +162,6 @@ export default function SeasonLeaderboardPage() {
                   <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
                     <Target className="w-6 h-6 text-white" />
                   </div>
-                  <Zap className="w-5 h-5 text-green-500 animate-spin-slow" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   Scoring System
