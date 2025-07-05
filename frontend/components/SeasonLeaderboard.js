@@ -45,7 +45,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
 
       const response = await fetch(`/api/seasons/leaderboard?${params}`);
       const data = await response.json();
-
+      
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch leaderboard');
       }
@@ -322,7 +322,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             ) : (
               leaderboard.slice(viewMode === 'full' ? 3 : 0).map((user, index) => {
                 // Always use user_position from database as it contains the correct rank
-                const position = user.user_position;
+                const position = user.user_position || user.position;
                 const isCurrentUser = currentUser && user.user_id === currentUser.id;
                 const isTop10 = position <= 10;
                 
