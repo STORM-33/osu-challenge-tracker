@@ -45,7 +45,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
 
       const response = await fetch(`/api/seasons/leaderboard?${params}`);
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch leaderboard');
       }
@@ -388,7 +388,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                       {/* Stats */}
                       <div className="flex items-center gap-6">
                         {/* Accuracy Badge */}
-                        <div className={`px-3 py-1.5 bg-gradient-to-r ${getAccuracyGradient(user.average_accuracy)} text-white rounded-lg font-bold text-sm shadow-md`}>
+                        <div className={`px-3 py-1.5 bg-gradient-to-r ${getAccuracyGradient(user.average_accuracy)} text-white rounded-full font-bold text-sm shadow-md`}>
                           {user.average_accuracy?.toFixed(1)}%
                         </div>
 

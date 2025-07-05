@@ -273,7 +273,7 @@ export default function Home() {
               {/* About Challenges Button */}
               <div className="text-right flex-shrink-0 ml-8">
                 <Link href="/about-challengers">
-                  <button className="flex items-center gap-3 px-6 py-3 glass-card bg-gradient-to-r from-primary-50/80 to-purple-50/80 hover:glass-card-enhanced text-neutral-700 font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 border border-primary-200/60 hover:border-primary-300/60 shadow-sm hover:shadow-md backdrop-blur-md">
+                  <button className="flex items-center gap-3 px-6 py-3 glass-card bg-gradient-to-r from-primary-50/80 to-purple-50/80 hover:glass-card-enhanced text-neutral-700 font-semibold rounded-full transition-all duration-200 transform hover:scale-105 border border-primary-200/60 hover:border-primary-300/60 shadow-sm hover:shadow-md backdrop-blur-md">
                     <Info className="w-5 h-5 text-primary-600 icon-glow-sm" />
                     About Challengers
                   </button>
