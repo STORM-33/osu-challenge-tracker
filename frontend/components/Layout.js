@@ -4,7 +4,8 @@ import { useRouter } from 'next/router';
 import { auth } from '../lib/supabase';
 import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link as LinkIcon} from 'lucide-react';
 
-export default function Layout({ children, backgroundImage }) {
+export default function Layout({ children, backgroundImage = 'https://cdn.discordapp.com/attachments/1337805789175222362/1390848472772640820/image.png?ex=6869c014&is=68686e94&hm=66ca9c05011c9d9c2cf3803628097d08af9d45947e20e6ddbbd0b6df30df6f86&' }) {
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -56,9 +57,6 @@ export default function Layout({ children, backgroundImage }) {
           }}
         />
       )}
-      
-      {/* Background overlay for better readability */}
-      <div className="fixed inset-0 bg-white/40 backdrop-blur-[2px] -z-10" />
       
       {/* Header */}
       <header className="glass-card border-b border-white/20 sticky top-0 z-50">

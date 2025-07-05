@@ -104,29 +104,29 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
     return (
       <div className="space-y-6">
         {/* User Stats Loading Skeleton */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+        <div className="glass-card-enhanced rounded-2xl shadow-lg border border-gray-200 p-6">
           <div className="animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
+            <div className="h-6 bg-gray-200/60 rounded w-32 mb-4"></div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-20 bg-gray-200 rounded-xl"></div>
+                <div key={i} className="h-20 bg-gray-200/60 rounded-xl"></div>
               ))}
             </div>
           </div>
         </div>
         
         {/* Leaderboard Loading Skeleton */}
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-12">
+        <div className="glass-card-enhanced rounded-3xl shadow-xl border border-gray-200 p-12">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded-lg w-1/3"></div>
+            <div className="h-8 bg-gray-200/60 rounded-lg w-1/3"></div>
             {[...Array(10)].map((_, i) => (
               <div key={i} className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div className="w-12 h-12 bg-gray-200/60 rounded-full"></div>
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/6"></div>
+                  <div className="h-4 bg-gray-200/60 rounded w-1/4"></div>
+                  <div className="h-3 bg-gray-200/60 rounded w-1/6"></div>
                 </div>
-                <div className="h-6 bg-gray-200 rounded w-24"></div>
+                <div className="h-6 bg-gray-200/60 rounded w-24"></div>
               </div>
             ))}
           </div>
@@ -137,9 +137,9 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-3xl shadow-xl border border-red-200 p-12 text-center">
-        <Trophy className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <p className="text-red-600 mb-4">Error loading leaderboard: {error}</p>
+      <div className="glass-card-enhanced rounded-3xl shadow-xl border border-red-200 p-12 text-center">
+        <Trophy className="w-12 h-12 text-red-500 mx-auto mb-4 icon-glow" />
+        <p className="text-red-600 mb-4 text-glow">Error loading leaderboard: {error}</p>
         <button 
           onClick={() => fetchLeaderboard()}
           className="px-6 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
@@ -154,32 +154,32 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
     <div className="space-y-6">
       {/* User Performance Panel */}
       {userPosition && (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-lg border-2 border-blue-200 p-6">
+        <div className="glass-card-enhanced bg-gradient-to-br from-blue-100/50 to-indigo-100/50 rounded-2xl shadow-lg border-2 border-blue-200/60 p-6 backdrop-blur-lg">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-600 rounded-lg">
+            <div className="p-2 bg-blue-600/90 rounded-lg backdrop-blur-sm">
               <User className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Your Performance</h3>
+              <h3 className="text-lg font-bold text-gray-900 text-glow">Your Performance</h3>
             </div>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl p-4 border border-blue-100 text-center shadow-sm">
+            <div className="glass-card rounded-xl p-4 border border-blue-100/60 text-center shadow-sm backdrop-blur-md">
               <p className="text-xs text-gray-600 font-medium mb-1 uppercase tracking-wide">Your Rank</p>
               <p className="text-3xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 #{userPosition.user_position}
               </p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-blue-100 text-center shadow-sm">
+            <div className="glass-card rounded-xl p-4 border border-blue-100/60 text-center shadow-sm backdrop-blur-md">
               <p className="text-xs text-gray-600 font-medium mb-1 uppercase tracking-wide">Total Score</p>
               <p className="text-3xl font-black text-gray-900">{formatNumber(userPosition.total_score)}</p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-blue-100 text-center shadow-sm">
+            <div className="glass-card rounded-xl p-4 border border-blue-100/60 text-center shadow-sm backdrop-blur-md">
               <p className="text-xs text-gray-600 font-medium mb-1 uppercase tracking-wide">Challenges</p>
               <p className="text-3xl font-black text-gray-900">{userPosition.challenges_participated}</p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-blue-100 text-center shadow-sm">
+            <div className="glass-card rounded-xl p-4 border border-blue-100/60 text-center shadow-sm backdrop-blur-md">
               <p className="text-xs text-gray-600 font-medium mb-1 uppercase tracking-wide">Top</p>
               <p className="text-3xl font-black text-gray-900">{Math.max(1, Math.round(100 - userPosition.percentile))}%</p>
             </div>
@@ -190,15 +190,18 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
       {/* Leaderboard Container */}
       <div>
         {/* Header Card */}
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-t-3xl border border-purple-200 p-8">
+        <div className="glass-card bg-gradient-to-br from-purple-100/50 to-pink-100/50 rounded-t-3xl border border-purple-200/60 p-8 backdrop-blur-lg">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <Trophy className="w-8 h-8 text-purple-600" />
+              <h2 
+                className="text-3xl font-bold text-gray-900 flex items-center gap-3 gradient-text-glow"
+                data-text="Season Rankings"
+              >
+                <Trophy className="w-8 h-8 text-purple-600 icon-glow" />
                 Season Rankings
               </h2>
               {selectedSeason && (
-                <p className="text-gray-600 mt-1">
+                <p className="text-gray-600 mt-1 text-glow-sm">
                   {selectedSeason.name} • {leaderboard.length} participants shown
                   {hasMore && ' (more available)'}
                 </p>
@@ -206,7 +209,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             </div>
             
             {currentUser && (
-              <div className="bg-white rounded-xl shadow-sm border border-purple-200 p-1">
+              <div className="glass-card rounded-xl shadow-sm border border-purple-200/60 p-1 backdrop-blur-md">
                 <button
                   onClick={() => setViewMode('full')}
                   className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -232,15 +235,15 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
           </div>
         </div>
 
-        <div className="bg-white rounded-b-3xl shadow-xl border border-t-0 border-gray-200 overflow-hidden">
+        <div className="glass-card-enhanced rounded-b-3xl shadow-xl border border-t-0 border-gray-200/60 overflow-hidden backdrop-blur-lg">
           {/* Podium Section for Top 3 */}
           {leaderboard.length > 0 && viewMode === 'full' && (
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-8 border-b border-gray-200">
+            <div className="glass-card-subtle bg-gradient-to-br from-gray-50/50 to-gray-100/50 p-8 border-b border-gray-200/60 backdrop-blur-md">
               <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
                 {/* 2nd Place */}
                 {leaderboard[1] && (
                   <div className="order-1 md:order-1">
-                    <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-6 text-center transform hover:scale-105 transition-all">
+                    <div className="glass-card bg-gradient-to-br from-purple-100/60 to-purple-200/60 rounded-2xl p-6 text-center transform hover:scale-105 transition-all backdrop-blur-md border border-purple-200/50">
                       <div className="w-20 h-20 mx-auto mb-3 relative">
                         <img
                           src={leaderboard[1].avatar_url || '/default-avatar.png'}
@@ -262,8 +265,8 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                 {/* 1st Place */}
                 {leaderboard[0] && (
                   <div className="order-2 md:order-2">
-                    <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 text-center transform hover:scale-105 transition-all relative">
-                      <Crown className="absolute top-2 right-2 w-6 h-6 text-blue-600" />
+                    <div className="glass-card bg-gradient-to-br from-blue-100/60 to-blue-200/60 rounded-2xl p-6 text-center transform hover:scale-105 transition-all relative backdrop-blur-md border border-blue-200/50">
+                      <Crown className="absolute top-2 right-2 w-6 h-6 text-blue-600 icon-glow-sm" />
                       <div className="w-24 h-24 mx-auto mb-3 relative">
                         <img
                           src={leaderboard[0].avatar_url || '/default-avatar.png'}
@@ -287,7 +290,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                 {/* 3rd Place */}
                 {leaderboard[2] && (
                   <div className="order-3 md:order-3">
-                    <div className="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-6 text-center transform hover:scale-105 transition-all">
+                    <div className="glass-card bg-gradient-to-br from-red-100/60 to-red-200/60 rounded-2xl p-6 text-center transform hover:scale-105 transition-all backdrop-blur-md border border-red-200/50">
                       <div className="w-20 h-20 mx-auto mb-3 relative">
                         <img
                           src={leaderboard[2].avatar_url || '/default-avatar.png'}
@@ -310,11 +313,11 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
           )}
 
           {/* Main Leaderboard */}
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100/60">
             {leaderboard.length === 0 ? (
               <div className="text-center py-16">
-                <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No participants found for this season.</p>
+                <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-4 icon-glow" />
+                <p className="text-gray-500 text-glow">No participants found for this season.</p>
               </div>
             ) : (
               leaderboard.slice(viewMode === 'full' ? 3 : 0).map((user, index) => {
@@ -326,12 +329,12 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                 return (
                   <div
                     key={user.user_id}
-                    className={`group px-6 py-4 transition-all ${
+                    className={`group px-6 py-4 transition-all backdrop-blur-sm ${
                       isCurrentUser 
-                        ? 'bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500' 
+                        ? 'bg-gradient-to-r from-purple-50/60 to-pink-50/60 border-l-4 border-purple-500' 
                         : user.is_target_user
-                        ? 'bg-yellow-50'
-                        : 'hover:bg-gray-50'
+                        ? 'bg-yellow-50/60'
+                        : 'hover:bg-gray-50/40'
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -405,14 +408,14 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
 
           {/* Load More Button */}
           {viewMode === 'full' && hasMore && (
-            <div className="p-6 text-center border-t border-gray-200 bg-gray-50">
+            <div className="p-6 text-center border-t border-gray-200/60 glass-card-subtle backdrop-blur-sm">
               <button
                 onClick={handleLoadMore}
                 disabled={loadingMore}
                 className={`px-8 py-3 rounded-xl font-semibold transform transition-all border ${
                   loadingMore
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-gray-700 hover:shadow-md hover:scale-105 border-gray-200'
+                    ? 'bg-gray-200/60 text-gray-400 cursor-not-allowed'
+                    : 'glass-card text-gray-700 hover:shadow-md hover:scale-105 border-gray-200/60'
                 }`}
               >
                 {loadingMore ? (
@@ -429,10 +432,10 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
 
           {/* End of results indicator */}
           {viewMode === 'full' && !hasMore && leaderboard.length > 50 && (
-            <div className="p-6 text-center border-t border-gray-200 bg-gray-50">
+            <div className="p-6 text-center border-t border-gray-200/60 glass-card-subtle backdrop-blur-sm">
               <div className="flex items-center justify-center gap-2 text-gray-500">
-                <Trophy className="w-4 h-4" />
-                <span className="text-sm font-medium">You've reached the end of the leaderboard!</span>
+                <Trophy className="w-4 h-4 icon-glow-sm" />
+                <span className="text-sm font-medium text-glow-sm">You've reached the end of the leaderboard!</span>
               </div>
             </div>
           )}

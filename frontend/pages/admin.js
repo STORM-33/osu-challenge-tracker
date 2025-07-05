@@ -300,18 +300,30 @@ export default function Admin() {
     }
     
     try {
-      // For delete, we'll need to add DELETE support to the index endpoint or use admin endpoint
-      // Let's use the admin endpoint for bulk operations with a single item
+      console.log('🗑️ Deleting partner ID:', partnerId, 'Type:', typeof partnerId);
+      
+      // Ensure partnerId is a number and send as array
+      const partnerIdNumber = typeof partnerId === 'string' ? parseInt(partnerId) : partnerId;
+      
+      const requestBody = {
+        operation: 'delete',
+        partnerIds: [partnerIdNumber] // Make sure it's an array with number
+      };
+      
+      console.log('📦 Request body:', JSON.stringify(requestBody));
+      
       const response = await fetch('/api/admin/partners', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'delete',
-          partnerIds: [partnerId] // Array with single ID
-        })
+        body: JSON.stringify(requestBody)
       });
       
+      console.log('📡 Delete response status:', response.status);
+      
       if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Delete successful:', data);
+        
         setResult({
           success: true,
           message: 'Partner deleted successfully'
@@ -319,7 +331,7 @@ export default function Admin() {
         loadPartners();
       } else {
         const errorText = await response.text();
-        console.error('Delete error:', errorText);
+        console.error('❌ Delete error:', errorText);
         
         let errorMessage;
         try {
@@ -335,7 +347,7 @@ export default function Admin() {
         });
       }
     } catch (error) {
-      console.error('Delete partner error:', error);
+      console.error('❌ Delete partner error:', error);
       setResult({
         success: false,
         message: error.message || 'Network error. Please try again.'
@@ -652,10 +664,10 @@ export default function Admin() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Settings className="w-8 h-8 text-primary-600" />
-            <h1 className="text-3xl font-bold text-neutral-800">Admin Panel</h1>
+            <Settings className="w-8 h-8 text-primary-600 icon-glow" />
+            <h1 className="text-3xl font-bold text-neutral-800 text-glow">Admin Panel</h1>
           </div>
-          <p className="text-neutral-600">
+          <p className="text-neutral-600 text-glow">
             Welcome, {user?.username}! Manage challenges and seasons from here.
           </p>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
-import Loading from '../components/Loading'; // Import the new loading component
+import Loading from '../components/Loading';
 import SeasonLeaderboard from '../components/SeasonLeaderboard';
 import SeasonSelector from '../components/SeasonSelector';
 import { Trophy, Sparkles, TrendingUp, Zap, Target } from 'lucide-react';
@@ -71,20 +71,27 @@ export default function SeasonLeaderboardPage() {
     <Layout>
       <div className="min-h-screen py-8">
         <div className="max-w-7xl mx-auto px-4">
-          {/* Header Section */}
+          {/* Header Section - Using proper gradient text glow */}
           <div className="mb-12">
             <div className="flex items-start justify-between mb-8">
               <div>
                 <div className="flex items-center gap-4 mb-4">
                   <div className="relative">
-                    <Trophy className="w-10 h-10 text-purple-600" />
-                    <Sparkles className="w-5 h-5 text-yellow-500 absolute -top-1 -right-1 animate-pulse" />
+                    <Trophy className="w-10 h-10 text-purple-600 icon-glow" />
+                    <Sparkles className="w-5 h-5 text-yellow-500 absolute -top-1 -right-1 animate-pulse icon-glow-sm" />
                   </div>
-                  <h1 className="text-5xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  
+                  {/* Header with proper gradient glow */}
+                  <h1 
+                    className="text-5xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent gradient-text-glow-lg"
+                    data-text="Season Leaderboard"
+                  >
                     Season Leaderboard
                   </h1>
                 </div>
-                <p className="text-gray-600 text-lg max-w-2xl">
+                
+                {/* Description with glow */}
+                <p className="text-gray-600 text-lg max-w-2xl text-glow-sm">
                   Rankings across all challenges in the season. Climb the ranks by participating in more challenges!
                 </p>
               </div>
@@ -159,9 +166,9 @@ export default function SeasonLeaderboardPage() {
               <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transform hover:scale-105 transition-all">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
-                    <Zap className="w-6 h-6 text-white" />
+                    <Target className="w-6 h-6 text-white" />
                   </div>
-                  <Target className="w-5 h-5 text-green-500 animate-spin-slow" />
+                  <Zap className="w-5 h-5 text-green-500 animate-spin-slow" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   Scoring System
@@ -179,21 +186,24 @@ export default function SeasonLeaderboardPage() {
             selectedSeason={selectedSeason}
           />
 
-          {/* Additional Info */}
-          <div className="mt-12 glass-card-enhanced bg-gradient-to-r from-purple-100/70 to-pink-100/70 rounded-2xl p-8">
+          {/* Additional Info - Updated for transparency */}
+          <div className="mt-12 glass-card-enhanced bg-gradient-to-r from-purple-100/50 to-pink-100/50 rounded-2xl p-8 backdrop-blur-lg border border-purple-200/60">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
                 <Trophy className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">
+              <h3 
+                className="text-2xl font-bold text-gray-900 gradient-text-glow"
+                data-text="About Season Rankings"
+              >
                 About Season Rankings
               </h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="glass-card rounded-xl p-6">
+              <div className="glass-card rounded-xl p-6 backdrop-blur-md border border-purple-100/60">
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-purple-500" />
+                  <Zap className="w-5 h-5 text-purple-500 icon-glow-sm" />
                   Scoring System
                 </h4>
                 <ul className="space-y-2 text-sm text-gray-700">
@@ -212,9 +222,9 @@ export default function SeasonLeaderboardPage() {
                 </ul>
               </div>
               
-              <div className="glass-card rounded-xl p-6">
+              <div className="glass-card rounded-xl p-6 backdrop-blur-md border border-blue-100/60">
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-blue-500" />
+                  <TrendingUp className="w-5 h-5 text-blue-500 icon-glow-sm" />
                   Rankings Update
                 </h4>
                 <ul className="space-y-2 text-sm text-gray-700">

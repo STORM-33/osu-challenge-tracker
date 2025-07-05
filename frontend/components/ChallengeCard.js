@@ -122,70 +122,46 @@ export default function ChallengeCard({
       }}
     >
       
-      {/* Background Layer - properly clipped */}
+      {/* Background Layer */}
       <div 
         className="absolute inset-0 rounded-2xl"
         style={{
-          // Additional clipping insurance
           clipPath: 'inset(0 round 1rem)',
-          // Prevent any overflow
           contain: 'layout style paint'
         }}
       >
-        {/* Base gradient */}
-        <div className={`absolute inset-0 rounded-2xl ${
-          challengeType === 'weekly' 
-            ? 'bg-gradient-to-br from-blue-50 via-white to-blue-100' 
-            : 'bg-gradient-to-br from-purple-50 via-white to-purple-100'
-        }`} />
+        {/* Use your CSS glass card class instead of multiple layers */}
+        <div className="glass-card absolute inset-0 rounded-2xl" />
         
-        {/* Weekly challenge background with map image and soft shadow separation */}
+        {/* Weekly challenge background with gradual image reveal */}
         {size === 'large' && challengeType === 'weekly' && weeklyBackgroundImage && (
           <>
-            {/* Background image container with natural soft shadows only */}
+            {/* Background image with gradient mask */}
             <div 
-              className="absolute right-0 top-0 w-1/2 h-full opacity-85 group-hover:opacity-95 transition-opacity duration-300 ease-out rounded-r-2xl"
+              className="absolute inset-0 opacity-80 group-hover:opacity-90 transition-opacity duration-300 ease-out rounded-2xl"
               style={{ 
                 backgroundImage: `url(${weeklyBackgroundImage})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center center',
                 backgroundRepeat: 'no-repeat',
-                // Very subtle inner shadow for depth only
-                boxShadow: 'inset 12px 0 24px -12px rgba(0, 0, 0, 0.06)',
-                // Additional clipping for the background image specifically
-                clipPath: 'inset(0 0 0 0 round 0 1rem 1rem 0)',
-                // Ensure it doesn't exceed bounds
-                maxWidth: '50%',
-                maxHeight: '100%'
+                // Smooth gradient mask that gradually reveals image
+                maskImage: 'linear-gradient(90deg, transparent 0%, transparent 25%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,1) 90%)',
+                WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, transparent 25%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,1) 90%)',
               }}
-            >
-              {/* Soft overlay for better text contrast - no hard edges */}
-              <div 
-                className="absolute inset-0 rounded-r-2xl"
-                style={{
-                  background: 'linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.1) 20%, transparent 40%)',
-                }}
-              />
-            </div>
+            />
             
-            {/* Content area with natural shadow separation */}
+            {/* Additional gradient overlay for better text contrast on the left */}
             <div 
-              className="absolute left-0 top-0 w-3/5 h-full rounded-l-2xl"
+              className="absolute inset-0 rounded-2xl pointer-events-none"
               style={{
-                // Soft, natural shadow extending outward
-                boxShadow: '12px 0 24px -8px rgba(0, 0, 0, 0.04), 24px 0 48px -16px rgba(0, 0, 0, 0.02)',
-                background: 'linear-gradient(90deg, rgba(255, 255, 255, 1) 45%, rgba(255, 255, 255, 0.9) 55%, rgba(255, 255, 255, 0.8) 65%, rgba(255, 255, 255, 0.65) 72%, rgba(255, 255, 255, 0.5) 78%, rgba(255, 255, 255, 0.35) 84%, rgba(255, 255, 255, 0.2) 90%, rgba(255, 255, 255, 0.1) 95%, rgba(255, 255, 255, 0.05) 98%, transparent 100%)',
-                backdropFilter: 'blur(0.25px)',
+                background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 40%, rgba(255, 255, 255, 0.1) 60%, transparent 80%)',
               }}
             />
           </>
         )}
         
-        {/* Glass overlay */}
-        <div className="absolute inset-0 backdrop-blur-sm bg-white/30 transition-all duration-300 ease-out group-hover:bg-white/20 rounded-2xl" />
-        
         {/* Decorative elements */}
-        <div className="absolute bottom-4 left-4 w-12 h-12 rounded-full bg-gradient-to-tr from-white/10 to-transparent transition-all duration-300 ease-out group-hover:scale-110 group-hover:from-white/20" />
+        <div className="absolute bottom-4 left-4 w-12 h-12 rounded-full bg-gradient-to-tr from-white/5 to-transparent transition-all duration-300 ease-out group-hover:scale-110 group-hover:from-white/10" />
       </div>
 
       {/* Content */}
@@ -204,7 +180,7 @@ export default function ChallengeCard({
             {size === 'large' && challengeType === 'weekly' && weeklyMapInfo && (
               <div className="space-y-1 -mt-8">
                 <p className="text-base font-semibold text-neutral-700 transition-colors duration-300 group-hover:text-neutral-800">
-                  <Music className="w-4 h-4 inline-block mr-1 text-blue-500" />
+                  <Music className="w-4 h-4 inline-block mr-1 text-blue-500 icon-glow-sm" />
                   {weeklyMapInfo.beatmap_title}
                 </p>
                 <div className="flex items-center gap-3 text-sm text-neutral-600 transition-colors duration-300 group-hover:text-neutral-700">
@@ -226,28 +202,28 @@ export default function ChallengeCard({
           </div>
           
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            {/* Challenge type badge */}
-            <span className={`text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm transition-all duration-300 group-hover:shadow-md ${
+            {/* Challenge type badge - more transparent */}
+            <span className={`text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm transition-all duration-300 group-hover:shadow-md backdrop-blur-sm ${
               challengeType === 'weekly' 
-                ? 'text-blue-700 bg-blue-200 border border-blue-300 group-hover:bg-blue-300'
-                : 'text-purple-700 bg-purple-200 border border-purple-300 group-hover:bg-purple-300'
+                ? 'text-blue-700 bg-blue-200/80 border border-blue-300/60 group-hover:bg-blue-300/80'
+                : 'text-purple-700 bg-purple-200/80 border border-purple-300/60 group-hover:bg-purple-300/80'
             }`}>
               {challengeType === 'weekly' ? 'Weekly' : 'Monthly'}
             </span>
             
-            {/* Season badge */}
+            {/* Season badge - more transparent */}
             {showSeasonBadge && challenge.seasons && size !== 'small' && (
-              <span className="text-xs text-neutral-600 bg-neutral-200 px-2 py-1 rounded-full font-medium border border-neutral-300 transition-all duration-300 group-hover:bg-neutral-300">
+              <span className="text-xs text-neutral-600 bg-neutral-200/80 px-2 py-1 rounded-full font-medium border border-neutral-300/60 transition-all duration-300 group-hover:bg-neutral-300/80 backdrop-blur-sm">
                 {challenge.seasons.name}
               </span>
             )}
           </div>
         </div>
 
-        {/* Weekly Map Info Card for medium size*/}
+        {/* Weekly Map Info Card for medium size - more transparent */}
         {challengeType === 'weekly' && weeklyMapInfo && size === 'medium' && (
           <div className="mb-4 flex-shrink-0">
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-blue-200/50 shadow-sm transition-all duration-300 group-hover:bg-white/70 group-hover:shadow-md">
+            <div className="bg-white/40 backdrop-blur-sm rounded-xl p-4 border border-blue-200/40 shadow-sm transition-all duration-300 group-hover:bg-white/50 group-hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-neutral-800 truncate mb-1">
@@ -279,7 +255,7 @@ export default function ChallengeCard({
         {/* Stats Grid */}
         <div className={`grid ${config.statsGrid} gap-3 mb-4 flex-shrink-0`}>
           <div className="text-center">
-            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 ${size === 'large' ? 'w-12 h-12' : ''}`}>
+            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-primary-100/80 to-primary-200/80 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 backdrop-blur-sm ${size === 'large' ? 'w-12 h-12' : ''}`}>
               <Users className={`${config.iconSize} text-primary-600`} />
             </div>
             <p className={`${config.numberSize} font-bold text-neutral-800`}>
@@ -289,7 +265,7 @@ export default function ChallengeCard({
           </div>
           
           <div className="text-center">
-            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 ${size === 'large' ? 'w-12 h-12' : ''}`}>
+            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-purple-100/80 to-purple-200/80 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 backdrop-blur-sm ${size === 'large' ? 'w-12 h-12' : ''}`}>
               <Music className={`${config.iconSize} text-purple-600`} />
             </div>
             <p className={`${config.numberSize} font-bold text-neutral-800`}>
@@ -301,7 +277,7 @@ export default function ChallengeCard({
           {/* Time remaining with new precise display */}
           {config.showDays && (
             <div className="text-center">
-              <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 ${size === 'large' ? 'w-12 h-12' : ''}`}>
+              <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-green-100/80 to-green-200/80 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 backdrop-blur-sm ${size === 'large' ? 'w-12 h-12' : ''}`}>
                 <Calendar className={`${config.iconSize} text-green-600`} />
               </div>
               {timeRemaining && !timeRemaining.expired ? (

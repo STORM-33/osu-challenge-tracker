@@ -23,19 +23,19 @@ export default function AboutChallengers() {
         {/* Header Section */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <Trophy className="w-10 h-10 text-primary-600" />
-            <h1 className="text-5xl font-bold text-neutral-800">osu!Challengers</h1>
-            <Sparkles className="w-10 h-10 text-yellow-500" />
+            <Trophy className="w-10 h-10 text-primary-600 icon-glow" />
+            <h1 className="text-5xl font-bold text-neutral-800 text-glow">osu!Challengers</h1>
+            <Sparkles className="w-10 h-10 text-yellow-500 icon-glow" />
           </div>
-          <p className="text-xl text-neutral-600 max-w-3xl mx-auto">
+          <p className="text-xl text-neutral-600 max-w-3xl mx-auto text-glow">
             Welcome to osu!Challengers - a collection of competitive events where you can test your skills, win supporter, and have fun!
           </p>
         </div>
 
         {/* Event Types Overview */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold text-neutral-800 mb-6 flex items-center gap-2">
-            <Zap className="w-8 h-8 text-primary-600" />
+          <h2 className="text-3xl font-bold text-neutral-800 mb-6 flex items-center gap-2 text-glow">
+            <Zap className="w-8 h-8 text-primary-600 icon-glow" />
             Event Types
           </h2>
           

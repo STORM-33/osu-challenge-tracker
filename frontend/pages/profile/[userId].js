@@ -159,16 +159,19 @@ export default function UserProfile() {
             <div className="w-32 h-32 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-8">
               <User className="w-16 h-16 text-gray-400" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            <h2 
+              className="text-3xl font-bold text-gray-800 mb-4 text-glow"
+              data-text="User Not Found"
+            >
               {error || 'User Not Found'}
             </h2>
-            <p className="text-gray-600 mb-8">
+            <p className="text-gray-600 mb-8 text-glow-sm">
               The user profile you're looking for doesn't exist or has been removed.
             </p>
             <div className="flex gap-4 justify-center">
               <button
                 onClick={() => router.back()}
-                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-full transition-all flex items-center gap-2"
+                className="px-6 py-3 glass-card hover:glass-card-enhanced text-gray-700 font-semibold rounded-full transition-all flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Go Back
@@ -205,29 +208,37 @@ export default function UserProfile() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+      <div className="min-h-screen">
         <div className="max-w-7xl mx-auto px-4 py-8">
           
           {/* Compact Header */}
           <div className="mb-8">
             <button
               onClick={() => router.back()}
-              className="group flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-all"
+              className="group flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium text-glow transition-all"
             >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform icon-glow-sm" />
               Back
             </button>
           </div>
 
-          {/* Profile Hero Section */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-3xl p-8 mb-8 text-white shadow-2xl">
+          {/* Profile Hero Section - Transparent gradient */}
+          <div className="relative overflow-hidden glass-card-enhanced rounded-3xl p-8 mb-8 shadow-2xl">
+            {/* Gradient overlay with transparency */}
+            <div 
+              className="absolute inset-0 opacity-60"
+              style={{
+                background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.8) 0%, rgba(236, 72, 153, 0.8) 50%, rgba(239, 68, 68, 0.8) 100%)'
+              }}
+            />
+            
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute -top-4 -right-4 w-64 h-64 bg-white rounded-full blur-3xl"></div>
               <div className="absolute -bottom-4 -left-4 w-96 h-96 bg-white rounded-full blur-3xl"></div>
             </div>
             
-            <div className="relative z-10">
+            <div className="relative z-10 text-white">
               <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
                 {/* Avatar and Basic Info */}
                 <div className="flex items-center gap-6 flex-1">
@@ -320,11 +331,11 @@ export default function UserProfile() {
             </div>
           </div>
 
-          {/* Quick Stats Grid */}
+          {/* Quick Stats Grid - Glass panels */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all group">
+            <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <Target className="w-8 h-8 text-purple-500 group-hover:scale-110 transition-transform" />
+                <Target className="w-8 h-8 text-purple-500 group-hover:scale-110 transition-transform icon-glow-sm" />
                 <span className={`text-3xl font-black ${getAccuracyColor(parseFloat(stats?.avgAccuracy || 0))}`}>
                   {stats?.avgAccuracy ? `${stats.avgAccuracy}%` : '--.--%'}
                 </span>
@@ -332,9 +343,9 @@ export default function UserProfile() {
               <p className="text-sm font-medium text-gray-600">Average Accuracy</p>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all group">
+            <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <Activity className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform" />
+                <Activity className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform icon-glow-sm" />
                 <span className="text-3xl font-black text-gray-800">
                   #{stats?.avgRank || '--'}
                 </span>
@@ -342,9 +353,9 @@ export default function UserProfile() {
               <p className="text-sm font-medium text-gray-600">Average Rank</p>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all group">
+            <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <BarChart3 className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform" />
+                <BarChart3 className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform icon-glow-sm" />
                 <span className="text-3xl font-black text-gray-800">
                   {stats?.totalScores || 0}
                 </span>
@@ -352,9 +363,9 @@ export default function UserProfile() {
               <p className="text-sm font-medium text-gray-600">Total Plays</p>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all group">
+            <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <Trophy className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform" />
+                <Trophy className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform icon-glow-sm" />
                 <span className="text-3xl font-black text-gray-800">
                   {stats?.firstPlaceCount || 0}
                 </span>
@@ -370,7 +381,7 @@ export default function UserProfile() {
               className={`px-6 py-3 rounded-full font-semibold transition-all ${
                 activeTab === 'recent'
                   ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  : 'glass-card text-gray-600 hover:glass-card-enhanced'
               }`}
             >
               Recent Scores
@@ -380,7 +391,7 @@ export default function UserProfile() {
               className={`px-6 py-3 rounded-full font-semibold transition-all ${
                 activeTab === 'best'
                   ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  : 'glass-card text-gray-600 hover:glass-card-enhanced'
               }`}
             >
               Best Performances
@@ -390,7 +401,7 @@ export default function UserProfile() {
               className={`px-6 py-3 rounded-full font-semibold transition-all ${
                 activeTab === 'stats'
                   ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  : 'glass-card text-gray-600 hover:glass-card-enhanced'
               }`}
             >
               Statistics
@@ -401,11 +412,16 @@ export default function UserProfile() {
           {activeTab === 'recent' && (
             <div>
               {scores.length === 0 ? (
-                <div className="bg-white rounded-3xl p-16 text-center shadow-lg">
+                <div className="glass-card-enhanced rounded-3xl p-16 text-center shadow-lg">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Trophy className="w-12 h-12 text-purple-400" />
+                    <Trophy className="w-12 h-12 text-purple-400 icon-glow" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">No Scores Yet</h3>
+                  <h3 
+                    className="text-2xl font-bold text-gray-800 mb-4 text-glow"
+                    data-text="No Scores Yet"
+                  >
+                    No Scores Yet
+                  </h3>
                   <p className="text-gray-600 mb-8 max-w-md mx-auto">
                     {isOwnProfile 
                       ? "Start participating in challenges to build your profile!" 
@@ -425,15 +441,18 @@ export default function UserProfile() {
                 <div className="space-y-8">
                   {Object.entries(scoresByMonth).map(([month, monthScores]) => (
                     <div key={month}>
-                      <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-purple-500" />
+                      <h3 
+                        className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 text-glow"
+                        data-text={month}
+                      >
+                        <Calendar className="w-5 h-5 text-purple-500 icon-glow-sm" />
                         {month}
                       </h3>
                       <div className="grid gap-4">
                         {monthScores.map((score) => (
                           <div 
                             key={score.id}
-                            className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 group"
+                            className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all border border-gray-100 group"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
@@ -491,7 +510,7 @@ export default function UserProfile() {
                               {score.playlists?.challenges?.room_id && (
                                 <Link 
                                   href={`/challenges/${score.playlists.challenges.room_id}`}
-                                  className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium rounded-full transition-all flex items-center gap-2 group-hover:shadow-md"
+                                  className="px-4 py-2 glass-card hover:glass-card-enhanced text-purple-700 font-medium rounded-full transition-all flex items-center gap-2 group-hover:shadow-md"
                                 >
                                   View
                                   <ChevronRight className="w-4 h-4" />
@@ -514,26 +533,39 @@ export default function UserProfile() {
               {(bestPerformances.length === 0 && allScores.length === 0) ? (
                 <div className="text-center py-16">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Star className="w-12 h-12 text-purple-400" />
+                    <Star className="w-12 h-12 text-purple-400 icon-glow" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">No Scores Yet</h3>
-                  <p className="text-gray-600">Start playing challenges to see your best performances!</p>
+                  <h3 
+                    className="text-xl font-bold text-gray-800 mb-2 text-glow"
+                    data-text="No Scores Yet"
+                  >
+                    No Scores Yet
+                  </h3>
+                  <p className="text-gray-600 text-glow-sm">Start playing challenges to see your best performances!</p>
                 </div>
               ) : bestPerformances.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Star className="w-12 h-12 text-purple-400" />
+                    <Star className="w-12 h-12 text-purple-400 icon-glow" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">No Top 10 Finishes Yet</h3>
-                  <p className="text-gray-600">Keep playing to achieve top rankings!</p>
+                  <h3 
+                    className="text-xl font-bold text-gray-800 mb-2 text-glow"
+                    data-text="No Top 10 Finishes Yet"
+                  >
+                    No Top 10 Finishes Yet
+                  </h3>
+                  <p className="text-gray-600 text-glow-sm">Keep playing to achieve top rankings!</p>
                   <p className="text-sm text-gray-500 mt-2">You have {allScores.length} total scores</p>
                 </div>
               ) : (
                 <>
                   {/* Header showing count */}
                   <div className="mb-6 text-center">
-                    <h3 className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">
-                      <Trophy className="w-6 h-6 text-yellow-500" />
+                    <h3 
+                      className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2 text-glow"
+                      data-text="Best Performances"
+                    >
+                      <Trophy className="w-6 h-6 text-yellow-500 icon-glow" />
                       Best Performances
                     </h3>
                   </div>
@@ -541,7 +573,7 @@ export default function UserProfile() {
                   {bestPerformances.slice(0, 5).map((score, index) => (
                     <div 
                       key={score.id}
-                      className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 group"
+                      className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all border border-gray-100 group"
                     >
                       <div className="flex items-center gap-4">
                         {/* Position indicator */}
@@ -598,7 +630,7 @@ export default function UserProfile() {
                         {score.playlists?.challenges?.room_id && (
                           <Link 
                             href={`/challenges/${score.playlists.challenges.room_id}`}
-                            className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 text-purple-700 font-medium rounded-full transition-all"
+                            className="px-4 py-2 glass-card hover:glass-card-enhanced text-purple-700 font-medium rounded-full transition-all"
                           >
                             View Challenge
                           </Link>
@@ -612,9 +644,12 @@ export default function UserProfile() {
           )}
 
           {activeTab === 'stats' && (
-            <div className="bg-white rounded-3xl p-8 shadow-lg">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <BarChart3 className="w-8 h-8 text-purple-500" />
+            <div className="glass-card-enhanced rounded-3xl p-8 shadow-lg">
+              <h3 
+                className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3"
+                data-text="Detailed Statistics"
+              >
+                <BarChart3 className="w-8 h-8 text-purple-500 icon-glow" />
                 Detailed Statistics
               </h3>
               
@@ -623,17 +658,17 @@ export default function UserProfile() {
                 <div>
                   <h4 className="text-lg font-semibold text-gray-800 mb-4">Performance Overview</h4>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+                    <div className="flex items-center justify-between p-4 glass-card rounded-xl">
                       <span className="font-medium text-gray-700">Total Maps Played</span>
                       <span className="text-xl font-bold text-purple-600">{stats?.totalScores || 0}</span>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl">
+                    <div className="flex items-center justify-between p-4 glass-card rounded-xl">
                       <span className="font-medium text-gray-700">Average Score</span>
                       <span className="text-xl font-bold text-blue-600">
                         {stats?.avgScore ? formatNumber(stats.avgScore) : '0'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+                    <div className="flex items-center justify-between p-4 glass-card rounded-xl">
                       <span className="font-medium text-gray-700">Perfect Scores (100%)</span>
                       <span className="text-xl font-bold text-green-600">
                         {stats?.perfectScoreCount || 0}
@@ -702,7 +737,7 @@ export default function UserProfile() {
                 <h4 className="text-lg font-semibold text-gray-800 mb-4">Monthly Activity</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {stats?.monthlyActivity && Object.entries(stats.monthlyActivity).slice(-4).map(([month, count]) => (
-                    <div key={month} className="text-center p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
+                    <div key={month} className="text-center p-4 glass-card rounded-xl">
                       <p className="text-sm text-gray-600 mb-1">{month}</p>
                       <p className="text-2xl font-bold text-purple-600">{count}</p>
                       <p className="text-xs text-gray-500">plays</p>
@@ -720,50 +755,62 @@ export default function UserProfile() {
 
           {/* Achievement Showcase (if user has notable achievements) */}
           {stats?.firstPlaceCount > 0 && (
-            <div className="mt-8 bg-gradient-to-r from-yellow-100 via-amber-100 to-orange-100 rounded-3xl p-8 shadow-lg">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <Trophy className="w-8 h-8 text-yellow-600" />
-                Trophy Cabinet
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                    <Trophy className="w-8 h-8 text-white" />
+            <div className="mt-8 glass-card-enhanced rounded-3xl p-8 shadow-lg">
+              {/* Gradient overlay for achievements section */}
+              <div 
+                className="absolute inset-0 opacity-20 rounded-3xl"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.3) 50%, rgba(217, 119, 6, 0.3) 100%)'
+                }}
+              />
+              <div className="relative z-10">
+                <h3 
+                  className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3 text-glow"
+                  data-text="Trophy Cabinet"
+                >
+                  <Trophy className="w-8 h-8 text-yellow-600 icon-glow" />
+                  Trophy Cabinet
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="glass-card-subtle rounded-xl p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                      <Trophy className="w-8 h-8 text-white" />
+                    </div>
+                    <p className="text-3xl font-black text-yellow-600 mb-1">
+                      {stats?.firstPlaceCount || 0}
+                    </p>
+                    <p className="text-sm font-medium text-gray-700">First Places</p>
                   </div>
-                  <p className="text-3xl font-black text-yellow-600 mb-1">
-                    {stats?.firstPlaceCount || 0}
-                  </p>
-                  <p className="text-sm font-medium text-gray-700">First Places</p>
-                </div>
-                
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                    <Award className="w-8 h-8 text-white" />
+                  
+                  <div className="glass-card-subtle rounded-xl p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                      <Award className="w-8 h-8 text-white" />
+                    </div>
+                    <p className="text-3xl font-black text-gray-600 mb-1">
+                      {stats?.podiumCount || 0}
+                    </p>
+                    <p className="text-sm font-medium text-gray-700">Podium Finishes</p>
                   </div>
-                  <p className="text-3xl font-black text-gray-600 mb-1">
-                    {stats?.podiumCount || 0}
-                  </p>
-                  <p className="text-sm font-medium text-gray-700">Podium Finishes</p>
-                </div>
-                
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                    <Star className="w-8 h-8 text-white" />
+                  
+                  <div className="glass-card-subtle rounded-xl p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                      <Star className="w-8 h-8 text-white" />
+                    </div>
+                    <p className="text-3xl font-black text-purple-600 mb-1">
+                      {stats?.top10Count || 0}
+                    </p>
+                    <p className="text-sm font-medium text-gray-700">Top 10 Finishes</p>
                   </div>
-                  <p className="text-3xl font-black text-purple-600 mb-1">
-                    {stats?.top10Count || 0}
-                  </p>
-                  <p className="text-sm font-medium text-gray-700">Top 10 Finishes</p>
-                </div>
-                
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                    <Zap className="w-8 h-8 text-white" />
+                  
+                  <div className="glass-card-subtle rounded-xl p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                      <Zap className="w-8 h-8 text-white" />
+                    </div>
+                    <p className="text-3xl font-black text-green-600 mb-1">
+                      {stats?.highAccuracyCount || 0}
+                    </p>
+                    <p className="text-sm font-medium text-gray-700">98%+ Accuracy</p>
                   </div>
-                  <p className="text-3xl font-black text-green-600 mb-1">
-                    {stats?.highAccuracyCount || 0}
-                  </p>
-                  <p className="text-sm font-medium text-gray-700">98%+ Accuracy</p>
                 </div>
               </div>
             </div>
@@ -771,42 +818,54 @@ export default function UserProfile() {
 
           {/* Progress & Milestones Section */}
           {allScores.length > 0 && (
-            <div className="mt-8 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl p-8 shadow-lg">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
-                Progress & Insights
-              </h3>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6">
-                  <p className="text-sm font-medium text-gray-600 mb-2">Most Active Month</p>
-                  <p className="text-lg font-bold text-purple-600">
-                    {stats?.monthlyActivity && Object.keys(stats.monthlyActivity).length > 0 
-                      ? Object.entries(stats.monthlyActivity).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'
-                      : 'N/A'
-                    }
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {stats?.monthlyActivity && Object.keys(stats.monthlyActivity).length > 0
-                      ? `${Object.entries(stats.monthlyActivity).sort((a, b) => b[1] - a[1])[0]?.[1] || 0} plays`
-                      : '0 plays'
-                    }
-                  </p>
-                </div>
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6">
-                  <p className="text-sm font-medium text-gray-600 mb-2">Total Score Points</p>
-                  <p className="text-lg font-bold text-purple-600">
-                    {formatNumber(stats?.totalScorePoints || 0)}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">Lifetime total</p>
-                </div>
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6">
-                  <p className="text-sm font-medium text-gray-600 mb-2">Next Milestone</p>
-                  <p className="text-lg font-bold text-purple-600">
-                    {milestone.title}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {milestone.isLegend ? 'Achieved!' : `${milestone.remaining} to go`}
-                  </p>
+            <div className="mt-8 glass-card-enhanced rounded-3xl p-8 shadow-lg">
+              {/* Gradient overlay for progress section */}
+              <div 
+                className="absolute inset-0 opacity-20 rounded-3xl"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%)'
+                }}
+              />
+              <div className="relative z-10">
+                <h3 
+                  className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3 text-glow"
+                  data-text="Progress & Insights"
+                >
+                  <TrendingUp className="w-8 h-8 text-purple-600 icon-glow" />
+                  Progress & Insights
+                </h3>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="glass-card-subtle rounded-xl p-6">
+                    <p className="text-sm font-medium text-gray-600 mb-2">Most Active Month</p>
+                    <p className="text-lg font-bold text-purple-600">
+                      {stats?.monthlyActivity && Object.keys(stats.monthlyActivity).length > 0 
+                        ? Object.entries(stats.monthlyActivity).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'
+                        : 'N/A'
+                      }
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {stats?.monthlyActivity && Object.keys(stats.monthlyActivity).length > 0
+                        ? `${Object.entries(stats.monthlyActivity).sort((a, b) => b[1] - a[1])[0]?.[1] || 0} plays`
+                        : '0 plays'
+                      }
+                    </p>
+                  </div>
+                  <div className="glass-card-subtle rounded-xl p-6">
+                    <p className="text-sm font-medium text-gray-600 mb-2">Total Score Points</p>
+                    <p className="text-lg font-bold text-purple-600">
+                      {formatNumber(stats?.totalScorePoints || 0)}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">Lifetime total</p>
+                  </div>
+                  <div className="glass-card-subtle rounded-xl p-6">
+                    <p className="text-sm font-medium text-gray-600 mb-2">Next Milestone</p>
+                    <p className="text-lg font-bold text-purple-600">
+                      {milestone.title}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {milestone.isLegend ? 'Achieved!' : `${milestone.remaining} to go`}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -814,9 +873,12 @@ export default function UserProfile() {
 
           {/* Footer */}
           <div className="mt-16 text-center pb-8">
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-full shadow-md">
+            <div className="inline-flex items-center gap-3 px-6 py-3 glass-card rounded-full shadow-md">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <p className="text-sm font-medium text-gray-600">
+              <p 
+                className="text-sm font-medium text-gray-600 text-glow-sm"
+                data-text="Profile syncs with osu! automatically"
+              >
                 Profile syncs with osu! automatically
               </p>
             </div>
