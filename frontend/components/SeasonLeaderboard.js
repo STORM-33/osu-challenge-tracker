@@ -116,7 +116,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
         </div>
         
         {/* Leaderboard Loading Skeleton */}
-        <div className="glass-card-enhanced rounded-3xl shadow-xl border border-gray-200 p-12">
+        <div className="glass-card-enhanced rounded-2xl shadow-xl border border-gray-200 p-12">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-gray-200/60 rounded-lg w-1/3"></div>
             {[...Array(10)].map((_, i) => (
@@ -190,7 +190,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
       {/* Leaderboard Container */}
       <div>
         {/* Header Card */}
-        <div className="glass-card bg-gradient-to-br from-purple-100/50 to-pink-100/50 rounded-t-3xl border border-purple-200/60 p-8 backdrop-blur-lg">
+        <div className="glass-card bg-gradient-to-br from-purple-100/50 to-pink-100/50 rounded-t-2xl border border-purple-200/60 p-8 backdrop-blur-lg">
           <div className="flex items-center justify-between">
             <div>
               <h2 
@@ -235,7 +235,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
           </div>
         </div>
 
-        <div className="glass-card-enhanced rounded-b-3xl shadow-xl border border-t-0 border-gray-200/60 overflow-hidden backdrop-blur-lg">
+        <div className="glass-card-enhanced rounded-b-2xl shadow-xl border border-t-0 border-gray-200/60 overflow-hidden backdrop-blur-lg">
           {/* Podium Section for Top 3 */}
           {leaderboard.length > 0 && viewMode === 'full' && (
             <div className="glass-card-subtle bg-gradient-to-br from-gray-50/50 to-gray-100/50 p-8 border-b border-gray-200/60 backdrop-blur-md">
