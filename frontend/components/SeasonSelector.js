@@ -1,6 +1,6 @@
 // frontend/components/SeasonSelector.js
 import { useState, useEffect } from 'react';
-import { ChevronDown, Calendar, Clock } from 'lucide-react';
+import { ChevronDown, Calendar, Clock, X } from 'lucide-react';
 
 export default function SeasonSelector({ onSeasonChange, currentSeasonId }) {
   const [seasons, setSeasons] = useState([]);
@@ -63,7 +63,7 @@ export default function SeasonSelector({ onSeasonChange, currentSeasonId }) {
 
   if (loading) {
     return (
-      <div className="w-64 h-12 glass-card-subtle animate-pulse rounded-lg"></div>
+      <div className="w-64 h-12 glass-2 animate-pulse rounded-full"></div>
     );
   }
 
@@ -75,46 +75,40 @@ export default function SeasonSelector({ onSeasonChange, currentSeasonId }) {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-64 px-4 py-3 glass-card rounded-lg hover:glass-card-enhanced transition-all shadow-sm"
+        className="season-selector-btn flex items-center justify-between w-64 px-5 py-3 backdrop-blur-md bg-white/15 rounded-2xl transition-all duration-300 hover:bg-white/20"
       >
         <div className="flex items-center gap-3">
-          <Calendar className="w-5 h-5 text-primary-600 icon-glow-sm" />
+          <Calendar className="w-4 h-4 text-white" />
           <div className="text-left">
-            <p className="font-medium text-neutral-800">
+            <p className="font-medium text-white text-sm">
               {selectedSeason?.name || 'Select Season'}
             </p>
             {selectedSeason && (
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-white/70">
                 {formatDateRange(selectedSeason)}
               </p>
             )}
           </div>
         </div>
-        <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform icon-glow-sm ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-white/70 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-2 glass-card border border-neutral-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto backdrop-blur-lg">
+        <div className="absolute top-full left-0 w-full max-w-64 mt-2 glass-3 border-3 border-white/20 rounded-2xl shadow-lg z-50 max-h-64 overflow-y-auto backdrop-blur-lg">
           {seasons.map((season) => (
             <button
               key={season.id}
               onClick={() => handleSeasonSelect(season)}
-              className={`w-full px-4 py-3 text-left hover:bg-white/20 transition-colors border-b border-neutral-100/50 last:border-b-0 ${
-                selectedSeason?.id === season.id ? 'bg-primary-50/80 text-primary-700' : 'text-neutral-700'
+              className={`w-full px-5 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 last:border-b-0 first:rounded-t-2xl last:rounded-b-2xl ${
+                selectedSeason?.id === season.id ? 'bg-white/15 text-white' : 'text-white/90'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium flex items-center gap-2">
+                  <p className="font-medium flex items-center gap-2 text-sm text-shadow-adaptive-lg">
                     {season.name}
-                    {season.is_current && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100/80 text-green-700 text-xs rounded-full backdrop-blur-sm border border-green-200/50">
-                        <Clock className="w-3 h-3" />
-                        Current
-                      </span>
-                    )}
                   </p>
-                  <p className="text-xs text-neutral-500 mt-1">
+                  <p className="text-xs text-white/60 mt-1 text-shadow-adaptive-lg">
                     {formatDateRange(season)}
                   </p>
                 </div>

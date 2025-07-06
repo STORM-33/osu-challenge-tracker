@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import SeasonLeaderboard from '../components/SeasonLeaderboard';
 import SeasonSelector from '../components/SeasonSelector';
-import { Trophy, Sparkles, BookOpen, TrendingUp, Zap, Target, BarChart3 } from 'lucide-react';
+import { Trophy, Info, BookOpen, TrendingUp, Zap, Target, BarChart3 } from 'lucide-react';
 
 export default function SeasonLeaderboardPage() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -71,39 +71,33 @@ export default function SeasonLeaderboardPage() {
     <Layout>
       <div className="min-h-screen py-8">
         <div className="max-w-7xl mx-auto px-4">
-          {/* Header Section - Using proper gradient text glow */}
+          {/* Header Section */}
           <div className="mb-12">
             <div className="flex items-start justify-between mb-8">
               <div>
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="relative">
-                    <BarChart3 className="w-10 h-10 text-primary-600 icon-adaptive-shadow" />
-                    <Sparkles className="w-5 h-5 text-yellow-500 absolute -top-1 -right-1 icon-adaptive-shadow" />
-                  </div>
+                  <BarChart3 className="w-10 h-10 text-white icon-shadow-adaptive-lg" />
                   
                   {/* Header */}
-                  <h1 
-                    className="text-4xl font-bold white text-neutral-800 text-white/90 text-adaptive-shadow"
-                    data-text="Season Leaderboard"
-                  >
+                  <h1 className="text-4xl font-bold text-white text-shadow-adaptive-lg">
                     Season Leaderboard
                   </h1>
                 </div>
                 
-                {/* Description with glow */}
-                <p className="text-neutral-600 text-lg max-w-2xl text-white/75 text-adaptive-shadow">
+                {/* Description */}
+                <p className="text-white text-lg max-w-2xl text-shadow-adaptive">
                   Rankings across all challenges in the season. Climb the ranks by participating in more challenges!
                 </p>
               </div>
               
               {!currentUser && (
-                <div className="text-right glass-card-enhanced rounded-2xl p-6">
-                  <p className="text-sm text-gray-600 mb-3 font-medium">
+                <div className="glass-3 rounded-2xl p-6">
+                  <p className="text-sm text-white/80 mb-3 font-medium">
                     Want to see your position?
                   </p>
                   <button
                     onClick={() => router.push('/api/auth/login')}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all"
+                    className="btn-primary"
                   >
                     Login with osu!
                   </button>
@@ -126,47 +120,47 @@ export default function SeasonLeaderboardPage() {
           {/* Stats Cards */}
           {selectedSeason && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-              <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transform hover:scale-105 transition-all">
+              <div className="glass-1 rounded-2xl p-6 hover:shadow-xl transform hover:scale-105 transition-all">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
+                  <div className="p-3 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-xl icon-container-orange">
                     <Trophy className="w-6 h-6 text-white" />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                <h3 className="text-lg font-semibold text-white mb-2 text-shadow-adaptive-sm">
                   Current Season
                 </h3>
-                <p className="text-3xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <p className="text-3xl font-black text-transparent bg-clip-text" style={{backgroundImage: 'linear-gradient(to right, #f3eba4, #f3eba4)'}}>
                   {selectedSeason.name}
                 </p>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-sm text-white/85 mt-2 text-shadow-adaptive-sm">
                   {new Date(selectedSeason.start_date).toLocaleDateString()} - {new Date(selectedSeason.end_date).toLocaleDateString()}
                 </p>
               </div>
 
-              <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transform hover:scale-105 transition-all">
+              <div className="glass-1 rounded-2xl p-6 hover:shadow-xl transform hover:scale-105 transition-all">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl">
+                  <div className="p-3 bg-gradient-to-b from-cyan-400 to-blue-600 rounded-xl icon-container-blue">
                     <BookOpen className="w-6 h-6 text-white" />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                <h3 className="text-lg font-semibold text-white mb-2 text-shadow-adaptive-sm">
                   How It Works
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm text-white/85 leading-relaxed text-shadow-adaptive-sm">
                   Your total score across all maps in all challenges during this season determines your ranking.
                 </p>
               </div>
 
-              <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transform hover:scale-105 transition-all">
+              <div className="glass-1 rounded-2xl p-6 hover:shadow-xl transform hover:scale-105 transition-all">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
+                  <div className="p-3 bg-gradient-to-b from-emerald-400 to-green-600 rounded-xl icon-container-green">
                     <Target className="w-6 h-6 text-white" />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                <h3 className="text-lg font-semibold text-white mb-2 text-shadow-adaptive-sm">
                   Scoring System
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm text-white/85 leading-relaxed text-shadow-adaptive-sm">
                   -- to be defined -- temporarily a sum of scores --
                 </p>
               </div>
@@ -179,59 +173,56 @@ export default function SeasonLeaderboardPage() {
             selectedSeason={selectedSeason}
           />
 
-          {/* Additional Info - Updated for transparency */}
-          <div className="mt-12 glass-card-enhanced bg-gradient-to-r from-purple-100/50 to-pink-100/50 rounded-2xl p-8 backdrop-blur-lg border border-purple-200/60">
+          {/* Additional Info */}
+          <div className="mt-12 glass-1 rounded-2xl p-8">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
-                <Trophy className="w-6 h-6 text-white" />
+              <div className="p-3 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-xl icon-container-orange">
+                <Info className="w-6 h-6 text-white" />
               </div>
-              <h3 
-                className="text-2xl font-bold text-gray-900 gradient-text-glow"
-                data-text="About Season Rankings"
-              >
+              <h3 className="text-2xl font-bold text-white text-shadow-adaptive">
                 About Season Rankings
               </h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="glass-card rounded-xl p-6 backdrop-blur-md border border-purple-100/60">
-                <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-purple-500 icon-glow-sm" />
+              <div className="glass-2 rounded-xl p-6 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all">
+                <h4 className="font-bold text-white mb-3 flex items-center gap-2 text-shadow-adaptive">
+                  <Zap className="w-5 h-5 text-white icon-shadow-adaptive-sm" />
                   Scoring System
                 </h4>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500 mt-1">•</span>
-                    <span>Total score from all maps played</span>
+                <ul className="space-y-2 text-sm text-white/90">
+                  <li className="flex items-center gap-2">
+                    <span className="text-white text-shadow-adaptive-sm">•</span>
+                    <span className="text-shadow-adaptive-sm">Total score from all maps played</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500 mt-1">•</span>
-                    <span>Participate in more challenges to climb</span>
+                  <li className="flex items-center gap-2">
+                    <span className="text-white text-shadow-adaptive-sm">•</span>
+                    <span className="text-shadow-adaptive-sm">Participate in more challenges to climb</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500 mt-1">•</span>
-                    <span>Every map completion counts</span>
+                  <li className="flex items-center gap-2">
+                    <span className="text-white text-shadow-adaptive-sm">•</span>
+                    <span className="text-shadow-adaptive-sm">Every map completion counts</span>
                   </li>
                 </ul>
               </div>
               
-              <div className="glass-card rounded-xl p-6 backdrop-blur-md border border-blue-100/60">
-                <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-blue-500 icon-glow-sm" />
+              <div className="glass-2 rounded-xl p-6 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all">
+                <h4 className="font-bold text-white mb-3 flex items-center gap-2 text-shadow-adaptive">
+                  <TrendingUp className="w-5 h-5 text-white icon-shadow-adaptive-sm" />
                   Rankings Update
                 </h4>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500 mt-1">•</span>
-                    <span>Real-time as scores are submitted</span>
+                <ul className="space-y-2 text-sm text-white/90">
+                  <li className="flex items-center gap-2">
+                    <span className="text-white text-shadow-adaptive-sm">•</span>
+                    <span className="text-shadow-adaptive-sm">Real-time as scores are submitted</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500 mt-1">•</span>
-                    <span>New challenges add to your total</span>
+                  <li className="flex items-center gap-2">
+                    <span className="text-white text-shadow-adaptive-sm">•</span>
+                    <span className="text-shadow-adaptive-sm">New challenges add to your total</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500 mt-1">•</span>
-                    <span>Higher scores on replayed maps count</span>
+                  <li className="flex items-center gap-2">
+                    <span className="text-white text-shadow-adaptive-sm">•</span>
+                    <span className="text-shadow-adaptive-sm">Higher scores on replayed maps count</span>
                   </li>
                 </ul>
               </div>

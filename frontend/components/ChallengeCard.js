@@ -180,7 +180,7 @@ export default function ChallengeCard({
             {size === 'large' && challengeType === 'weekly' && weeklyMapInfo && (
               <div className="space-y-1 -mt-8">
                 <p className="text-base font-semibold text-neutral-700 transition-colors duration-300 group-hover:text-neutral-800">
-                  <Music className="w-4 h-4 inline-block mr-1 text-blue-500 icon-glow-sm" />
+                  <Music className="w-4 h-4 inline-block mr-1 text-blue-500" />
                   {weeklyMapInfo.beatmap_title}
                 </p>
                 <div className="flex items-center gap-3 text-sm text-neutral-600 transition-colors duration-300 group-hover:text-neutral-700">

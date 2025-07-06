@@ -399,11 +399,12 @@ export const auth = {
         return null;
       }
 
-      // Call our auth status API (which can read HttpOnly cookies)
+      // Call our auth status API with cache busting
       console.log('📡 Calling auth status API...');
-      const response = await fetch('/api/auth/status', {
+      const response = await fetch(`/api/auth/status?_=${Date.now()}`, {
         method: 'GET',
-        credentials: 'include' // Important: include cookies in request
+        credentials: 'include',
+        cache: 'no-store' // Prevent browser caching
       });
 
       if (!response.ok) {
