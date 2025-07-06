@@ -54,18 +54,15 @@ export default function Partners() {
         <div className="max-w-7xl mx-auto px-4 py-12">
           {/* Header */}
           <div className="mb-12 text-center relative">
-            {/* Decorative elements */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-96 h-96 bg-gradient-to-br from-purple-100/20 to-pink-100/20 rounded-full blur-3xl"></div>
-            </div>
+
             
             <div className="relative">
               <div className="flex items-center justify-center gap-3 mb-6">
                 <div className="relative">
-                  <Users className="w-10 h-10 text-primary-600" />
+                  <Users className="w-10 h-10 text-primary-600 icon-adaptive-shadow" />
                   <Heart className="w-5 h-5 text-red-500 absolute -top-1 -right-1 animate-pulse" />
                 </div>
-                <h1 className="text-4xl font-bold text-neutral-800">
+                <h1 className="text-4xl font-bold white text-neutral-800 text-white/90 text-adaptive-shadow">
                   Our Partners
                 </h1>
               </div>

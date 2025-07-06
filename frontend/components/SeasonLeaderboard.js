@@ -139,7 +139,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
     return (
       <div className="glass-card-enhanced rounded-3xl shadow-xl border border-red-200 p-12 text-center">
         <Trophy className="w-12 h-12 text-red-500 mx-auto mb-4 icon-glow" />
-        <p className="text-red-600 mb-4 text-glow">Error loading leaderboard: {error}</p>
+        <p className="text-red-600 mb-4">Error loading leaderboard: {error}</p>
         <button 
           onClick={() => fetchLeaderboard()}
           className="px-6 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
@@ -160,7 +160,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
               <User className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 text-glow">Your Performance</h3>
+              <h3 className="text-lg font-bold text-gray-900">Your Performance</h3>
             </div>
           </div>
           
@@ -194,14 +194,14 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 
-                className="text-3xl font-bold text-gray-900 flex items-center gap-3 gradient-text-glow"
+                className="text-3xl font-bold text-gray-900 flex items-center gap-3"
                 data-text="Season Rankings"
               >
                 <Trophy className="w-8 h-8 text-purple-600 icon-glow" />
                 Season Rankings
               </h2>
               {selectedSeason && (
-                <p className="text-gray-600 mt-1 text-glow-sm">
+                <p className="text-gray-600 mt-1">
                   {selectedSeason.name} • {leaderboard.length} participants shown
                   {hasMore && ' (more available)'}
                 </p>
@@ -317,7 +317,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             {leaderboard.length === 0 ? (
               <div className="text-center py-16">
                 <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-4 icon-glow" />
-                <p className="text-gray-500 text-glow">No participants found for this season.</p>
+                <p className="text-gray-500">No participants found for this season.</p>
               </div>
             ) : (
               leaderboard.slice(viewMode === 'full' ? 3 : 0).map((user, index) => {
@@ -435,7 +435,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             <div className="p-6 text-center border-t border-gray-200/60 glass-card-subtle backdrop-blur-sm">
               <div className="flex items-center justify-center gap-2 text-gray-500">
                 <Trophy className="w-4 h-4 icon-glow-sm" />
-                <span className="text-sm font-medium text-glow-sm">You've reached the end of the leaderboard!</span>
+                <span className="text-sm font-medium">You've reached the end of the leaderboard!</span>
               </div>
             </div>
           )}

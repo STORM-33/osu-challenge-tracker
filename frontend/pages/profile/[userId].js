@@ -160,12 +160,12 @@ export default function UserProfile() {
               <User className="w-16 h-16 text-gray-400" />
             </div>
             <h2 
-              className="text-3xl font-bold text-gray-800 mb-4 text-glow"
+              className="text-3xl font-bold text-white/90 mb-4 text-adaptive-shadow"
               data-text="User Not Found"
             >
               {error || 'User Not Found'}
             </h2>
-            <p className="text-gray-600 mb-8 text-glow-sm">
+            <p className="text-white/70 mb-8 text-adaptive-shadow">
               The user profile you're looking for doesn't exist or has been removed.
             </p>
             <div className="flex gap-4 justify-center">
@@ -215,14 +215,14 @@ export default function UserProfile() {
           <div className="mb-8">
             <button
               onClick={() => router.back()}
-              className="group flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium text-glow transition-all"
+              className="group flex items-center gap-2 text-white/70 hover:text-white/80 font-medium text-adaptive-shadow transition-all"
             >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform icon-glow-sm" />
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               Back
             </button>
           </div>
 
-          {/* Profile Hero Section - Transparent gradient */}
+          {/* Profile Hero Section */}
           <div className="relative overflow-hidden glass-card-enhanced rounded-3xl p-8 mb-8 shadow-2xl">
             {/* Gradient overlay with transparency */}
             <div 
@@ -331,11 +331,11 @@ export default function UserProfile() {
             </div>
           </div>
 
-          {/* Quick Stats Grid - Glass panels */}
+          {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <Target className="w-8 h-8 text-purple-500 group-hover:scale-110 transition-transform icon-glow-sm" />
+                <Target className="w-8 h-8 text-purple-500 group-hover:scale-110 transition-transform" />
                 <span className={`text-3xl font-black ${getAccuracyColor(parseFloat(stats?.avgAccuracy || 0))}`}>
                   {stats?.avgAccuracy ? `${stats.avgAccuracy}%` : '--.--%'}
                 </span>
@@ -345,7 +345,7 @@ export default function UserProfile() {
             
             <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <Activity className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform icon-glow-sm" />
+                <Activity className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform" />
                 <span className="text-3xl font-black text-gray-800">
                   #{stats?.avgRank || '--'}
                 </span>
@@ -355,7 +355,7 @@ export default function UserProfile() {
             
             <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <BarChart3 className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform icon-glow-sm" />
+                <BarChart3 className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform" />
                 <span className="text-3xl font-black text-gray-800">
                   {stats?.totalScores || 0}
                 </span>
@@ -365,7 +365,7 @@ export default function UserProfile() {
             
             <div className="glass-card-enhanced rounded-2xl p-6 hover:shadow-xl transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <Trophy className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform icon-glow-sm" />
+                <Trophy className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform" />
                 <span className="text-3xl font-black text-gray-800">
                   {stats?.firstPlaceCount || 0}
                 </span>
@@ -414,10 +414,10 @@ export default function UserProfile() {
               {scores.length === 0 ? (
                 <div className="glass-card-enhanced rounded-3xl p-16 text-center shadow-lg">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Trophy className="w-12 h-12 text-purple-400 icon-glow" />
+                    <Trophy className="w-12 h-12 text-purple-400 icon-adaptive-shadow" />
                   </div>
                   <h3 
-                    className="text-2xl font-bold text-gray-800 mb-4 text-glow"
+                    className="text-2xl font-bold text-white/80 mb-4 text-adaptive-shadow"
                     data-text="No Scores Yet"
                   >
                     No Scores Yet
@@ -442,10 +442,10 @@ export default function UserProfile() {
                   {Object.entries(scoresByMonth).map(([month, monthScores]) => (
                     <div key={month}>
                       <h3 
-                        className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 text-glow"
+                        className="text-xl font-bold text-white/80 mb-4 flex items-center gap-2 text-adaptive-shadow"
                         data-text={month}
                       >
-                        <Calendar className="w-5 h-5 text-purple-500 icon-glow-sm" />
+                        <Calendar className="w-5 h-5 text-white/80 icon-adaptive-shadow" />
                         {month}
                       </h3>
                       <div className="grid gap-4">
@@ -468,7 +468,7 @@ export default function UserProfile() {
                                     <h4 className="text-lg font-bold text-gray-800 mb-1 group-hover:text-purple-600 transition-colors">
                                       {score.playlists?.beatmap_title || 'Unknown Beatmap'}
                                     </h4>
-                                    <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
+                                    <div className="flex items-center gap-3 text-sm text-white/80 mb-3">
                                       <span className="flex items-center gap-1">
                                         <Music className="w-4 h-4" />
                                         {score.playlists?.challenges?.name || 'Unknown Challenge'}
@@ -487,19 +487,19 @@ export default function UserProfile() {
                                     {/* Score Details */}
                                     <div className="flex items-center gap-6">
                                       <div className="flex items-center gap-2">
-                                        <span className="text-sm text-gray-500">Score:</span>
+                                        <span className="text-sm">Score:</span>
                                         <span className="font-mono font-bold text-gray-800">
                                           {formatNumber(score.score)}
                                         </span>
                                       </div>
                                       <div className="flex items-center gap-2">
-                                        <span className="text-sm text-gray-500">Accuracy:</span>
+                                        <span className="text-sm">Accuracy:</span>
                                         <span className={`font-bold ${getAccuracyColor(score.accuracy)}`}>
                                           {score.accuracy.toFixed(2)}%
                                         </span>
                                       </div>
                                       <div className="flex items-center gap-2">
-                                        <span className="text-sm text-gray-500">Combo:</span>
+                                        <span className="text-sm">Combo:</span>
                                         <span className="font-bold text-gray-800">{score.max_combo}x</span>
                                       </div>
                                     </div>
@@ -533,39 +533,37 @@ export default function UserProfile() {
               {(bestPerformances.length === 0 && allScores.length === 0) ? (
                 <div className="text-center py-16">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Star className="w-12 h-12 text-purple-400 icon-glow" />
+                    <Star className="w-12 h-12 text-purple-400" />
                   </div>
                   <h3 
-                    className="text-xl font-bold text-gray-800 mb-2 text-glow"
+                    className="text-xl font-bold text-white/80 mb-2 text-adaptive-shadow"
                     data-text="No Scores Yet"
                   >
                     No Scores Yet
                   </h3>
-                  <p className="text-gray-600 text-glow-sm">Start playing challenges to see your best performances!</p>
+                  <p className="text-white/80 text-adaptive-shadow-sm">Start playing challenges to see your best performances!</p>
                 </div>
               ) : bestPerformances.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Star className="w-12 h-12 text-purple-400 icon-glow" />
+                    <Star className="w-12 h-12 text-purple-400" />
                   </div>
                   <h3 
-                    className="text-xl font-bold text-gray-800 mb-2 text-glow"
+                    className="text-xl font-bold text-white/80 mb-2 text-adaptive-shadow"
                     data-text="No Top 10 Finishes Yet"
                   >
                     No Top 10 Finishes Yet
                   </h3>
-                  <p className="text-gray-600 text-glow-sm">Keep playing to achieve top rankings!</p>
-                  <p className="text-sm text-gray-500 mt-2">You have {allScores.length} total scores</p>
                 </div>
               ) : (
                 <>
                   {/* Header showing count */}
                   <div className="mb-6 text-center">
                     <h3 
-                      className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2 text-glow"
+                      className="text-xl font-bold text-white/80 flex items-center justify-center gap-2 text-adaptive-shadow"
                       data-text="Best Performances"
                     >
-                      <Trophy className="w-6 h-6 text-yellow-500 icon-glow" />
+                      <Trophy className="w-6 h-6 text-yellow-500 icon-adaptive-shadow" />
                       Best Performances
                     </h3>
                   </div>
@@ -649,7 +647,7 @@ export default function UserProfile() {
                 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3"
                 data-text="Detailed Statistics"
               >
-                <BarChart3 className="w-8 h-8 text-purple-500 icon-glow" />
+                <BarChart3 className="w-8 h-8 text-purple-500" />
                 Detailed Statistics
               </h3>
               
@@ -765,10 +763,10 @@ export default function UserProfile() {
               />
               <div className="relative z-10">
                 <h3 
-                  className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3 text-glow"
+                  className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3"
                   data-text="Trophy Cabinet"
                 >
-                  <Trophy className="w-8 h-8 text-yellow-600 icon-glow" />
+                  <Trophy className="w-8 h-8 text-yellow-600" />
                   Trophy Cabinet
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -828,10 +826,10 @@ export default function UserProfile() {
               />
               <div className="relative z-10">
                 <h3 
-                  className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3 text-glow"
+                  className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3"
                   data-text="Progress & Insights"
                 >
-                  <TrendingUp className="w-8 h-8 text-purple-600 icon-glow" />
+                  <TrendingUp className="w-8 h-8 text-purple-600" />
                   Progress & Insights
                 </h3>
                 <div className="grid md:grid-cols-3 gap-6">
@@ -876,7 +874,7 @@ export default function UserProfile() {
             <div className="inline-flex items-center gap-3 px-6 py-3 glass-card rounded-full shadow-md">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <p 
-                className="text-sm font-medium text-gray-600 text-glow-sm"
+                className="text-sm font-medium text-gray-600"
                 data-text="Profile syncs with osu! automatically"
               >
                 Profile syncs with osu! automatically

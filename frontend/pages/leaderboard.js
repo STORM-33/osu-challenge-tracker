@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import SeasonLeaderboard from '../components/SeasonLeaderboard';
 import SeasonSelector from '../components/SeasonSelector';
-import { Trophy, Sparkles, BookOpen, TrendingUp, Zap, Target } from 'lucide-react';
+import { Trophy, Sparkles, BookOpen, TrendingUp, Zap, Target, BarChart3 } from 'lucide-react';
 
 export default function SeasonLeaderboardPage() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -77,13 +77,13 @@ export default function SeasonLeaderboardPage() {
               <div>
                 <div className="flex items-center gap-4 mb-4">
                   <div className="relative">
-                    <Trophy className="w-10 h-10 text-purple-600 icon-glow" />
-                    <Sparkles className="w-5 h-5 text-yellow-500 absolute -top-1 -right-1 animate-pulse icon-glow-sm" />
+                    <BarChart3 className="w-10 h-10 text-primary-600 icon-adaptive-shadow" />
+                    <Sparkles className="w-5 h-5 text-yellow-500 absolute -top-1 -right-1 icon-adaptive-shadow" />
                   </div>
                   
-                  {/* Header with proper gradient glow */}
+                  {/* Header */}
                   <h1 
-                    className="text-5xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent gradient-text-glow-lg"
+                    className="text-4xl font-bold white text-neutral-800 text-white/90 text-adaptive-shadow"
                     data-text="Season Leaderboard"
                   >
                     Season Leaderboard
@@ -91,7 +91,7 @@ export default function SeasonLeaderboardPage() {
                 </div>
                 
                 {/* Description with glow */}
-                <p className="text-gray-600 text-lg max-w-2xl text-glow-sm">
+                <p className="text-neutral-600 text-lg max-w-2xl text-white/75 text-adaptive-shadow">
                   Rankings across all challenges in the season. Climb the ranks by participating in more challenges!
                 </p>
               </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play, Edit3, ArrowRight, Info, Link as PartnersIcon, ExternalLink, Trash2, Eye, EyeOff, GripVertical } from 'lucide-react';
+import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play, Edit3, ArrowRight, Info, Link as PartnersIcon, ExternalLink, Trash2, Eye, EyeOff, GripVertical, Sparkles, BarChart3 } from 'lucide-react';
 import { auth } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import RulesetManager from '../components/RulesetManager';
@@ -651,8 +651,11 @@ export default function Admin() {
   if (checkingAuth) {
     return (
       <Layout>
-        <div className="max-w-2xl mx-auto px-4 py-8 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="glass-card-enhanced rounded-2xl p-8">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" />
+            <p className="text-neutral-600 mt-4 text-center">Checking admin access...</p>
+          </div>
         </div>
       </Layout>
     );
@@ -660,118 +663,54 @@ export default function Admin() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Settings className="w-8 h-8 text-primary-600 icon-glow" />
-            <h1 className="text-3xl font-bold text-neutral-800 text-glow">Admin Panel</h1>
-          </div>
-          <p className="text-neutral-600 text-glow">
-            Welcome, {user?.username}! Manage challenges and seasons from here.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Add Challenge Section */}
-          <div className="glass-card rounded-xl p-6 border border-primary-200">
-            <div className="flex items-center gap-2 mb-6">
-              <Plus className="w-6 h-6 text-primary-600" />
-              <h2 className="text-xl font-semibold text-neutral-800">Add New Challenge</h2>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="min-h-screen py-8">
+        <div className="max-w-7xl mx-auto px-4">
+          {/* Enhanced Header Section */}
+          <div className="mb-12">
+            <div className="flex items-start justify-between mb-8">
               <div>
-                <label htmlFor="roomId" className="block text-sm font-medium mb-2 text-neutral-700">
-                  osu! Multiplayer Room ID *
-                </label>
-                <input
-                  type="text"
-                  id="roomId"
-                  value={roomId}
-                  onChange={(e) => setRoomId(e.target.value)}
-                  placeholder="e.g., 1392361"
-                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
-                  disabled={loading}
-                />
-                <p className="text-xs text-neutral-500 mt-1">
-                  Find the room ID in the URL: osu.ppy.sh/multiplayer/rooms/<strong>1392361</strong>
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="customName" className="block text-sm font-medium mb-2 text-neutral-700">
-                  Custom Display Name
-                </label>
-                <input
-                  type="text"
-                  id="customName"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  placeholder="Override the default room name (optional)"
-                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
-                  disabled={loading}
-                />
-                <p className="text-xs text-neutral-500 mt-1">
-                  Leave empty to use the original room name from osu!
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || !roomId.trim()}
-                className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-all font-medium"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Adding Challenge...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-5 h-5" />
-                    Add Challenge
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* Manage Challenge Names Link */}
-            <div className="mt-6 pt-6 border-t border-neutral-200">
-              <h3 className="text-sm font-medium text-neutral-700 mb-3">Challenge Management</h3>
-              <Link href="/admin/challenges">
-                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-4 hover:shadow-md transition-all duration-300 cursor-pointer group">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                        <Edit3 className="w-4 h-4 text-purple-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-neutral-800">Manage Challengew</h4>
-                        <p className="text-xs text-neutral-600">Edit names and rulesets for all challenges</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-purple-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative">
+                    <Settings className="w-10 h-10 text-primary-600 icon-adaptive-shadow" />
+                    <Sparkles className="w-5 h-5 text-yellow-500 absolute -top-1 -right-1 icon-adaptive-shadow" />
                   </div>
+                  
+                  {/* Header with adaptive text shadow */}
+                  <h1 
+                    className="text-4xl font-bold text-neutral-800 text-white/90 text-adaptive-shadow"
+                    data-text="Admin Panel"
+                  >
+                    Admin Panel
+                  </h1>
                 </div>
-              </Link>
+                
+                {/* Description */}
+                <p className="text-neutral-600 text-lg max-w-2xl text-white/85 text-adaptive-shadow">
+                  Welcome, {user?.username}! Manage challenges, partners, and system settings from your control center.
+                </p>
+              </div>
             </div>
+          </div>
 
-            {result && (
-              <div className={`mt-6 p-4 rounded-lg flex items-start gap-3 ${
-                result.success 
-                  ? 'bg-green-50 border border-green-200' 
-                  : 'bg-red-50 border border-red-200'
-              }`}>
+          {/* Enhanced Result Message */}
+          {result && (
+            <div className={`mb-8 glass-card-enhanced rounded-2xl p-6 border-l-4 ${
+              result.success 
+                ? 'border-green-500 bg-gradient-to-r from-green-50/80 to-emerald-50/80' 
+                : 'border-red-500 bg-gradient-to-r from-red-50/80 to-pink-50/80'
+            }`}>
+              <div className="flex items-start gap-3">
                 {result.success ? (
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  </div>
                 ) : (
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  </div>
                 )}
                 <div className="flex-1">
-                  <p className={result.success ? 'text-green-800' : 'text-red-800'}>
-                    {/* Safe display of message - handle both string and object cases */}
+                  <p className={`font-medium ${result.success ? 'text-green-800' : 'text-red-800'}`}>
                     {(() => {
                       if (typeof result.message === 'string') {
                         return result.message;
@@ -786,473 +725,645 @@ export default function Admin() {
                     })()}
                   </p>
                   {result.challenge && (
-                    <div className="mt-2 text-sm text-neutral-600">
-                      <p>Room ID: {result.challenge.room_id}</p>
-                      <p>Host: {result.challenge.host}</p>
-                      {result.challenge.custom_name && (
-                        <p>Custom Name: {result.challenge.custom_name}</p>
-                      )}
-                      <p className="text-green-600 font-medium">✅ Active Challenge</p>
+                    <div className="mt-3 p-3 bg-white/60 rounded-lg text-sm text-neutral-700">
+                      <div className="grid grid-cols-2 gap-2">
+                        <p><span className="font-medium">Room ID:</span> {result.challenge.room_id}</p>
+                        <p><span className="font-medium">Host:</span> {result.challenge.host}</p>
+                        {result.challenge.custom_name && (
+                          <p className="col-span-2"><span className="font-medium">Custom Name:</span> {result.challenge.custom_name}</p>
+                        )}
+                      </div>
+                      <p className="text-green-600 font-medium mt-2 flex items-center gap-1">
+                        <CheckCircle className="w-4 h-4" />
+                        Active Challenge
+                      </p>
                     </div>
                   )}
                   {result.updated !== undefined && (
-                    <div className="mt-2 text-sm text-neutral-600">
-                      <p>Updated: {result.updated} challenges</p>
-                      {result.failed > 0 && (
-                        <p>Failed: {result.failed} challenges</p>
-                      )}
+                    <div className="mt-3 p-3 bg-white/60 rounded-lg text-sm text-neutral-700">
+                      <div className="flex items-center justify-between">
+                        <span>Updated: <span className="font-bold text-green-600">{result.updated}</span> challenges</span>
+                        {result.failed > 0 && (
+                          <span>Failed: <span className="font-bold text-red-600">{result.failed}</span></span>
+                        )}
+                      </div>
                       {result.cancelled && (
-                        <p className="text-orange-600 font-medium">⏸️ Operation was cancelled</p>
+                        <p className="text-orange-600 font-medium mt-2 flex items-center gap-1">
+                          <X className="w-4 h-4" />
+                          Operation was cancelled
+                        </p>
                       )}
                     </div>
                   )}
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Active Challenge Management Section */}
-          <div className="glass-card rounded-xl p-6 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Zap className="w-5 h-5 text-blue-600" />
-                <h2 className="text-xl font-semibold text-neutral-800">Active Challenge Management</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            {/* Enhanced Add Challenge Section */}
+            <div className="glass-card-enhanced rounded-2xl p-8 border border-primary-200/60 bg-gradient-to-br from-primary-50/80 to-blue-50/80 backdrop-blur-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-primary-500 to-blue-500 rounded-xl">
+                  <Plus className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-xl font-semibold text-neutral-800">Add New Challenge</h2>
               </div>
               
-              {/* Enhanced bulk update controls */}
-              <div className="flex items-center gap-2">
-                {bulkUpdateState.isRunning && (
-                  <>
-                    <button
-                      onClick={toggleBulkUpdatePause}
-                      className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      {bulkUpdateState.isPaused ? (
-                        <>
-                          <Play className="w-3 h-3" />
-                          Resume
-                        </>
-                      ) : (
-                        <>
-                          <Pause className="w-3 h-3" />
-                          Pause
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={cancelBulkUpdate}
-                      className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                      Cancel
-                    </button>
-                  </>
-                )}
-                
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label htmlFor="roomId" className="block text-sm font-medium mb-2 text-neutral-700">
+                    osu! Multiplayer Room ID *
+                  </label>
+                  <input
+                    type="text"
+                    id="roomId"
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value)}
+                    placeholder="e.g., 1392361"
+                    className="w-full px-4 py-3 bg-white/80 border border-neutral-300/60 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all backdrop-blur-sm"
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-neutral-500 mt-2 bg-white/40 rounded-lg px-3 py-2">
+                    💡 Find the room ID in the URL: osu.ppy.sh/multiplayer/rooms/<strong>1392361</strong>
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="customName" className="block text-sm font-medium mb-2 text-neutral-700">
+                    Custom Display Name
+                  </label>
+                  <input
+                    type="text"
+                    id="customName"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    placeholder="Override the default room name (optional)"
+                    className="w-full px-4 py-3 bg-white/80 border border-neutral-300/60 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all backdrop-blur-sm"
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-neutral-500 mt-2 bg-white/40 rounded-lg px-3 py-2">
+                    ✨ Leave empty to use the original room name from osu!
+                  </p>
+                </div>
+
                 <button
-                  onClick={handleUpdateAllActive}
-                  disabled={bulkUpdateState.isRunning || activeChallenges.length === 0}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
+                  type="submit"
+                  disabled={loading || !roomId.trim()}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary-600 to-blue-600 hover:from-primary-700 hover:to-blue-700 disabled:from-neutral-400 disabled:to-neutral-500 disabled:cursor-not-allowed text-white px-6 py-4 rounded-xl transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
                 >
-                  {bulkUpdateState.isRunning ? (
+                  {loading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>
-                        {bulkUpdateState.isPaused ? 'Paused' : 'Updating'} 
-                        ({bulkUpdateState.progress.current}/{bulkUpdateState.progress.total})
-                      </span>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Adding Challenge...
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="w-4 h-4" />
-                      <span>Update All</span>
+                      <Plus className="w-5 h-5" />
+                      Add Challenge
                     </>
                   )}
                 </button>
+              </form>
+
+              {/* Enhanced Manage Challenge Names Link */}
+              <div className="mt-8 pt-6 border-t border-primary-200/60">
+                <h3 className="text-sm font-medium text-neutral-700 mb-4 flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Challenge Management
+                </h3>
+                <Link href="/admin/challenges">
+                  <div className="glass-card rounded-xl p-4 hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer group bg-gradient-to-r from-purple-50/80 to-indigo-50/80 border border-purple-200/60">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center group-hover:shadow-lg transition-all">
+                          <Edit3 className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-neutral-800">Manage Challenges</h4>
+                          <p className="text-xs text-neutral-600">Edit names and rulesets for all challenges</p>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-purple-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </div>
+                </Link>
               </div>
             </div>
 
-            {/* Progress indicator for bulk updates */}
-            {bulkUpdateState.isRunning && (
-              <div className="mb-4 p-4 bg-blue-100 rounded-lg border border-blue-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-800">
-                    {bulkUpdateState.isPaused ? '⏸️ Paused' : '🔄 Updating Challenges'}
-                  </span>
-                  <span className="text-sm text-blue-600">
-                    {bulkUpdateState.progress.current}/{bulkUpdateState.progress.total}
-                  </span>
+            {/* Enhanced Active Challenge Management Section */}
+            <div className="glass-card-enhanced rounded-2xl p-8 border border-blue-200/60 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 backdrop-blur-lg flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl">
+                    <Zap className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-neutral-800">Active Challenge Management</h2>
                 </div>
                 
-                {/* Progress bar */}
-                <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${(bulkUpdateState.progress.current / bulkUpdateState.progress.total) * 100}%` 
-                    }}
-                  ></div>
-                </div>
-                
-                {bulkUpdateState.currentChallenge && (
-                  <p className="text-xs text-blue-700">
-                    Current: {bulkUpdateState.currentChallenge.name} (Room {bulkUpdateState.currentChallenge.room_id})
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Main content area that grows to fill space */}
-            <div className="flex-1">
-              {activeChallenges.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
-                  <p className="text-neutral-500">No active challenges</p>
-                  <p className="text-sm text-neutral-400 mt-1">Add a new challenge to get started!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {activeChallenges.slice(0, 5).map(challenge => {
-                    const lastUpdated = getUTCTimestamp(challenge.updated_at);
-                    const isStale = lastUpdated && (Date.now() - lastUpdated) > 10 * 60 * 1000;
-                    const needsUpdate = lastUpdated && (Date.now() - lastUpdated) > 5 * 60 * 1000;
-                    const rulesetName = generateRulesetDisplayName(challenge);
-                    
-                    return (
-                      <div key={challenge.id} className="p-3 bg-white/80 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start gap-2 mb-1">
-                              <h4 className="font-medium text-neutral-800 text-sm flex-1 leading-tight">
-                                {challenge.custom_name || challenge.name}
-                                {challenge.custom_name && (
-                                  <span className="ml-2 text-xs text-purple-600 font-medium">(Custom)</span>
-                                )}
-                                {/* Ruleset indicator with generated name */}
-                                {challenge.has_ruleset && rulesetName && (
-                                  <span className="ml-2 inline-flex items-center gap-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
-                                    <Crown className="w-3 h-3" />
-                                    {rulesetName}
-                                  </span>
-                                )}
-                              </h4>
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-neutral-600">
-                              <span>Room ID: <span className="font-mono">{challenge.room_id}</span></span>
-                              <span className="flex items-center gap-1">
-                                <Users className="w-3 h-3" />
-                                {challenge.host}
-                              </span>
-                              <span>{challenge.participant_count || 0} participants</span>
-                              <span>{challenge.playlists?.length || 0} maps</span>
-                            </div>
-                            <div className="text-xs text-neutral-500 mt-1">
-                              Last updated: {formatUTCDateTime(challenge.updated_at)}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 ml-3">
-                            {/* Ruleset Management Button */}
-                            <button
-                              onClick={() => handleManageRuleset(challenge)}
-                              disabled={bulkUpdateState.isRunning}
-                              className="px-3 py-1.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50"
-                              title="Manage Ruleset"
-                            >
-                              <Target className="w-3 h-3" />
-                              <span>Ruleset</span>
-                            </button>
-                            
-                            {/* Update Button */}
-                            <button
-                              onClick={() => handleUpdateSingleChallenge(challenge.room_id)}
-                              disabled={bulkUpdateState.isRunning || updatingChallenges.has(challenge.room_id)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border flex items-center gap-1 ${
-                                isStale 
-                                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' 
-                                  : needsUpdate
-                                  ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                                  : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                              } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                              {updatingChallenges.has(challenge.room_id) ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <RefreshCw className="w-3 h-3" />
-                              )}
-                              <span>Update</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Enhanced bulk update controls */}
+                <div className="flex items-center gap-3">
+                  {bulkUpdateState.isRunning && (
+                    <>
+                      <button
+                        onClick={toggleBulkUpdatePause}
+                        className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                      >
+                        {bulkUpdateState.isPaused ? (
+                          <>
+                            <Play className="w-4 h-4" />
+                            Resume
+                          </>
+                        ) : (
+                          <>
+                            <Pause className="w-4 h-4" />
+                            Pause
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={cancelBulkUpdate}
+                        className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                      >
+                        <X className="w-4 h-4" />
+                        Cancel
+                      </button>
+                    </>
+                  )}
                   
-                  {activeChallenges.length > 5 && (
-                    <div className="text-center pt-3 border-t border-neutral-200">
-                      <Link href="/admin/challenges?status=active">
-                        <span className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
-                          View all {activeChallenges.length} active challenges →
+                  <button
+                    onClick={handleUpdateAllActive}
+                    disabled={bulkUpdateState.isRunning || activeChallenges.length === 0}
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-2 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
+                  >
+                    {bulkUpdateState.isRunning ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>
+                          {bulkUpdateState.isPaused ? 'Paused' : 'Updating'} 
+                          ({bulkUpdateState.progress.current}/{bulkUpdateState.progress.total})
                         </span>
-                      </Link>
-                    </div>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Update All</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Enhanced Progress indicator for bulk updates */}
+              {bulkUpdateState.isRunning && (
+                <div className="mb-6 glass-card rounded-xl p-6 border border-blue-200/60 bg-gradient-to-r from-blue-100/80 to-indigo-100/80">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                      {bulkUpdateState.isPaused ? (
+                        <>
+                          <Pause className="w-4 h-4" />
+                          Paused
+                        </>
+                      ) : (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Updating Challenges
+                        </>
+                      )}
+                    </span>
+                    <span className="text-sm text-blue-600 font-medium">
+                      {bulkUpdateState.progress.current}/{bulkUpdateState.progress.total}
+                    </span>
+                  </div>
+                  
+                  {/* Enhanced Progress bar */}
+                  <div className="w-full bg-blue-200/60 rounded-full h-3 mb-3 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 h-3 rounded-full transition-all duration-300 shadow-sm"
+                      style={{ 
+                        width: `${(bulkUpdateState.progress.current / bulkUpdateState.progress.total) * 100}%` 
+                      }}
+                    ></div>
+                  </div>
+                  
+                  {bulkUpdateState.currentChallenge && (
+                    <p className="text-xs text-blue-700 bg-white/60 rounded-lg px-3 py-2">
+                      <span className="font-medium">Currently updating:</span> {bulkUpdateState.currentChallenge.name} (Room {bulkUpdateState.currentChallenge.room_id})
+                    </p>
                   )}
                 </div>
               )}
-              
-            </div>
 
-            {/* Moved Notes Section - Always at bottom */}
-            <div className="mt-auto pt-6 border-t border-blue-200">
-              <div className="flex items-center gap-2 mb-3">
-                <Info className="w-4 h-4 text-blue-600" />
-                <h4 className="font-medium text-neutral-800">Challenge Management Notes</h4>
+              {/* Enhanced Main content area */}
+              <div className="flex-1">
+                {activeChallenges.length === 0 ? (
+                  <div className="text-center py-12 glass-card rounded-xl bg-white/40">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-neutral-300 to-neutral-400 rounded-2xl flex items-center justify-center">
+                      <Users className="w-8 h-8 text-white" />
+                    </div>
+                    <p className="text-neutral-600 font-medium mb-2">No active challenges</p>
+                    <p className="text-sm text-neutral-500">Add a new challenge to get started!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {activeChallenges.slice(0, 5).map(challenge => {
+                      const lastUpdated = getUTCTimestamp(challenge.updated_at);
+                      const isStale = lastUpdated && (Date.now() - lastUpdated) > 10 * 60 * 1000;
+                      const needsUpdate = lastUpdated && (Date.now() - lastUpdated) > 5 * 60 * 1000;
+                      const rulesetName = generateRulesetDisplayName(challenge);
+                      
+                      return (
+                        <div key={challenge.id} className="glass-card rounded-xl p-4 bg-white/60 border border-neutral-200/60 hover:border-neutral-300/60 hover:shadow-lg transition-all">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start gap-2 mb-2">
+                                <h4 className="font-semibold text-neutral-800 text-sm flex-1 leading-tight">
+                                  {challenge.custom_name || challenge.name}
+                                  {challenge.custom_name && (
+                                    <span className="ml-2 inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+                                      <Sparkles className="w-3 h-3" />
+                                      Custom
+                                    </span>
+                                  )}
+                                  {/* Enhanced Ruleset indicator */}
+                                  {challenge.has_ruleset && rulesetName && (
+                                    <span className="ml-2 inline-flex items-center gap-1 text-xs bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 px-2 py-1 rounded-full font-medium border border-yellow-200/60">
+                                      <Crown className="w-3 h-3" />
+                                      {rulesetName}
+                                    </span>
+                                  )}
+                                </h4>
+                              </div>
+                              <div className="flex items-center gap-4 text-xs text-neutral-600 mb-2">
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
+                                  Room ID: <span className="font-mono font-medium">{challenge.room_id}</span>
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Users className="w-3 h-3" />
+                                  {challenge.host}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <BarChart3 className="w-3 h-3" />
+                                  {challenge.participant_count || 0} participants
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Music className="w-3 h-3" />
+                                  {challenge.playlists?.length || 0} maps
+                                </span>
+                              </div>
+                              <div className="text-xs text-neutral-500 bg-white/40 rounded-lg px-2 py-1 inline-block">
+                                <Calendar className="w-3 h-3 inline mr-1" />
+                                Last updated: {formatUTCDateTime(challenge.updated_at)}
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 ml-4">
+                              {/* Enhanced Ruleset Management Button */}
+                              <button
+                                onClick={() => handleManageRuleset(challenge)}
+                                disabled={bulkUpdateState.isRunning}
+                                className="px-3 py-2 bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 border border-yellow-200/60 rounded-xl hover:from-yellow-100 hover:to-amber-100 hover:shadow-lg transform hover:scale-105 transition-all text-xs font-medium flex items-center gap-1 disabled:opacity-50 disabled:transform-none"
+                                title="Manage Ruleset"
+                              >
+                                <Target className="w-3 h-3" />
+                                <span>Ruleset</span>
+                              </button>
+                              
+                              {/* Enhanced Update Button */}
+                              <button
+                                onClick={() => handleUpdateSingleChallenge(challenge.room_id)}
+                                disabled={bulkUpdateState.isRunning || updatingChallenges.has(challenge.room_id)}
+                                className={`px-3 py-2 rounded-xl text-xs font-medium transition-all border flex items-center gap-1 shadow-sm hover:shadow-lg transform hover:scale-105 disabled:transform-none ${
+                                  isStale 
+                                    ? 'bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 border-yellow-200/60 hover:from-yellow-100 hover:to-amber-100' 
+                                    : needsUpdate
+                                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200/60 hover:from-blue-100 hover:to-indigo-100'
+                                    : 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200/60 hover:from-green-100 hover:to-emerald-100'
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              >
+                                {updatingChallenges.has(challenge.room_id) ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-3 h-3" />
+                                )}
+                                <span>Update</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {activeChallenges.length > 5 && (
+                      <div className="text-center pt-4 border-t border-blue-200/60">
+                        <Link href="/admin/challenges?status=active">
+                          <span className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer flex items-center justify-center gap-2 hover:gap-3 transition-all">
+                            View all {activeChallenges.length} active challenges 
+                            <ArrowRight className="w-4 h-4" />
+                          </span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="text-sm text-neutral-600 space-y-1.5 bg-blue-50/50 rounded-lg p-3">
-                <p>• Only public multiplayer rooms can be tracked</p>
-                <p>• Data updates automatically when users view challenges (4-minute cooldown)</p>
-                <p>• Use "Update All" to force refresh all active challenges (can be paused/cancelled)</p>
-                <p>• New challenges are automatically assigned to the current season (6-month cycles)</p>
-                <p>• Use "Manage Challenges" to edit names and rulesets for all challenges (active + inactive)</p>
-                <p>• Ruleset names are auto-generated from selected mods and settings</p>
-              </div>
-            </div>
-          </div>
 
-          {/* Partners Management Section */}
-          <div className="glass-card rounded-xl p-6 border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <PartnersIcon className="w-6 h-6 text-purple-600" />
-                <h2 className="text-xl font-semibold text-neutral-800">Partners Management</h2>
-              </div>
-              
-              <button
-                onClick={() => {
-                  setShowPartnerForm(true);
-                  setEditingPartner(null);
-                  setPartnerForm({
-                    name: '',
-                    icon_url: '',
-                    link_url: '',
-                    description: '',
-                    is_active: true,
-                    display_order: partners.length
-                  });
-                }}
-                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add Partner
-              </button>
-            </div>
-
-            {/* Partner Form Modal */}
-            {showPartnerForm && (
-              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
-                  <h3 className="text-lg font-semibold text-neutral-800 mb-4">
-                    {editingPartner ? 'Edit Partner' : 'Add New Partner'}
-                  </h3>
-                  
-                  <form onSubmit={handlePartnerSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-1">
-                        Partner Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={partnerForm.name}
-                        onChange={(e) => setPartnerForm({...partnerForm, name: e.target.value})}
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-1">
-                        Icon URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={partnerForm.icon_url}
-                        onChange={(e) => setPartnerForm({...partnerForm, icon_url: e.target.value})}
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
-                        placeholder="https://example.com/icon.png"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-1">
-                        Link URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={partnerForm.link_url}
-                        onChange={(e) => setPartnerForm({...partnerForm, link_url: e.target.value})}
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
-                        placeholder="https://example.com"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-1">
-                        Description
-                      </label>
-                      <textarea
-                        value={partnerForm.description}
-                        onChange={(e) => setPartnerForm({...partnerForm, description: e.target.value})}
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
-                        rows="2"
-                        maxLength="500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-1">
-                        Display Order
-                      </label>
-                      <input
-                        type="number"
-                        value={partnerForm.display_order}
-                        onChange={(e) => setPartnerForm({...partnerForm, display_order: parseInt(e.target.value) || 0})}
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-purple-500"
-                        min="0"
-                      />
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="is_active"
-                        checked={partnerForm.is_active}
-                        onChange={(e) => setPartnerForm({...partnerForm, is_active: e.target.checked})}
-                        className="w-4 h-4 text-purple-600"
-                      />
-                      <label htmlFor="is_active" className="text-sm font-medium text-neutral-700">
-                        Active (visible on partners page)
-                      </label>
-                    </div>
-                    
-                    <div className="flex gap-3 mt-6">
-                      <button
-                        type="submit"
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        {editingPartner ? 'Update' : 'Create'} Partner
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPartnerForm(false);
-                          setEditingPartner(null);
-                        }}
-                        className="flex-1 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 px-4 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
+              {/* Enhanced Notes Section */}
+              <div className="mt-auto pt-6 border-t border-blue-200/60">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg">
+                    <Info className="w-4 h-4 text-white" />
+                  </div>
+                  <h4 className="font-semibold text-neutral-800">Challenge Management Notes</h4>
+                </div>
+                <div className="text-sm text-neutral-600 space-y-2 glass-card rounded-xl p-4 bg-blue-50/50 border border-blue-200/60">
+                  <p className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-1">•</span>
+                    <span>Only public multiplayer rooms can be tracked</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-1">•</span>
+                    <span>Data updates automatically when users view challenges (4-minute cooldown)</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-1">•</span>
+                    <span>Use "Update All" to force refresh all active challenges (can be paused/cancelled)</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-1">•</span>
+                    <span>New challenges are automatically assigned to the current season (6-month cycles)</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-1">•</span>
+                    <span>Use "Manage Challenges" to edit names and rulesets for all challenges</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-1">•</span>
+                    <span>Ruleset names are auto-generated from selected mods and settings</span>
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Partners List */}
-            {loadingPartners ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto" />
+            {/* Enhanced Partners Management Section */}
+            <div className="glass-card-enhanced rounded-2xl p-8 border border-purple-200/60 bg-gradient-to-br from-purple-50/80 to-pink-50/80 backdrop-blur-lg col-span-1 lg:col-span-2">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
+                    <PartnersIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-neutral-800">Partners Management</h2>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    setShowPartnerForm(true);
+                    setEditingPartner(null);
+                    setPartnerForm({
+                      name: '',
+                      icon_url: '',
+                      link_url: '',
+                      description: '',
+                      is_active: true,
+                      display_order: partners.length
+                    });
+                  }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Partner
+                </button>
               </div>
-            ) : partners.length === 0 ? (
-              <div className="text-center py-8">
-                <PartnersIcon className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
-                <p className="text-neutral-500">No partners yet</p>
-                <p className="text-sm text-neutral-400 mt-1">Add your first partner!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {partners.map((partner) => (
-                  <div key={partner.id} className="p-4 bg-white/80 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={partner.icon_url}
-                          alt={partner.name}
-                          className="w-12 h-12 rounded-lg object-cover"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=9333ea&color=fff&size=96`;
-                          }}
+
+              {/* Enhanced Partner Form Modal */}
+              {showPartnerForm && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <div className="glass-card-enhanced rounded-3xl p-8 max-w-md w-full shadow-2xl border border-purple-200/60 bg-gradient-to-br from-white/95 to-purple-50/95">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
+                        <PartnersIcon className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-neutral-800">
+                        {editingPartner ? 'Edit Partner' : 'Add New Partner'}
+                      </h3>
+                    </div>
+                    
+                    <form onSubmit={handlePartnerSubmit} className="space-y-5">
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                          Partner Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={partnerForm.name}
+                          onChange={(e) => setPartnerForm({...partnerForm, name: e.target.value})}
+                          className="w-full px-4 py-3 border border-neutral-300/60 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all bg-white/80 backdrop-blur-sm"
+                          required
                         />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                          Icon URL *
+                        </label>
+                        <input
+                          type="url"
+                          value={partnerForm.icon_url}
+                          onChange={(e) => setPartnerForm({...partnerForm, icon_url: e.target.value})}
+                          className="w-full px-4 py-3 border border-neutral-300/60 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all bg-white/80 backdrop-blur-sm"
+                          placeholder="https://example.com/icon.png"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                          Link URL *
+                        </label>
+                        <input
+                          type="url"
+                          value={partnerForm.link_url}
+                          onChange={(e) => setPartnerForm({...partnerForm, link_url: e.target.value})}
+                          className="w-full px-4 py-3 border border-neutral-300/60 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all bg-white/80 backdrop-blur-sm"
+                          placeholder="https://example.com"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                          Description
+                        </label>
+                        <textarea
+                          value={partnerForm.description}
+                          onChange={(e) => setPartnerForm({...partnerForm, description: e.target.value})}
+                          className="w-full px-4 py-3 border border-neutral-300/60 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all bg-white/80 backdrop-blur-sm"
+                          rows="3"
+                          maxLength="500"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <h4 className="font-medium text-neutral-800">{partner.name}</h4>
-                          <div className="flex items-center gap-3 text-xs text-neutral-600">
-                            <a href={partner.link_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-purple-600">
-                              <ExternalLink className="w-3 h-3" />
-                              {new URL(partner.link_url).hostname}
-                            </a>
-                            <span>Order: {partner.display_order}</span>
-                            <span className={`px-2 py-0.5 rounded-full ${partner.is_active ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'}`}>
-                              {partner.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                          </div>
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
+                            Display Order
+                          </label>
+                          <input
+                            type="number"
+                            value={partnerForm.display_order}
+                            onChange={(e) => setPartnerForm({...partnerForm, display_order: parseInt(e.target.value) || 0})}
+                            className="w-full px-4 py-3 border border-neutral-300/60 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all bg-white/80 backdrop-blur-sm"
+                            min="0"
+                          />
+                        </div>
+                        
+                        <div className="flex items-end">
+                          <label className="flex items-center gap-3 w-full p-3 bg-purple-50/60 rounded-xl border border-purple-200/60 cursor-pointer hover:bg-purple-100/60 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={partnerForm.is_active}
+                              onChange={(e) => setPartnerForm({...partnerForm, is_active: e.target.checked})}
+                              className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                            />
+                            <span className="text-sm font-medium text-neutral-700">Active</span>
+                          </label>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex gap-3 mt-8">
                         <button
-                          onClick={() => handleTogglePartnerStatus(partner)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            partner.is_active 
-                              ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' 
-                              : 'bg-green-50 text-green-700 hover:bg-green-100'
-                          }`}
-                          title={partner.is_active ? 'Deactivate' : 'Activate'}
+                          type="submit"
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                         >
-                          {partner.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {editingPartner ? 'Update' : 'Create'} Partner
                         </button>
-                        
                         <button
+                          type="button"
                           onClick={() => {
-                            setEditingPartner(partner);
-                            setPartnerForm({
-                              name: partner.name,
-                              icon_url: partner.icon_url,
-                              link_url: partner.link_url,
-                              description: partner.description || '',
-                              is_active: partner.is_active,
-                              display_order: partner.display_order
-                            });
-                            setShowPartnerForm(true);
+                            setShowPartnerForm(false);
+                            setEditingPartner(null);
                           }}
-                          className="p-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                          className="flex-1 bg-gradient-to-r from-neutral-200 to-neutral-300 hover:from-neutral-300 hover:to-neutral-400 text-neutral-700 px-6 py-3 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                         >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        
-                        <button
-                          onClick={() => handleDeletePartner(partner.id)}
-                          className="p-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
+                          Cancel
                         </button>
                       </div>
-                    </div>
+                    </form>
                   </div>
-                ))}
-                
-                <div className="text-center pt-3 border-t border-neutral-200">
-                  <Link href="/partners">
-                    <span className="text-sm text-purple-600 hover:text-purple-700 font-medium cursor-pointer">
-                      View partners page →
-                    </span>
-                  </Link>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Enhanced Partners List */}
+              {loadingPartners ? (
+                <div className="text-center py-12 glass-card rounded-xl bg-white/40">
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
+                  <p className="text-neutral-600">Loading partners...</p>
+                </div>
+              ) : partners.length === 0 ? (
+                <div className="text-center py-12 glass-card rounded-xl bg-white/40">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-neutral-300 to-neutral-400 rounded-2xl flex items-center justify-center">
+                    <PartnersIcon className="w-8 h-8 text-white" />
+                  </div>
+                  <p className="text-neutral-600 font-medium mb-2">No partners yet</p>
+                  <p className="text-sm text-neutral-500">Add your first partner to get started!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {partners.map((partner) => (
+                    <div key={partner.id} className="glass-card rounded-xl p-6 bg-white/60 border border-neutral-200/60 hover:border-neutral-300/60 hover:shadow-lg transition-all">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <img
+                              src={partner.icon_url}
+                              alt={partner.name}
+                              className="w-16 h-16 rounded-xl object-cover shadow-lg"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=9333ea&color=fff&size=128`;
+                              }}
+                            />
+                            <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${partner.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-neutral-800 text-lg">{partner.name}</h4>
+                            <div className="flex items-center gap-4 text-sm text-neutral-600 mt-1">
+                              <a href={partner.link_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-purple-600 transition-colors">
+                                <ExternalLink className="w-4 h-4" />
+                                {new URL(partner.link_url).hostname}
+                              </a>
+                              <span className="flex items-center gap-1">
+                                <GripVertical className="w-4 h-4" />
+                                Order: {partner.display_order}
+                              </span>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${partner.is_active ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                                {partner.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+                            {partner.description && (
+                              <p className="text-sm text-neutral-600 mt-2 max-w-md">{partner.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleTogglePartnerStatus(partner)}
+                            className={`p-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                              partner.is_active 
+                                ? 'bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 hover:from-yellow-100 hover:to-amber-100' 
+                                : 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 hover:from-green-100 hover:to-emerald-100'
+                            }`}
+                            title={partner.is_active ? 'Deactivate' : 'Activate'}
+                          >
+                            {partner.is_active ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              setEditingPartner(partner);
+                              setPartnerForm({
+                                name: partner.name,
+                                icon_url: partner.icon_url,
+                                link_url: partner.link_url,
+                                description: partner.description || '',
+                                is_active: partner.is_active,
+                                display_order: partner.display_order
+                              });
+                              setShowPartnerForm(true);
+                            }}
+                            className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-xl hover:from-blue-100 hover:to-indigo-100 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                          >
+                            <Edit3 className="w-5 h-5" />
+                          </button>
+                          
+                          <button
+                            onClick={() => handleDeletePartner(partner.id)}
+                            className="p-3 bg-gradient-to-r from-red-50 to-pink-50 text-red-700 rounded-xl hover:from-red-100 hover:to-pink-100 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <div className="text-center pt-6 border-t border-purple-200/60">
+                    <Link href="/partners">
+                      <span className="text-sm text-purple-600 hover:text-purple-700 font-medium cursor-pointer flex items-center justify-center gap-2 hover:gap-3 transition-all">
+                        View partners page 
+                        <ArrowRight className="w-4 h-4" />
+                      </span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
         {/* Ruleset Manager Modal */}
         {showRulesetManager && selectedChallengeForRuleset && (
           <RulesetManager

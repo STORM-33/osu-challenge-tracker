@@ -13,7 +13,7 @@
 }
 
 @layer components {
-  /* Background image placeholder */
+  /* Background Effects */
   .bg-map-placeholder {
     @apply relative overflow-hidden;
   }
@@ -27,92 +27,23 @@
       radial-gradient(circle at 40% 20%, rgba(252, 231, 243, 0.1) 0%, transparent 50%);
   }
   
-  /* Glass morphism effect for cards - INCREASED TRANSPARENCY */
+  /* Glass Morphism Cards */
   .glass-card {
-    @apply backdrop-blur-md bg-white/60 border-2 border-white/50 shadow-lg;
+    @apply backdrop-blur-md bg-white/60 border border-white/50 shadow-lg;
   }
   
-  /* New tier for highly transparent nested elements */
   .glass-card-subtle {
-    @apply backdrop-blur-sm bg-white/30 border-2 border-white/40 shadow-sm;
+    @apply backdrop-blur-sm bg-white/30 border border-white/40 shadow-sm;
   }
   
-  /* Enhanced glass card with better depth - INCREASED TRANSPARENCY */
   .glass-card-enhanced {
-    @apply backdrop-blur-lg bg-white/40 border-2 border-white/60 shadow-2xl;
+    @apply backdrop-blur-lg bg-white/40 border border-white/60 shadow-2xl;
     box-shadow: 
       0 25px 50px -12px rgba(0, 0, 0, 0.15),
       0 0 0 1px rgba(255, 255, 255, 0.4) inset;
   }
   
-  /* GLOW EFFECT UTILITIES FOR TEXT AND ICONS */
-  
-  /* Base glow wrapper - creates the layered effect automatically */
-  .glow-text {
-    @apply relative;
-  }
-  
-  .glow-text::before {
-    content: attr(data-text);
-    @apply absolute inset-0 -z-10 text-white opacity-60 blur-sm pointer-events-none;
-    /* Inherit all text styles from parent */
-    font-size: inherit;
-    font-weight: inherit;
-    line-height: inherit;
-    font-family: inherit;
-    background: inherit;
-    -webkit-background-clip: inherit;
-    background-clip: inherit;
-    -webkit-text-fill-color: white;
-  }
-  
-  /* Icon glow wrapper */
-  .glow-icon {
-    @apply relative;
-  }
-  
-  .glow-icon::before {
-    content: '';
-    @apply absolute inset-0 -z-10 opacity-60 blur-sm;
-    /* Copy the icon using a white filter */
-    background: white;
-    mask: inherit;
-    -webkit-mask: inherit;
-  }
-  
-  /* Specialized glow variants */
-  .glow-header {
-    @apply relative;
-  }
-  
-  .glow-header::before {
-    content: attr(data-text);
-    @apply absolute inset-0 -z-10 text-white opacity-70 blur-sm pointer-events-none;
-    font-size: inherit;
-    font-weight: inherit;
-    line-height: inherit;
-    font-family: inherit;
-  }
-  
-  .glow-subtitle {
-    @apply relative;
-  }
-  
-  .glow-subtitle::before {
-    content: attr(data-text);
-    @apply absolute inset-0 -z-10 text-white opacity-60 blur-sm pointer-events-none;
-    font-size: inherit;
-    font-weight: inherit;
-    line-height: inherit;
-    font-family: inherit;
-  }
-  
-  /* Manual icon glow for complex cases */
-  .icon-with-glow {
-    @apply relative;
-  }
-  
-  /* Button styles */
+  /* Button Styles */
   .btn-primary {
     @apply bg-primary-500 hover:bg-primary-600 text-white font-medium px-4 py-2 rounded-full transition-all hover:shadow-lg transform hover:scale-105;
   }
@@ -121,7 +52,7 @@
     @apply bg-white/90 hover:bg-white text-neutral-700 font-medium px-4 py-2 rounded-full transition-all hover:shadow-lg border border-neutral-200 transform hover:scale-105;
   }
   
-  /* Challenge card specific styles - INCREASED TRANSPARENCY */
+  /* Challenge Card Specific */
   .challenge-card {
     @apply relative overflow-hidden rounded-2xl transition-all duration-300;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.6) 100%);
@@ -139,7 +70,7 @@
       0 0 0 1px rgba(255, 255, 255, 0.4) inset;
   }
   
-  /* Difficulty badge styles */
+  /* Difficulty Badges */
   .difficulty-easy {
     @apply text-green-700 bg-green-100 border-green-300;
   }
@@ -164,7 +95,7 @@
     @apply text-purple-700 bg-purple-100 border-purple-300;
   }
   
-  /* Gradient overlays for weekly/monthly challenges - INCREASED TRANSPARENCY */
+  /* Challenge Type Gradients */
   .weekly-gradient {
     background: linear-gradient(135deg, 
       rgba(59, 130, 246, 0.03) 0%, 
@@ -179,7 +110,7 @@
       rgba(243, 232, 255, 0.03) 100%);
   }
   
-  /* Status indicators */
+  /* Status Indicators */
   .status-indicator {
     @apply relative flex items-center gap-2;
   }
@@ -197,7 +128,7 @@
     @apply bg-red-500;
   }
   
-  /* Loading animations */
+  /* Loading Animations */
   .loading-shimmer {
     background: linear-gradient(90deg, 
       rgba(255, 255, 255, 0) 0%, 
@@ -211,7 +142,7 @@
     100% { transform: translateX(100%); }
   }
   
-  /* Hover effects for stats */
+  /* Interactive Elements */
   .stat-item {
     @apply transition-all duration-200;
   }
@@ -220,7 +151,7 @@
     @apply scale-110 transform;
   }
   
-  /* Enhanced shadows for depth */
+  /* Shadow Utilities */
   .shadow-soft {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
@@ -235,6 +166,7 @@
 }
 
 @layer utilities {
+  /* Text Utilities */
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -249,7 +181,7 @@
     overflow: hidden;
   }
   
-  /* Text shadows for better readability on light backgrounds */
+  /* Basic Text Shadows */
   .text-shadow-sm {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
@@ -262,59 +194,79 @@
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
   
-  /* WHITE GLOW UTILITY CLASSES */
-  
-  /* Simple text glow - uses text-shadow instead of pseudo-elements for simpler cases */
-  .text-glow {
+  /* Universal Adaptive Shadows - Works on any background */
+  .text-adaptive-shadow {
     text-shadow: 
-      0 0 10px rgba(255, 255, 255, 0.8),
-      0 0 20px rgba(255, 255, 255, 0.6),
-      0 0 30px rgba(255, 255, 255, 0.4);
+      0 1px 2px rgba(0, 0, 0, 0.9),
+      0 0 8px rgba(0, 0, 0, 0.7),
+      0 0 16px rgba(0, 0, 0, 0.5),
+      0 0 24px rgba(0, 0, 0, 0.3),
+      0 0 1px rgba(255, 255, 255, 0.8);
   }
   
-  .text-glow-sm {
+  .text-adaptive-shadow-sm {
     text-shadow: 
-      0 0 5px rgba(255, 255, 255, 0.7),
-      0 0 10px rgba(255, 255, 255, 0.5);
+      0 1px 1px rgba(0, 0, 0, 0.8),
+      0 0 6px rgba(0, 0, 0, 0.6),
+      0 0 12px rgba(0, 0, 0, 0.4),
+      0 0 1px rgba(255, 255, 255, 0.6);
   }
   
-  .text-glow-lg {
+  .text-adaptive-shadow-lg {
     text-shadow: 
-      0 0 15px rgba(255, 255, 255, 0.9),
-      0 0 30px rgba(255, 255, 255, 0.7),
-      0 0 45px rgba(255, 255, 255, 0.5);
+      0 2px 4px rgba(0, 0, 0, 0.9),
+      0 0 12px rgba(0, 0, 0, 0.8),
+      0 0 24px rgba(0, 0, 0, 0.6),
+      0 0 36px rgba(0, 0, 0, 0.4),
+      0 0 2px rgba(255, 255, 255, 0.9);
   }
   
-  /* Icon glow using drop-shadow */
-  .icon-glow {
+  /* Icon Adaptive Shadows */
+  .icon-adaptive-shadow {
     filter: 
-      drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))
-      drop-shadow(0 0 16px rgba(255, 255, 255, 0.6));
+      drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8))
+      drop-shadow(0 0 8px rgba(0, 0, 0, 0.6))
+      drop-shadow(0 0 16px rgba(0, 0, 0, 0.4));
   }
   
-  .icon-glow-sm {
+  .icon-adaptive-shadow-sm {
     filter: 
-      drop-shadow(0 0 4px rgba(255, 255, 255, 0.7))
-      drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+      drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7))
+      drop-shadow(0 0 6px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 10px rgba(0, 0, 0, 0.3));
   }
   
-  .icon-glow-lg {
+  .icon-adaptive-shadow-lg {
     filter: 
-      drop-shadow(0 0 12px rgba(255, 255, 255, 0.9))
-      drop-shadow(0 0 24px rgba(255, 255, 255, 0.7));
+      drop-shadow(0 2px 3px rgba(0, 0, 0, 0.8))
+      drop-shadow(0 0 12px rgba(0, 0, 0, 0.7))
+      drop-shadow(0 0 20px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 28px rgba(0, 0, 0, 0.3));
   }
   
-  /* Combined glow for elements with both text and icons */
-  .element-glow {
-    text-shadow: 
-      0 0 8px rgba(255, 255, 255, 0.8),
-      0 0 16px rgba(255, 255, 255, 0.6);
-    filter: 
-      drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))
-      drop-shadow(0 0 16px rgba(255, 255, 255, 0.6));
+  /* Gradient Text Utilities */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, #ec4899, #db2777);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   
-  /* Custom scrollbar styles */
+  .text-gradient-blue {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .text-gradient-purple {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Custom Scrollbar */
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
@@ -337,29 +289,7 @@
     background-color: rgba(156, 163, 175, 0.7);
   }
   
-  /* Gradient text utilities */
-  .text-gradient-primary {
-    background: linear-gradient(135deg, #ec4899, #db2777);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .text-gradient-blue {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .text-gradient-purple {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  /* Animation utilities */
+  /* Animation Utilities */
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
@@ -378,8 +308,48 @@
     to { box-shadow: 0 0 30px rgba(236, 72, 153, 0.4); }
   }
   
-  /* Focus styles */
+  /* Focus Styles */
   .focus-ring {
     @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+  
+  /* Utility Animations */
+  .animate-in {
+    animation: animateIn 0.3s ease-out;
+  }
+  
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .slide-in-from-right {
+    animation: slideInFromRight 0.3s ease-out;
+  }
+  
+  @keyframes slideInFromRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }

@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { auth } from '../lib/supabase';
 import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link as LinkIcon} from 'lucide-react';
 
-export default function Layout({ children, backgroundImage = 'https://cdn.discordapp.com/attachments/1337805789175222362/1390848472772640820/image.png?ex=6869c014&is=68686e94&hm=66ca9c05011c9d9c2cf3803628097d08af9d45947e20e6ddbbd0b6df30df6f86&' }) {
+export default function Layout({ children, backgroundImage = 'https://cdn.discordapp.com/attachments/1337805789175222362/1390848472772640820/image.png?ex=686a68d4&is=68691754&hm=2d8694a6e2ce59d179cbba2798d41070f48b64db06fc7b633fa5fb248cd1826a&' }) {
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

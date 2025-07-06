@@ -253,10 +253,10 @@ export default function Home() {
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <div className="relative">
-                    <Trophy className="w-8 h-8 text-primary-600 icon-glow" />
-                    <Sparkles className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1 icon-glow-sm" />
+                    <Trophy className="w-8 h-8 text-primary-600 icon-adaptive-shadow" />
+                    <Sparkles className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1" />
                   </div>
-                  <h1 className="text-4xl font-bold text-neutral-800 text-glow">
+                  <h1 className="text-4xl font-bold white text-neutral-800 text-white/90 text-adaptive-shadow">
                     Active Challenges
                   </h1>
                   {activeChallenges.length > 0 && (
@@ -265,7 +265,7 @@ export default function Home() {
                     </span>
                   )}
                 </div>
-                <p className="text-neutral-600 text-lg max-w-2xl text-glow-sm">
+                <p className="text-neutral-600 text-lg max-w-2xl text-white/85 text-adaptive-shadow">
                   Jump into any of our currently active challenges and compete with players worldwide for the top spots!
                 </p>
               </div>
@@ -273,12 +273,12 @@ export default function Home() {
               {/* About Challenges Button */}
               <div className="text-right flex-shrink-0 ml-8">
                 <Link href="/about-challengers">
-                  <button className="flex items-center gap-3 px-6 py-3 glass-card bg-gradient-to-r from-primary-50/80 to-purple-50/80 hover:glass-card-enhanced text-neutral-700 font-semibold rounded-full transition-all duration-200 transform hover:scale-105 border border-primary-200/60 hover:border-primary-300/60 shadow-sm hover:shadow-md backdrop-blur-md">
-                    <Info className="w-5 h-5 text-primary-600 icon-glow-sm" />
+                  <button className="flex items-center gap-3 px-6 py-3 glass-card from-primary-50/80 to-purple-50/80 hover:glass-card-enhanced text-neutral-700 font-semibold rounded-full transition-all duration-200 transform hover:scale-105 border border-primary-200/60 hover:border-primary-300/60 shadow-sm hover:shadow-md backdrop-blur-md">
+                    <Info className="w-5 h-5 text-primary-600" />
                     About Challengers
                   </button>
                 </Link>
-                <p className="text-sm text-neutral-500 mt-2 max-w-[200px] text-glow-sm">
+                <p className="text-sm text-neutral-500 mt-2 max-w-[200px] text-white/85 text-adaptive-shadow">
                   New here? Learn how challenges work!
                 </p>
               </div>
@@ -291,7 +291,7 @@ export default function Home() {
                 <div className="absolute top-4 right-4 z-10">
                   <div className="flex items-center gap-2 px-4 py-2 glass-card rounded-full border border-neutral-200/60 shadow-sm backdrop-blur-md">
                     <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                    <span className="text-sm text-neutral-600 font-medium">Loading challenges</span>
+                    <span className="text-sm text-white/80 text-adaptive-shadow font-medium">Loading challenges</span>
                   </div>
                 </div>
               )}
@@ -300,9 +300,9 @@ export default function Home() {
               {error ? (
                 <div className="glass-card-enhanced bg-gradient-to-br from-red-50/80 to-rose-100/80 rounded-3xl p-12 text-center border border-red-200/60 backdrop-blur-lg">
                   <div className="w-16 h-16 bg-red-200/80 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                    <AlertCircle className="w-8 h-8 text-red-600 icon-glow" />
+                    <AlertCircle className="w-8 h-8 text-red-600" />
                   </div>
-                  <p className="text-red-700 mb-6 font-medium text-glow">Failed to load challenges: {error.message}</p>
+                  <p className="text-red-700 mb-6 font-medium">Failed to load challenges: {error.message}</p>
                   <button 
                     onClick={refreshActiveChallenges}
                     className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
@@ -311,13 +311,13 @@ export default function Home() {
                   </button>
                 </div>
               ) : activeChallenges.length === 0 && !loading ? (
-                <div className="glass-card-enhanced bg-gradient-to-br from-neutral-50/80 to-neutral-100/80 rounded-3xl p-16 text-center border border-neutral-200/60 backdrop-blur-lg">
+                <div className="glass-card-enhanced rounded-3xl p-16 text-center border border-neutral-200/60 backdrop-blur-lg">
                   <div className="w-20 h-20 bg-neutral-200/80 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
-                    <Trophy className="w-10 h-10 text-neutral-400 icon-glow" />
+                    <Trophy className="w-10 h-10 text-neutral-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-neutral-700 mb-3 text-glow">No Active Challenges</h3>
-                  <p className="text-neutral-600 mb-2 text-glow-sm">Check back soon for new challenges!</p>
-                  <p className="text-sm text-neutral-500 text-glow-sm">New challenges are added regularly</p>
+                  <h3 className="text-xl font-bold text-neutral-700 mb-3">No Active Challenges</h3>
+                  <p className="text-neutral-600 mb-2">Check back soon for new challenges!</p>
+                  <p className="text-sm text-neutral-500">New challenges are added regularly</p>
                 </div>
               ) : (
                 <div className={`grid gap-8 transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
@@ -329,7 +329,7 @@ export default function Home() {
                       <Link key={challenge.id} href={`/challenges/${challenge.room_id}`}>
                         <div className={`transform transition-all duration-300 ${
                           isUpdating ? 'opacity-75' : ''
-                        } ${isStale ? 'ring-2 ring-yellow-200' : ''}`}>
+                        } ${false ? 'ring-2 ring-yellow-200' : ''}`}>
                           <ChallengeCard 
                             challenge={challenge} 
                             size="large"
@@ -350,8 +350,8 @@ export default function Home() {
           <div className="mt-20">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
               <div className="flex items-center gap-3">
-                <History className="w-8 h-8 text-neutral-600 icon-glow" />
-                <h2 className="text-4xl font-bold text-neutral-800 text-glow">
+                <History className="w-8 h-8 text-white/90 icon-adaptive-shadow" />
+                <h2 className="text-4xl font-bold text-white/90 text-adaptive-shadow">
                   Challenge History
                 </h2>
               </div>
@@ -366,10 +366,10 @@ export default function Home() {
                 <div className="glass-card-enhanced rounded-2xl p-6 border border-purple-200/60 backdrop-blur-lg shadow-lg">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-2xl font-bold text-neutral-800 mb-2 text-glow">
+                      <h3 className="text-2xl font-bold text-neutral-800 mb-2">
                         {selectedSeason.name}
                       </h3>
-                      <p className="text-neutral-600 text-glow-sm">
+                      <p className="text-neutral-600">
                         {formatDate(selectedSeason.start_date)} - {formatDate(selectedSeason.end_date)}
                       </p>
                     </div>
@@ -451,19 +451,19 @@ export default function Home() {
                               </td>
                               <td className="px-6 py-4 text-sm text-neutral-600">
                                 <div className="flex items-center gap-2">
-                                  <MapPin className="w-4 h-4 text-purple-500 icon-glow-sm" />
+                                  <MapPin className="w-4 h-4 text-purple-500" />
                                   <span className="font-medium">{challenge.playlists?.length || 0}</span>
                                 </div>
                               </td>
                               <td className="px-6 py-4 text-sm text-neutral-600">
                                 <div className="flex items-center gap-2">
-                                  <Users className="w-4 h-4 text-blue-500 icon-glow-sm" />
+                                  <Users className="w-4 h-4 text-blue-500" />
                                   <span className="font-medium">{challenge.participant_count || 0}</span>
                                 </div>
                               </td>
                               <td className="px-6 py-4 text-sm text-neutral-500">
                                 <div className="flex items-center gap-2">
-                                  <Clock className="w-4 h-4 text-gray-400 icon-glow-sm" />
+                                  <Clock className="w-4 h-4 text-gray-400" />
                                   {challenge.end_date ? formatDate(challenge.end_date) : 'N/A'}
                                 </div>
                               </td>
@@ -477,16 +477,16 @@ export default function Home() {
               ) : !loadingHistorical && (
                 <div className="glass-card-enhanced rounded-3xl p-16 text-center border border-neutral-200/60 shadow-xl backdrop-blur-lg">
                   <div className="w-20 h-20 bg-gradient-to-br from-gray-200/60 to-gray-300/60 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
-                    <History className="w-10 h-10 text-gray-500 icon-glow" />
+                    <History className="w-10 h-10 text-gray-500" />
                   </div>
-                  <h3 className="text-2xl font-bold text-neutral-700 mb-3 text-glow">No Historical Challenges</h3>
-                  <p className="text-neutral-600 mb-2 text-glow-sm">
+                  <h3 className="text-2xl font-bold text-neutral-700 mb-3">No Historical Challenges</h3>
+                  <p className="text-neutral-600 mb-2">
                     {selectedSeason?.is_current 
                       ? 'Completed challenges will appear here as they finish'
                       : 'This season had no completed challenges'
                     }
                   </p>
-                  <p className="text-sm text-neutral-500 text-glow-sm">
+                  <p className="text-sm text-neutral-500">
                     Challenge history helps track your progress over time
                   </p>
                 </div>
@@ -516,9 +516,9 @@ export default function Home() {
               <button
                 onClick={refreshActiveChallenges}
                 disabled={isValidating}
-                className="text-xs text-neutral-500 text-glow-sm hover:text-neutral-700 transition-colors flex items-center gap-1 mx-auto disabled:opacity-50 hover:bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm"
+                className="text-xs text-white/70 text-adaptive-shadow hover:text-neutral-700 transition-colors flex items-center gap-1 mx-auto disabled:opacity-50 hover:bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm"
               >
-                <RefreshCw className={`w-3 h-3 icon-glow-sm ${isValidating ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3 h-3 icon-adaptive-shadow ${isValidating ? 'animate-spin' : ''}`} />
                 Manual Refresh
               </button>
             </div>
