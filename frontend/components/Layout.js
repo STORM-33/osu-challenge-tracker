@@ -88,11 +88,19 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                 <rect width="100%" height="100%" fill="url(#gridFade)" />
               </mask>
               
-              <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+              {/* Regular grid pattern - every line */}
+              <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="translate(12, 12)">
                 <path d="M 24 0 L 0 0 0 24" fill="none" stroke="white" strokeWidth="0.5" opacity="0.6" filter="url(#gridGlow)"/>
               </pattern>
+              
+              {/* Thicker grid pattern - every 5th line with offset */}
+              <pattern id="thickGrid" width="120" height="120" patternUnits="userSpaceOnUse" patternTransform="translate(12, 12)">
+                <path d="M 120 0 L 0 0 0 120" fill="none" stroke="white" strokeWidth="1.5" opacity="0.4" filter="url(#gridGlow)"/>
+              </pattern>
             </defs>
+            {/* Layer the regular grid first, then the thick grid on top */}
             <rect width="100%" height="100%" fill="url(#grid)" mask="url(#fadeMask)" />
+            <rect width="100%" height="100%" fill="url(#thickGrid)" mask="url(#fadeMask)" />
           </svg>
         </div>
 
