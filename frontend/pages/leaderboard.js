@@ -185,7 +185,7 @@ export default function SeasonLeaderboardPage() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="glass-2 rounded-xl p-6 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all">
+              <div className="glass-1 rounded-xl p-6 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all">
                 <h4 className="font-bold text-white mb-3 flex items-center gap-2 text-shadow-adaptive">
                   <Zap className="w-5 h-5 text-white icon-shadow-adaptive-sm" />
                   Scoring System
@@ -206,7 +206,7 @@ export default function SeasonLeaderboardPage() {
                 </ul>
               </div>
               
-              <div className="glass-2 rounded-xl p-6 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all">
+              <div className="glass-1 rounded-xl p-6 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all">
                 <h4 className="font-bold text-white mb-3 flex items-center gap-2 text-shadow-adaptive">
                   <TrendingUp className="w-5 h-5 text-white icon-shadow-adaptive-sm" />
                   Rankings Update
