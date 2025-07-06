@@ -107,7 +107,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
               <img 
                 src="/logo.png" 
                 alt="osu!Challengers Nexus"
-                className="h-10 icon-shadow-adaptive"
+                className="h-16 icon-shadow-adaptive"
                 onError={(e) => {
                   // Fallback to text if logo doesn't load
                   e.target.style.display = 'none';
