@@ -68,21 +68,19 @@ async function handleCreatePartner(req, res) {
       body: {
         name: { required: true, type: 'string', maxLength: 255 },
         icon_url: { required: true, type: 'string' },
-        link_url: { required: true, type: 'string' },
         description: { type: 'string', maxLength: 500 },
         is_active: { type: 'boolean' },
         display_order: { type: 'number', min: 0 }
       }
     });
 
-    const { name, icon_url, link_url, description, is_active = true, display_order = 0 } = req.body;
+    const { name, icon_url, description, is_active = true, display_order = 0 } = req.body;
 
     // Validate URLs
     try {
       new URL(icon_url);
-      new URL(link_url);
     } catch (urlError) {
-      throw new Error('Invalid URL format for icon_url or link_url');
+      throw new Error('Invalid URL format for icon_url');
     }
 
     // Check for duplicate name
@@ -102,7 +100,6 @@ async function handleCreatePartner(req, res) {
       .insert({
         name,
         icon_url,
-        link_url,
         description: description || null,
         is_active,
         display_order,
@@ -137,7 +134,6 @@ async function handleUpdatePartner(req, res) {
         id: { required: true, type: 'number' },
         name: { type: 'string', maxLength: 255 },
         icon_url: { type: 'string' },
-        link_url: { type: 'string' },
         description: { type: 'string', maxLength: 500 },
         is_active: { type: 'boolean' },
         display_order: { type: 'number', min: 0 }
@@ -147,7 +143,7 @@ async function handleUpdatePartner(req, res) {
     const { id: partnerId, ...updateData } = req.body;
 
     const updates = {};
-    const allowedFields = ['name', 'icon_url', 'link_url', 'description', 'is_active', 'display_order'];
+    const allowedFields = ['name', 'icon_url', 'description', 'is_active', 'display_order'];
     
     // Only include fields that were provided
     allowedFields.forEach(field => {
@@ -166,14 +162,6 @@ async function handleUpdatePartner(req, res) {
         new URL(updates.icon_url);
       } catch {
         throw new Error('Invalid icon_url format');
-      }
-    }
-
-    if (updates.link_url) {
-      try {
-        new URL(updates.link_url);
-      } catch {
-        throw new Error('Invalid link_url format');
       }
     }
 
