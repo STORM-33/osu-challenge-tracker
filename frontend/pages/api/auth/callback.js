@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { handleSecureAuthCallback } from '../../../lib/secure-auth';
 
 async function handler(req, res) {
   const { code, state } = req.query;
@@ -217,4 +218,4 @@ async function handler(req, res) {
   }
 }
 
-export default handler;
+export default handleSecureAuthCallback;

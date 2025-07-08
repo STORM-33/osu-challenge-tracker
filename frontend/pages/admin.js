@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Layout from '../components/Layout';
 import { Plus, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw, Zap, Users, Calendar, Music, X, Pause, Play, Edit3, ArrowRight, Info, Link as PartnersIcon, ExternalLink, Trash2, Eye, EyeOff, GripVertical, Sparkles, BarChart3 } from 'lucide-react';
-import { auth } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 import { useRouter } from 'next/router';
 import RulesetManager from '../components/RulesetManager';
 import { Crown, Target } from 'lucide-react';
@@ -57,12 +57,11 @@ const generateRulesetDisplayName = (challenge) => {
 };
 
 export default function Admin() {
+  const { user, loading, isAdmin } = useAuth();
   const [roomId, setRoomId] = useState('');
   const [customName, setCustomName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading2, setLoading2] = useState(false);
   const [result, setResult] = useState(null);
-  const [user, setUser] = useState(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeChallenges, setActiveChallenges] = useState([]);
   const [updatingChallenges, setUpdatingChallenges] = useState(new Set());
   const [showRulesetManager, setShowRulesetManager] = useState(false);
@@ -95,37 +94,22 @@ export default function Admin() {
   const router = useRouter();
 
   useEffect(() => {
-    checkAdminAccess();
-  }, []);
-
-  useEffect(() => {
-    if (user?.admin) {
+    if (!loading) { // Wait for auth to load
+      if (!user) {
+        router.push('/');
+        return;
+      }
+      
+      if (!user.admin) {
+        router.push('/');
+        return;
+      }
+      
+      // If we get here, user is admin - load data
       loadActiveChallenges();
       loadPartners();
     }
-  }, [user]);
-
-  const checkAdminAccess = async () => {
-    try {
-      const userData = await auth.getCurrentUser();
-      if (!userData) {
-        router.push('/');
-        return;
-      }
-      
-      if (!userData.admin) {
-        router.push('/');
-        return;
-      }
-      
-      setUser(userData);
-    } catch (error) {
-      console.error('Auth check error:', error);
-      router.push('/');
-    } finally {
-      setCheckingAuth(false);
-    }
-  };
+  }, [user, loading, router]);
 
   const loadActiveChallenges = async () => {
     try {
@@ -653,7 +637,7 @@ export default function Admin() {
     }
   };
 
-  if (checkingAuth) {
+  if (loading) {
     return (
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
@@ -664,6 +648,10 @@ export default function Admin() {
         </div>
       </Layout>
     );
+  }
+
+  if (!user || !user.admin) {
+    return null;
   }
 
   return (

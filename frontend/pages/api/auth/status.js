@@ -1,48 +1,29 @@
-import { supabase } from '../../../lib/supabase';
+import { withOptionalAuth } from '../../../lib/auth-middleware';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  res.setHeader('Cache-Control', 'private, max-age=300'); // 5 min cache
+  res.setHeader('Cache-Control', 'private, max-age=300');
 
   try {
-    // Get user ID from HttpOnly cookie
-    const userId = req.cookies.osu_session;
-    
-    if (!userId) {
+    if (!req.user) {
       return res.status(200).json({ 
         authenticated: false, 
         user: null 
       });
     }
 
-    // Fetch user from database
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', parseInt(userId))
-      .single();
-
-    if (error || !user) {
-      console.error('Auth status error:', error);
-      return res.status(200).json({ 
-        authenticated: false, 
-        user: null 
-      });
-    }
-
-    // Return user data (excluding sensitive info if needed)
     return res.status(200).json({
       authenticated: true,
       user: {
-        id: user.id,
-        username: user.username,
-        avatar_url: user.avatar_url,
-        country: user.country,
-        admin: user.admin,
-        osu_id: user.osu_id
+        id: req.user.id,
+        username: req.user.username,
+        avatar_url: req.user.avatar_url,
+        country: req.user.country,
+        admin: req.user.admin,
+        osu_id: req.user.osu_id
       }
     });
 
@@ -56,4 +37,4 @@ async function handler(req, res) {
   }
 }
 
-export default handler;
+export default withOptionalAuth(handler);

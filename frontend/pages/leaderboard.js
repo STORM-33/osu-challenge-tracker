@@ -5,33 +5,17 @@ import Loading from '../components/Loading';
 import SeasonLeaderboard from '../components/SeasonLeaderboard';
 import SeasonSelector from '../components/SeasonSelector';
 import { Trophy, Info, BookOpen, TrendingUp, Zap, Target, BarChart3 } from 'lucide-react';
+import { useAuth } from '../lib/AuthContext';
 
 export default function SeasonLeaderboardPage() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user: currentUser, loading: authLoading } = useAuth();
+  
+  
   const [selectedSeason, setSelectedSeason] = useState(null);
   const [seasons, setSeasons] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Fetch user authentication status
-  useEffect(() => {
-    const fetchUserStatus = async () => {
-      try {
-        const response = await fetch('/api/auth/status');
-        const data = await response.json();
-        
-        if (data.authenticated) {
-          setCurrentUser(data.user);
-        }
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-      }
-    };
-
-    fetchUserStatus();
-  }, []);
-
-  // Fetch seasons
   useEffect(() => {
     const fetchSeasons = async () => {
       try {
@@ -59,7 +43,8 @@ export default function SeasonLeaderboardPage() {
     fetchSeasons();
   }, []);
 
-  if (loading) {
+  // ✅ UPDATED: Show loading while auth or seasons are loading
+  if (authLoading || loading) {
     return (
       <Layout>
         <Loading.FullPage message="Loading season data..." />
@@ -89,20 +74,6 @@ export default function SeasonLeaderboardPage() {
                   Rankings across all challenges in the season. Climb the ranks by participating in more challenges!
                 </p>
               </div>
-              
-              {!currentUser && (
-                <div className="glass-3 rounded-2xl p-6">
-                  <p className="text-sm text-white/80 mb-3 font-medium">
-                    Want to see your position?
-                  </p>
-                  <button
-                    onClick={() => router.push('/api/auth/login')}
-                    className="btn-primary"
-                  >
-                    Login with osu!
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* Season Selector */}
@@ -167,7 +138,7 @@ export default function SeasonLeaderboardPage() {
             </div>
           )}
 
-          {/* Leaderboard */}
+          {/* ✅ UPDATED: Pass currentUser from useAuth */}
           <SeasonLeaderboard 
             currentUser={currentUser}
             selectedSeason={selectedSeason}

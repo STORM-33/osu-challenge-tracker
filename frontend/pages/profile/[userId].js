@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
-import Loading from '../../components/Loading'; // Import the new loading component
+import Loading from '../../components/Loading'; 
+import { useAuth } from '../../lib/AuthContext';
 import { 
   Trophy, Target, Calendar, User, Award, BarChart3, 
   Sparkles, Flame, Zap, ArrowLeft, ExternalLink, TrendingUp,
@@ -10,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export default function UserProfile() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [profileUser, setProfileUser] = useState(null);
   const [allScores, setAllScores] = useState([]);
   const [allBestPerformances, setAllBestPerformances] = useState([]);
@@ -26,22 +27,13 @@ export default function UserProfile() {
   useEffect(() => {
     if (!userId) return;
     loadUserData();
-  }, [userId]); // Removed activeTab from dependency array
+  }, [userId]);
 
   const loadUserData = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      // Get current authenticated user
-      const authResponse = await fetch('/api/auth/status');
-      const authData = await authResponse.json();
       
-      if (authData.authenticated) {
-        setCurrentUser(authData.user);
-      }
-
-      // Get profile user data without tab-specific parameters
       const profileResponse = await fetch(`/api/user/profile/${userId}`);
       
       if (!profileResponse.ok) {
@@ -143,7 +135,7 @@ export default function UserProfile() {
 
   const isOwnProfile = currentUser && profileUser && currentUser.id === profileUser.id;
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <Layout>
         <Loading.FullPage message="Loading profile..." />

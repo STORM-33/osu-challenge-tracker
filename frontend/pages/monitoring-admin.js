@@ -25,12 +25,12 @@ import {
 } from 'lucide-react';
 import { useAPI } from '../hooks/useAPI';
 import { auth } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 import { formatDate } from '../lib/date-utils';
 
 export default function AdminMonitoringPage() {
   const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, isAdmin } = useAuth();
 
   // API calls for data
   const { data: healthData, error: healthError } = useAPI('/api/health', {
@@ -58,26 +58,14 @@ export default function AdminMonitoringPage() {
     refreshInterval: 30000 // Update every 30 seconds
   });
 
-  // Check admin status on mount
   useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const user = await auth.getCurrentUser();
-        if (!user || !user.admin) {
-          router.push('/');
-          return;
-        }
-        setIsAdmin(true);
-      } catch (error) {
-        console.error('Admin check failed:', error);
+    if (!loading) {
+      if (!user || !user.admin) {
         router.push('/');
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
-
-    checkAdmin();
-  }, [router]);
+    }
+  }, [user, loading, router]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -140,8 +128,8 @@ export default function AdminMonitoringPage() {
     );
   }
 
-  if (!isAdmin) {
-    return null; // Will redirect
+  if (!user || !user.admin) {
+    return null;
   }
 
   const relevantAlerts = getRelevantAlerts(apiCallData?.alerts);

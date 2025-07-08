@@ -376,7 +376,7 @@ export async function handleSecureAuthCallback(req, res) {
     
     // Redirect to profile page
     console.log('↩️ Redirecting to profile...');
-    res.redirect('/profile');
+    res.redirect(`/profile/${dbUser.id}`);
     
   } catch (error) {
     console.error('🚨 Secure auth callback error:', error);

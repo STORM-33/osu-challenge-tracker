@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import '../styles/globals.css';
 import { useEffect } from 'react';
+import { AuthProvider } from '../lib/AuthContext';
 
 function MyApp({ Component, pageProps }) {
   useEffect(() => {
@@ -9,7 +10,7 @@ function MyApp({ Component, pageProps }) {
   }, []);
 
   return (
-    <>
+    <AuthProvider> 
       <Head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
@@ -19,7 +20,7 @@ function MyApp({ Component, pageProps }) {
         />
       </Head>
       <Component {...pageProps} />
-    </>
+    </AuthProvider>
   );
 }
 

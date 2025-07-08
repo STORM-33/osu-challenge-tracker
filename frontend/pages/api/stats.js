@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { withOptionalAuth } from '../../lib/auth-middleware';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -129,4 +130,4 @@ async function handler(req, res) {
   }
 }
 
-export default handler;
+export default withOptionalAuth(handler);

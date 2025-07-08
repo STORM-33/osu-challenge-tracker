@@ -3,13 +3,11 @@ import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import DonationForm from '../components/DonationForm';
 import { Heart, Sparkles, Shield, Zap, Star, Coffee, Pizza, Rocket } from 'lucide-react';
-import { auth } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function DonatePage() {
-  const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, isAdmin } = useAuth();
   const [selectedTier, setSelectedTier] = useState(null);
 
   const donationTiers = [
@@ -46,21 +44,6 @@ export default function DonatePage() {
       color: 'from-blue-400 to-cyan-500'
     }
   ];
-
-  useEffect(() => {
-    checkUser();
-  }, []);
-
-  const checkUser = async () => {
-    try {
-      const userData = await auth.getCurrentUser();
-      setUser(userData);
-    } catch (error) {
-      console.error('Error checking user:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDonationComplete = (paymentIntent) => {
     // Redirect to thank you page with payment details
@@ -192,7 +175,7 @@ export default function DonatePage() {
           <div>
             <h2 className="text-2xl font-bold text-neutral-800 mb-6">Payment Details</h2>
             
-            {!loading && (
+            {(
               <DonationForm
                 user={user}
                 selectedAmount={selectedTier?.amount}

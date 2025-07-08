@@ -1,49 +1,22 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { auth } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext'; // Replace the supabase import
 import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu } from 'lucide-react';
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, loading, isAdmin, signOut } = useAuth(); // Replace useState calls
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    checkUser();
-  }, []);
 
   // Close mobile menu when route changes
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [router.pathname]);
 
-  const checkUser = async () => {
-    try {
-      const userData = await auth.getCurrentUser();
-      
-      if (userData) {
-        setUser(userData);
-        setIsAdmin(userData?.admin || false);
-      } else {
-        setUser(null);
-        setIsAdmin(false);
-      }
-    } catch (error) {
-      setUser(null);
-      setIsAdmin(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLogout = async () => {
     try {
-      await auth.signOut();
-      setUser(null);
-      setIsAdmin(false);
+      await signOut(); // Use context method
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
