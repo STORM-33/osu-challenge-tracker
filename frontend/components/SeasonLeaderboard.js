@@ -5,22 +5,24 @@ import { Trophy, Crown, Star, Target, Users, TrendingUp, Award, Medal, Zap, Spar
 const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [userPosition, setUserPosition] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('full'); // 'full' or 'context'
   const [hasMore, setHasMore] = useState(false);
   const [currentOffset, setCurrentOffset] = useState(0);
   const [pageSize] = useState(50); // Fixed page size for load more
-  const [initialLoad, setInitialLoad] = useState(true);
   const router = useRouter();
 
-  const fetchLeaderboard = async (isLoadMore = false) => {
+  const fetchLeaderboard = async (isLoadMore = false, newViewMode = null) => {
+    const mode = newViewMode || viewMode;
+    
     try {
       if (isLoadMore) {
         setLoadingMore(true);
       } else {
-        setLoading(true);
+        setLeaderboardLoading(true);
         setError(null);
       }
 
@@ -28,7 +30,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
       if (selectedSeason?.id) params.append('seasonId', selectedSeason.id);
       if (currentUser?.id) params.append('userId', currentUser.id);
       
-      if (viewMode === 'context') {
+      if (mode === 'context') {
         params.append('withUserContext', 'true');
         params.append('contextRange', '5');
       } else {
@@ -59,7 +61,6 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
         setLeaderboard(data.leaderboard);
         // Set currentOffset to the actual number of records loaded (for proper pagination)
         setCurrentOffset(data.leaderboard.length);
-        setInitialLoad(false);
       }
 
       setUserPosition(data.userPosition);
@@ -69,7 +70,8 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
       console.error('Error fetching season leaderboard:', err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setLeaderboardLoading(false);
       setLoadingMore(false);
     }
   };
@@ -79,12 +81,19 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
     await fetchLeaderboard(true);
   };
 
-  useEffect(() => {
-    // Reset pagination state when season or view mode changes
+  const handleViewModeChange = (newMode) => {
+    if (newMode === viewMode) return;
+    
+    setViewMode(newMode);
     setCurrentOffset(0);
-    setInitialLoad(true);
+    fetchLeaderboard(false, newMode);
+  };
+
+  useEffect(() => {
+    // Only fetch on season/user change, not viewMode change
+    setCurrentOffset(0);
     fetchLeaderboard();
-  }, [selectedSeason, currentUser, viewMode]);
+  }, [selectedSeason, currentUser]);
 
   const formatNumber = (num) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -101,18 +110,18 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
   };
 
   const getAccuracyBorder = (accuracy) => {
-  if (accuracy >= 98) return 'acc-badge-purple';
-  if (accuracy >= 95) return 'acc-badge-green';
-  if (accuracy >= 90) return 'acc-badge-blue';
-  if (accuracy >= 85) return 'acc-badge-yellow';
-  return 'acc-badge-red';
-};
+    if (accuracy >= 98) return 'acc-badge-purple';
+    if (accuracy >= 95) return 'acc-badge-green';
+    if (accuracy >= 90) return 'acc-badge-blue';
+    if (accuracy >= 85) return 'acc-badge-yellow';
+    return 'acc-badge-red';
+  };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="space-y-6">
         {/* User Stats Loading Skeleton */}
-        <div className="glass-card-enhanced rounded-2xl shadow-lg border border-gray-200 p-6">
+        <div className="glass-1 rounded-2xl p-6">
           <div className="animate-pulse">
             <div className="h-6 bg-gray-200/60 rounded w-32 mb-4"></div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -124,7 +133,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
         </div>
         
         {/* Leaderboard Loading Skeleton */}
-        <div className="glass-card-enhanced rounded-2xl shadow-xl border border-gray-200 p-12">
+        <div className="glass-1 rounded-2xl p-12">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-gray-200/60 rounded-lg w-1/3"></div>
             {[...Array(10)].map((_, i) => (
@@ -145,7 +154,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
 
   if (error) {
     return (
-      <div className="glass-card-enhanced rounded-3xl shadow-xl border border-red-200 p-12 text-center">
+      <div className="glass-1 rounded-3xl p-12 text-center">
         <Trophy className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <p className="text-red-600 mb-4">Error loading leaderboard: {error}</p>
         <button 
@@ -162,34 +171,35 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
     <div className="space-y-6">
       {/* User Performance Panel */}
       {userPosition && (
-        <div className="glass-1 rounded-2xl p-6 mb-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg icon-container-blue">
-              <User className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white text-shadow-adaptive-sm">Your Performance</h3>
-            </div>
-          </div>
-          
+        <div className="mb-6">
+          <h3 className="text-2xl font-bold text-white text-shadow-adaptive mb-4 flex items-center gap-2">
+            <User className="w-7 h-7 icon-shadow-adaptive-sm" />
+            Your Performance
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="glass-2 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
-              <p className="text-xs text-white/90 font-medium mb-1 uppercase tracking-wide text-shadow-adaptive">Your Rank</p>
-              <p className="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg">
+            <div className="glass-1 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-purple">
+              <p className="text-xs text-white/90 font-medium mb-2 uppercase tracking-wide text-shadow-adaptive">Your Rank</p>
+              <p className="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-purple">
                 #{userPosition.user_position}
               </p>
             </div>
-            <div className="glass-2 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
-              <p className="text-xs text-white/90 font-medium mb-1 uppercase tracking-wide text-shadow-adaptive">Total Score</p>
-              <p className="text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent drop-shadow-lg">{formatNumber(userPosition.total_score)}</p>
+            <div className="glass-1 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-green">
+              <p className="text-xs text-white/90 font-medium mb-2 uppercase tracking-wide text-shadow-adaptive">Total Score</p>
+              <p className="text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-green">
+                {formatNumber(userPosition.total_score)}
+              </p>
             </div>
-            <div className="glass-2 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
-              <p className="text-xs text-white/90 font-medium mb-1 uppercase tracking-wide text-shadow-adaptive">Challenges</p>
-              <p className="text-3xl font-black bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent drop-shadow-lg">{userPosition.challenges_participated}</p>
+            <div className="glass-1 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-orange">
+              <p className="text-xs text-white/90 font-medium mb-2 uppercase tracking-wide text-shadow-adaptive">Challenges</p>
+              <p className="text-3xl font-black bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-orange">
+                {userPosition.challenges_participated}
+              </p>
             </div>
-            <div className="glass-2 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
-              <p className="text-xs text-white/90 font-medium mb-1 uppercase tracking-wide text-shadow-adaptive">Top</p>
-              <p className="text-3xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-lg">{Math.max(1, Math.round(100 - userPosition.percentile))}%</p>
+            <div className="glass-1 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-blue">
+              <p className="text-xs text-white/90 font-medium mb-2 uppercase tracking-wide text-shadow-adaptive">Top</p>
+              <p className="text-3xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-blue">
+                {Math.max(1, Math.round(100 - userPosition.percentile))}%
+              </p>
             </div>
           </div>
         </div>
@@ -198,51 +208,47 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
       {/* Leaderboard Container */}
       <div>
         <div className="glass-1 rounded-2xl shadow-xl overflow-hidden">
-        {/* Header Card */}
-        <div className="p-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold text-white flex items-center gap-3 text-shadow-adaptive">
-                <Trophy className="w-8 h-8 text-white icon-shadow-adaptive" />
-                Season Rankings
-              </h2>
-              {selectedSeason && (
-                <p className="text-white/90 mt-1 text-shadow-adaptive-sm">
-                  {selectedSeason.name} • {leaderboard.length} participants shown
-                  {hasMore && ' (more available)'}
-                </p>
+          {/* Header Card */}
+          <div className="p-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-white flex items-center gap-3 text-shadow-adaptive">
+                  <Trophy className="w-8 h-8 text-white icon-shadow-adaptive" />
+                  Season Rankings
+                </h2>
+                {selectedSeason && (
+                  <p className="text-white/90 mt-1 text-shadow-adaptive-sm">
+                    {selectedSeason.name} • {leaderboard.length} participants shown
+                    {hasMore && ' (more available)'}
+                  </p>
+                )}
+              </div>
+              
+              {/* View Mode Slider */}
+              {currentUser && (
+                <div className="view-mode-slider">
+                  <div className="slider-track">
+                    <div className={`slider-thumb ${viewMode === 'context' ? 'slider-thumb-right' : ''}`} />
+                    <button
+                      onClick={() => handleViewModeChange('full')}
+                      className={`slider-option ${viewMode === 'full' ? 'slider-option-active' : ''}`}
+                    >
+                      Full Rankings
+                    </button>
+                    <button
+                      onClick={() => handleViewModeChange('context')}
+                      className={`slider-option ${viewMode === 'context' ? 'slider-option-active' : ''}`}
+                    >
+                      Around Me
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
-            
-            {currentUser && (
-              <div className="glass-2 rounded-xl shadow-sm p-1">
-                <button
-                  onClick={() => setViewMode('full')}
-                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                    viewMode === 'full' 
-                      ? 'btn-primary' 
-                      : 'text-white/90 hover:text-white text-shadow-adaptive'
-                  }`}
-                >
-                  Full Rankings
-                </button>
-                <button
-                  onClick={() => setViewMode('context')}
-                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                    viewMode === 'context' 
-                      ? 'btn-primary' 
-                      : 'text-white/90 hover:text-white text-shadow-adaptive'
-                  }`}
-                >
-                  Around Me
-                </button>
-              </div>
-            )}
           </div>
-        </div>
 
           {/* Podium Section for Top 3 */}
-          {leaderboard.length >= 3 && viewMode === 'full' && (
+          {leaderboard.length >= 3 && viewMode === 'full' && !leaderboardLoading && (
             <div className="podium-glass-2-bg p-8 border-t border-white/10">
               <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
                 {/* 2nd Place */}
@@ -319,7 +325,22 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
           
           {/* Main Leaderboard */}
           <div className="shadow-xl overflow-hidden">
-            {leaderboard.length === 0 ? (
+            {leaderboardLoading ? (
+              <div className="p-8">
+                <div className="animate-pulse space-y-4">
+                  {[...Array(10)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-gray-200/60 rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200/60 rounded w-1/4"></div>
+                        <div className="h-3 bg-gray-200/60 rounded w-1/6"></div>
+                      </div>
+                      <div className="h-6 bg-gray-200/60 rounded w-24"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : leaderboard.length === 0 ? (
               <div className="text-center py-16">
                 <Trophy className="w-12 h-12 text-white/50 mx-auto mb-4" />
                 <p className="text-white/70 text-shadow-adaptive-sm">No participants found for this season.</p>
@@ -392,7 +413,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                       {/* Stats */}
                       <div className="flex items-center gap-6">
                         {/* Accuracy Badge */}
-                        <div className={`px-3 py-1.5 bg-gradient-to-r ${getAccuracyGradient(user.average_accuracy)} ${getAccuracyBorder(user.average_accuracy)} text-white rounded-full font-bold text-sm shadow-md`}>
+                        <div className={`w-[72px] py-1.5 bg-gradient-to-r ${getAccuracyGradient(user.average_accuracy)} ${getAccuracyBorder(user.average_accuracy)} text-white rounded-full font-bold text-sm shadow-md flex items-center justify-center`}>
                           {user.average_accuracy?.toFixed(1)}%
                         </div>
 
@@ -411,7 +432,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
           </div>
 
           {/* Load More Button */}
-          {viewMode === 'full' && hasMore && (
+          {viewMode === 'full' && hasMore && !leaderboardLoading && (
             <div className="p-6 text-center border-t border-white/20">
               <button
                 onClick={handleLoadMore}
@@ -435,7 +456,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
           )}
 
           {/* End of results indicator */}
-          {viewMode === 'full' && !hasMore && leaderboard.length > 50 && (
+          {viewMode === 'full' && !hasMore && leaderboard.length > 50 && !leaderboardLoading && (
             <div className="p-6 text-center border-t border-white/20">
               <div className="flex items-center justify-center gap-2 text-white/90">
                 <Trophy className="w-4 h-4 icon-shadow-adaptive-sm" />

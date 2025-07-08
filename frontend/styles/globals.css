@@ -514,4 +514,164 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  .text-outline-purple {
+    color: white;
+    -webkit-text-stroke: 2px rgba(196, 181, 253, 1);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .text-outline-green {
+    color: white;
+    -webkit-text-stroke: 2px rgba(134, 239, 172, 1);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .text-outline-orange {
+    color: white;
+    -webkit-text-stroke: 2px rgba(252, 211, 77, 1);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .text-outline-blue {
+    color: white;
+    -webkit-text-stroke: 2px rgba(147, 197, 253, 1);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Performance card glow effects - similar to icon containers but for larger cards */
+  .performance-card-purple {
+    border: 3px solid rgba(196, 181, 253, 0.3);
+    box-shadow: 0 0 8px rgba(196, 181, 253, 0.2);
+  }
+
+  .performance-card-purple:hover {
+    border: 3px solid rgba(196, 181, 253, 0.5);
+    box-shadow: 0 0 12px rgba(196, 181, 253, 0.4);
+  }
+
+  .performance-card-green {
+    border: 3px solid rgba(134, 239, 172, 0.3);
+    box-shadow: 0 0 8px rgba(134, 239, 172, 0.2);
+  }
+
+  .performance-card-green:hover {
+    border: 3px solid rgba(134, 239, 172, 0.5);
+    box-shadow: 0 0 12px rgba(134, 239, 172, 0.4);
+  }
+
+  .performance-card-orange {
+    border: 3px solid rgba(252, 211, 77, 0.3);
+    box-shadow: 0 0 8px rgba(252, 211, 77, 0.2);
+  }
+
+  .performance-card-orange:hover {
+    border: 3px solid rgba(252, 211, 77, 0.5);
+    box-shadow: 0 0 12px rgba(252, 211, 77, 0.4);
+  }
+
+  .performance-card-blue {
+    border: 3px solid rgba(147, 197, 253, 0.3);
+    box-shadow: 0 0 8px rgba(147, 197, 253, 0.2);
+  }
+
+  .performance-card-blue:hover {
+    border: 3px solid rgba(147, 197, 253, 0.5);
+    box-shadow: 0 0 12px rgba(147, 197, 253, 0.4);
+  }
+
+  /* Text glow effects */
+  .text-glow-purple {
+    filter: 
+      drop-shadow(0 0 4px rgba(196, 181, 253, 0.4))
+      drop-shadow(0 0 8px rgba(196, 181, 253, 0.2))
+      drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+
+  .text-glow-green {
+    filter: 
+      drop-shadow(0 0 4px rgba(134, 239, 172, 0.4))
+      drop-shadow(0 0 8px rgba(134, 239, 172, 0.2))
+      drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+
+  .text-glow-orange {
+    filter: 
+      drop-shadow(0 0 4px rgba(252, 211, 77, 0.4))
+      drop-shadow(0 0 8px rgba(252, 211, 77, 0.2))
+      drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+
+  .text-glow-blue {
+    filter: 
+      drop-shadow(0 0 4px rgba(147, 197, 253, 0.4))
+      drop-shadow(0 0 8px rgba(147, 197, 253, 0.2))
+      drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+
+  /* View Mode Slider Toggle */
+  .view-mode-slider {
+    position: relative;
+  }
+
+  .slider-track {
+    @apply glass-2 rounded-full p-1 flex relative;
+    min-width: 220px;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .slider-thumb {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    right: 50%;
+    background: linear-gradient(to right, #ec4899, #db2777);
+    border-radius: 9999px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+      0 0 15px rgba(236, 72, 153, 0.4),
+      0 4px 8px rgba(0, 0, 0, 0.2),
+      0 2px 4px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .slider-thumb-right {
+    left: 50%;
+    right: 4px;
+  }
+
+  .slider-option {
+    @apply relative z-10 px-4 py-2 rounded-full font-medium transition-all duration-300;
+    flex: 1;
+    text-align: center;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .slider-option:hover {
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.5),
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .slider-option-active {
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.6),
+      0 2px 4px rgba(0, 0, 0, 0.5),
+      0 4px 8px rgba(0, 0, 0, 0.4),
+      0 0 8px rgba(255, 255, 255, 0.3);
+  }
 }
