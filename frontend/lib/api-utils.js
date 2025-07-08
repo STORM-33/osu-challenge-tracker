@@ -281,7 +281,36 @@ export function validateRequest(req, schema) {
         }
 
         if (value !== undefined && value !== null && value !== '') {
-          if (rules.type && typeof value !== rules.type) {
+          // ✅ FIXED: Proper array type validation
+          if (rules.type === 'array') {
+            if (!Array.isArray(value)) {
+              errors.push(`Field '${field}' must be of type array`);
+              continue;
+            }
+            
+            // Array-specific validations
+            if (rules.minItems && value.length < rules.minItems) {
+              errors.push(`Field '${field}' must have at least ${rules.minItems} items`);
+            }
+            if (rules.maxItems && value.length > rules.maxItems) {
+              errors.push(`Field '${field}' must have at most ${rules.maxItems} items`);
+            }
+            
+            // Validate array item types if specified
+            if (rules.itemType) {
+              const invalidItems = value.filter(item => {
+                if (rules.itemType === 'number') {
+                  return typeof item !== 'number' || !Number.isFinite(item);
+                }
+                return typeof item !== rules.itemType;
+              });
+              
+              if (invalidItems.length > 0) {
+                errors.push(`Field '${field}' array items must be of type ${rules.itemType}`);
+              }
+            }
+          } else if (rules.type && typeof value !== rules.type) {
+            // ✅ FIXED: Regular type validation (excluding arrays which are handled above)
             errors.push(`Field '${field}' must be of type ${rules.type}`);
             continue;
           }
@@ -306,20 +335,6 @@ export function validateRequest(req, schema) {
             }
             if (rules.max !== undefined && value > rules.max) {
               errors.push(`Field '${field}' must be at most ${rules.max}`);
-            }
-          }
-
-          // Array validations
-          if (rules.type === 'array') {
-            if (!Array.isArray(value)) {
-              errors.push(`Field '${field}' must be an array`);
-            } else {
-              if (rules.minItems && value.length < rules.minItems) {
-                errors.push(`Field '${field}' must have at least ${rules.minItems} items`);
-              }
-              if (rules.maxItems && value.length > rules.maxItems) {
-                errors.push(`Field '${field}' must have at most ${rules.maxItems} items`);
-              }
             }
           }
         }

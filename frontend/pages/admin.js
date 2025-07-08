@@ -76,7 +76,6 @@ export default function Admin() {
   const [partnerForm, setPartnerForm] = useState({
     name: '',
     icon_url: '',
-    link_url: '',
     description: '',
     is_active: true,
     display_order: 0
@@ -229,7 +228,6 @@ export default function Admin() {
         setPartnerForm({
           name: '',
           icon_url: '',
-          link_url: '',
           description: '',
           is_active: true,
           display_order: 0
@@ -305,9 +303,14 @@ export default function Admin() {
       // Ensure partnerId is a number and send as array
       const partnerIdNumber = typeof partnerId === 'string' ? parseInt(partnerId) : partnerId;
       
+      // Validate that we have a valid number
+      if (isNaN(partnerIdNumber) || partnerIdNumber <= 0) {
+        throw new Error('Invalid partner ID');
+      }
+      
       const requestBody = {
         operation: 'delete',
-        partnerIds: [partnerIdNumber] // Make sure it's an array with number
+        partnerIds: [partnerIdNumber] // ✅ Correctly formatted as array
       };
       
       console.log('📦 Request body:', JSON.stringify(requestBody));
@@ -328,6 +331,8 @@ export default function Admin() {
           success: true,
           message: 'Partner deleted successfully'
         });
+        
+        // Reload partners list
         loadPartners();
       } else {
         const errorText = await response.text();
@@ -1124,7 +1129,6 @@ export default function Admin() {
                     setPartnerForm({
                       name: '',
                       icon_url: '',
-                      link_url: '',
                       description: '',
                       is_active: true,
                       display_order: partners.length
@@ -1174,20 +1178,6 @@ export default function Admin() {
                           onChange={(e) => setPartnerForm({...partnerForm, icon_url: e.target.value})}
                           className="w-full px-4 py-3 border border-neutral-300/60 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all bg-white/80 backdrop-blur-sm"
                           placeholder="https://example.com/icon.png"
-                          required
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">
-                          Link URL *
-                        </label>
-                        <input
-                          type="url"
-                          value={partnerForm.link_url}
-                          onChange={(e) => setPartnerForm({...partnerForm, link_url: e.target.value})}
-                          className="w-full px-4 py-3 border border-neutral-300/60 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all bg-white/80 backdrop-blur-sm"
-                          placeholder="https://example.com"
                           required
                         />
                       </div>
@@ -1290,10 +1280,6 @@ export default function Admin() {
                           <div>
                             <h4 className="font-semibold text-neutral-800 text-lg">{partner.name}</h4>
                             <div className="flex items-center gap-4 text-sm text-neutral-600 mt-1">
-                              <a href={partner.link_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-purple-600 transition-colors">
-                                <ExternalLink className="w-4 h-4" />
-                                {new URL(partner.link_url).hostname}
-                              </a>
                               <span className="flex items-center gap-1">
                                 <GripVertical className="w-4 h-4" />
                                 Order: {partner.display_order}
@@ -1327,7 +1313,6 @@ export default function Admin() {
                               setPartnerForm({
                                 name: partner.name,
                                 icon_url: partner.icon_url,
-                                link_url: partner.link_url,
                                 description: partner.description || '',
                                 is_active: partner.is_active,
                                 display_order: partner.display_order

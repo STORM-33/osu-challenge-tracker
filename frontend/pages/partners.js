@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import PartnerCard from '../components/PartnerCard';
+import ExpandedPartnerModal from '../components/ExpandedPartnerModal';
 import Loading from '../components/Loading';
 import { Users, Heart, Sparkles, AlertCircle } from 'lucide-react';
 
@@ -8,6 +9,11 @@ export default function Partners() {
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Morphing animation state
+  const [expandedPartner, setExpandedPartner] = useState(null);
+  const [startPosition, setStartPosition] = useState(null);
+  const cardRefs = useRef({});
 
   useEffect(() => {
     fetchPartners();
@@ -40,6 +46,23 @@ export default function Partners() {
     }
   };
 
+  const handleExpandPartner = (partner) => {
+    const cardElement = cardRefs.current[partner.id];
+    if (cardElement) {
+      const rect = cardElement.getBoundingClientRect();
+      setStartPosition({
+        x: rect.left + rect.width / 2 - 300, // Offset to center of modal
+        y: rect.top + rect.height / 2 - 250,
+      });
+    }
+    setExpandedPartner(partner);
+  };
+
+  const handleCloseModal = () => {
+    setExpandedPartner(null);
+    setStartPosition(null);
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -54,8 +77,6 @@ export default function Partners() {
         <div className="max-w-7xl mx-auto px-4 py-12">
           {/* Header */}
           <div className="mb-12 text-center relative">
-
-            
             <div className="relative">
               <div className="flex items-center justify-center gap-3 mb-6">
                 <div className="relative">
@@ -108,23 +129,20 @@ export default function Partners() {
                 <div className="absolute -inset-4 bg-gradient-to-br from-purple-100/50 via-transparent to-pink-100/50 rounded-3xl blur-2xl"></div>
                 
                 {/* Main container */}
-                <div className="relative glass-card-enhanced rounded-3xl p-8 border border-purple-200/50 bg-gradient-to-br from-white/80 to-purple-50/30">
+                <div className="relative glass-1 rounded-3xl p-8">
                   {/* Inner decorative border */}
                   <div className="absolute inset-4 rounded-2xl border border-purple-100 pointer-events-none"></div>
                   
-                  {/* Corner decorations */}
-                  <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-purple-300 rounded-tl-xl"></div>
-                  <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-purple-300 rounded-tr-xl"></div>
-                  <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-purple-300 rounded-bl-xl"></div>
-                  <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-purple-300 rounded-br-xl"></div>
-                  
-                  {/* Discord-style icon grid */}
+                  {/* Discord-style icon grid with morphing support */}
                   <div className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                     {partners.map((partner) => (
                       <PartnerCard 
                         key={partner.id} 
                         partner={partner}
                         size="medium"
+                        onClick={handleExpandPartner}
+                        isExpanded={expandedPartner?.id === partner.id}
+                        cardRef={(el) => cardRefs.current[partner.id] = el}
                       />
                     ))}
                   </div>
@@ -134,6 +152,14 @@ export default function Partners() {
           )}
         </div>
       </div>
+
+      {/* Expanded Modal */}
+      <ExpandedPartnerModal
+        partner={expandedPartner}
+        isVisible={!!expandedPartner}
+        onClose={handleCloseModal}
+        startPosition={startPosition}
+      />
     </Layout>
   );
 }

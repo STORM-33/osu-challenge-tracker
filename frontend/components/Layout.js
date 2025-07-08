@@ -2,17 +2,23 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { auth } from '../lib/supabase';
-import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X} from 'lucide-react';
+import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu } from 'lucide-react';
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [router.pathname]);
 
   const checkUser = async () => {
     try {
@@ -115,7 +121,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
               <img 
                 src="/logo.png" 
                 alt="osu!Challengers Nexus"
-                className="h-16 icon-shadow-adaptive"
+                className="h-12 md:h-16 icon-shadow-adaptive"
                 onError={(e) => {
                   // Fallback to text if logo doesn't load
                   e.target.style.display = 'none';
@@ -123,15 +129,15 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                 }}
               />
               <div style={{ display: 'none' }}>
-                <h1 className="text-xl font-bold text-white text-shadow-adaptive">
+                <h1 className="text-lg md:text-xl font-bold text-white text-shadow-adaptive">
                   osu!Challengers
                 </h1>
                 <p className="text-xs text-white/70 text-shadow-adaptive-sm">Nexus</p>
               </div>
             </Link>
 
-            {/* Navigation */}
-            <nav className="flex items-center gap-2">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-2">
               {navItems.map((item) => (
                 <Link 
                   key={item.href}
@@ -229,8 +235,181 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                 </div>
               )}
             </nav>
+
+            {/* Mobile Navigation */}
+            <div className="md:hidden flex items-center gap-2">
+              {/* User Avatar on Mobile */}
+              {user && (
+                <div className="flex items-center gap-2">
+                  {user.avatar_url ? (
+                    <img 
+                      src={user.avatar_url} 
+                      alt={user.username}
+                      className="w-8 h-8 rounded-full ring-2 ring-white/30"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center text-white">
+                      <User className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-white/70 hover:text-white transition-colors"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-6 h-6 icon-shadow-adaptive-sm" />
+                ) : (
+                  <Menu className="w-6 h-6 icon-shadow-adaptive-sm" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+            <div className="absolute top-0 right-0 w-72 h-full bg-black/90 backdrop-blur-md border-l border-white/10">
+              {/* Mobile Menu Header */}
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <img 
+                    src="/logo.png" 
+                    alt="osu!Challengers Nexus"
+                    className="h-8 icon-shadow-adaptive"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  />
+                  <div style={{ display: 'none' }}>
+                    <h2 className="text-lg font-bold text-white text-shadow-adaptive">
+                      osu!Challengers
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 text-white/70 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Mobile Menu Content */}
+              <div className="p-4 space-y-2">
+                {/* Navigation Items */}
+                {navItems.map((item) => (
+                  <Link 
+                    key={item.href}
+                    href={item.href}
+                    className={`
+                      flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-base
+                      ${router.pathname === item.href 
+                        ? 'bg-white/20 text-white border border-white/20' 
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                      }
+                    `}
+                  >
+                    <item.icon className="w-5 h-5 icon-shadow-adaptive-sm" />
+                    {item.label}
+                  </Link>
+                ))}
+
+                {/* Profile Link */}
+                {user && (
+                  <Link 
+                    href={`/profile/${user.id}`}
+                    className={`
+                      flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-base
+                      ${router.pathname === `/profile/${user.id}` || router.pathname.startsWith('/profile/')
+                        ? 'bg-white/20 text-white border border-white/20' 
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                      }
+                    `}
+                  >
+                    <User className="w-5 h-5 icon-shadow-adaptive-sm" />
+                    profile
+                  </Link>
+                )}
+
+                {/* Admin Link */}
+                {user && isAdmin && (
+                  <Link 
+                    href="/admin"
+                    className={`
+                      flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-base
+                      ${router.pathname === '/admin'
+                        ? 'bg-white/20 text-white border border-white/20' 
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                      }
+                    `}
+                  >
+                    <Plus className="w-5 h-5 icon-shadow-adaptive-sm" />
+                    admin
+                  </Link>
+                )}
+
+                {/* Divider */}
+                <div className="border-t border-white/10 my-4"></div>
+
+                {/* Auth Section */}
+                {loading ? (
+                  <div className="px-4 py-3 text-white/50 text-base">Loading...</div>
+                ) : !user ? (
+                  <Link 
+                    href="/api/auth/login"
+                    className="flex items-center gap-3 px-4 py-3 bg-gradient-primary rounded-lg text-white font-medium transition-all duration-200 hover:opacity-90"
+                  >
+                    <LogIn className="w-5 h-5" />
+                    log in with osu!
+                  </Link>
+                ) : (
+                  <div className="space-y-3">
+                    {/* User Info */}
+                    <div className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-lg">
+                      {user.avatar_url ? (
+                        <img 
+                          src={user.avatar_url} 
+                          alt={user.username}
+                          className="w-10 h-10 rounded-full ring-2 ring-white/30"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white">
+                          <User className="w-5 h-5" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-white font-medium text-shadow-adaptive-sm">
+                          {user.username}
+                        </div>
+                        {isAdmin && (
+                          <div className="text-xs text-primary-300 text-shadow-adaptive-sm">
+                            Admin
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Logout Button */}
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 px-4 py-3 w-full text-left text-white/80 hover:bg-white/10 hover:text-white transition-all duration-200 rounded-lg"
+                    >
+                      <LogOut className="w-5 h-5 icon-shadow-adaptive-sm" />
+                      logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
@@ -239,10 +418,10 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
       {/* Footer */}
       <footer className="mt-20 py-8">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="font-medium text-white text-shadow-adaptive">
+          <p className="font-medium text-white text-shadow-adaptive text-sm md:text-base">
             osu!Challengers Nexus - Track your progress across our community challenges!
           </p>
-          <p className="mt-2 text-white/90 text-shadow-adaptive-sm">
+          <p className="mt-2 text-white/90 text-shadow-adaptive-sm text-xs md:text-sm">
             Not affiliated with osu! or ppy Pty Ltd
           </p>
         </div>
