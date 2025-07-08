@@ -539,15 +539,15 @@
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
-  /* Performance card glow effects - similar to icon containers but for larger cards */
+  /* Performance card glow effects */
   .performance-card-purple {
-    border: 3px solid rgba(196, 181, 253, 0.3);
-    box-shadow: 0 0 8px rgba(196, 181, 253, 0.2);
+    border: 3px solid rgba(196, 181, 253, 0.4);
+    box-shadow: 0 0 8px rgba(196, 181, 253, 0.3);
   }
 
   .performance-card-purple:hover {
-    border: 3px solid rgba(196, 181, 253, 0.5);
-    box-shadow: 0 0 12px rgba(196, 181, 253, 0.4);
+    border: 3px solid rgba(196, 181, 253, 0.6);
+    box-shadow: 0 0 12px rgba(196, 181, 253, 0.5);
   }
 
   .performance-card-green {
@@ -571,13 +571,13 @@
   }
 
   .performance-card-blue {
-    border: 3px solid rgba(147, 197, 253, 0.3);
-    box-shadow: 0 0 8px rgba(147, 197, 253, 0.2);
+    border: 3px solid rgba(147, 197, 253, 0.4);
+    box-shadow: 0 0 8px rgba(147, 197, 253, 0.3);
   }
 
   .performance-card-blue:hover {
-    border: 3px solid rgba(147, 197, 253, 0.5);
-    box-shadow: 0 0 12px rgba(147, 197, 253, 0.4);
+    border: 3px solid rgba(147, 197, 253, 0.6);
+    box-shadow: 0 0 12px rgba(147, 197, 253, 0.5);
   }
 
   /* Text glow effects */
