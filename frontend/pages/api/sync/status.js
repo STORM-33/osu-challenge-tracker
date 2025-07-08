@@ -1,5 +1,4 @@
 // Get sync status for resources
-import { withAPITracking } from '../../../middleware';
 import { handleAPIResponse, handleAPIError, validateRequest } from '../../../lib/api-utils';
 import syncManager from '../../../lib/sync-manager';
 
@@ -63,4 +62,4 @@ function formatAge(milliseconds) {
   return 'just now';
 }
 
-export default withAPITracking(handler, { memoryMB: 128 });
+export default handler;

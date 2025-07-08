@@ -1,5 +1,4 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { withAPITracking } from '../../../middleware';
 import { handleAPIError, validateRequest } from '../../../lib/api-utils';
 
 const getUpdateTrackingKey = (roomId) => `challenge_update_${roomId}`;
@@ -80,4 +79,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAPITracking(handler, { memoryMB: 128 });
+export default handler;

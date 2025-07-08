@@ -1,4 +1,3 @@
-import { withAPITracking } from '../../../../middleware';
 import { withAdminAuth } from '../../../../lib/auth-middleware';
 
 const { OSU_MODS, CONFLICTING_MODS, SETTING_RANGES } = require('../../../../lib/osu-mods-reference');
@@ -369,4 +368,4 @@ function generateQualifyingExamples(requiredMods, matchType) {
   return examples;
 }
 
-export default withAPITracking(handler, { memoryMB: 256 });
+export default handler;

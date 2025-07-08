@@ -1,5 +1,4 @@
 // Background sync endpoint
-import { withAPITracking } from '../../../middleware';
 import { handleAPIResponse, handleAPIError, validateRequest } from '../../../lib/api-utils';
 import syncManager from '../../../lib/sync-manager';
 
@@ -90,4 +89,4 @@ function getSyncMessage(reason) {
   }
 }
 
-export default withAPITracking(handler, { memoryMB: 192 });
+export default handler;

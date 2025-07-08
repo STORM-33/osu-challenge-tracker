@@ -1,5 +1,3 @@
-import { withAPITracking } from '../../../middleware';
-
 function handler(req, res) {
     const { OSU_CLIENT_ID, OSU_REDIRECT_URI } = process.env;
     
@@ -69,4 +67,4 @@ function handler(req, res) {
     res.redirect(finalAuthUrl);
 }
 
-export default withAPITracking(handler, { memoryMB: 128 });
+export default handler;

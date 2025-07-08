@@ -2,79 +2,79 @@ import { NextResponse } from 'next/server';
 import apiTracker from './lib/api-tracker';
 
 export function middleware(request) {
-  const startTime = Date.now();
-  const { pathname, searchParams } = request.nextUrl;
-  const method = request.method;
+  //const startTime = Date.now();
+  //const { pathname, searchParams } = request.nextUrl;
+  //const method = request.method;
   
   // Track middleware invocation for all routes
-  apiTracker.trackMiddleware(pathname);
+  //apiTracker.trackMiddleware(pathname);
   
   // Create response
-  const response = NextResponse.next();
+  //const response = NextResponse.next();
   
   // Only track API routes for function invocations
-  if (pathname.startsWith('/api/')) {
-    // Add headers to track the request
-    response.headers.set('x-call-start', startTime.toString());
-    response.headers.set('x-tracked-endpoint', pathname);
-    response.headers.set('x-tracked-method', method);
-    
+  //if (pathname.startsWith('/api/')) {
+  //  // Add headers to track the request
+  //  response.headers.set('x-call-start', startTime.toString());
+  //  response.headers.set('x-tracked-endpoint', pathname);
+  //  response.headers.set('x-tracked-method', method);
+  //  
     // Check current limit status and add warning headers
-    const limitStatus = apiTracker.checkLimits();
-    response.headers.set('x-api-limit-status', limitStatus);
+  //  const limitStatus = apiTracker.checkLimits();
+  //  response.headers.set('x-api-limit-status', limitStatus);
     
-    if (limitStatus === 'critical') {
-      response.headers.set('x-api-limit-warning', 'CRITICAL: API usage above 95%');
-    } else if (limitStatus === 'warning') {
-      response.headers.set('x-api-limit-warning', 'WARNING: API usage above 85%');
-    }
+  //  if (limitStatus === 'critical') {
+  //    response.headers.set('x-api-limit-warning', 'CRITICAL: API usage above 95%');
+  //  } else if (limitStatus === 'warning') {
+  //    response.headers.set('x-api-limit-warning', 'WARNING: API usage above 85%');
+  //  }
     
     // Add tracking completion hook
     // Note: This runs when the response is being sent
-    const originalResponse = response;
+  //  const originalResponse = response;
     
     // Override the response to capture completion
-    const trackedResponse = new Response(originalResponse.body, {
-      status: originalResponse.status,
-      statusText: originalResponse.statusText,
-      headers: originalResponse.headers
-    });
+  //  const trackedResponse = new Response(originalResponse.body, {
+  //    status: originalResponse.status,
+  //    statusText: originalResponse.statusText,
+  //    headers: originalResponse.headers
+  //  });
     
     // Track the function call completion
     // This is an approximation since middleware runs before the API handler
-    setTimeout(() => {
-      const duration = Date.now() - startTime;
-      const success = trackedResponse.status < 400;
+  //  setTimeout(() => {
+  //    const duration = Date.now() - startTime;
+  //    const success = trackedResponse.status < 400;
       
       // Estimate memory usage based on endpoint complexity
-      let memoryEstimate = 128; // Base memory
-      if (pathname.includes('admin')) memoryEstimate = 256;
-      if (pathname.includes('challenge') || pathname.includes('scores')) memoryEstimate = 192;
+  //    let memoryEstimate = 128; // Base memory
+  //    if (pathname.includes('admin')) memoryEstimate = 256;
+  //    if (pathname.includes('challenge') || pathname.includes('scores')) memoryEstimate = 192;
       
       // Estimate response size from headers
-      let responseSize = 0;
-      const contentLength = trackedResponse.headers.get('content-length');
-      if (contentLength) {
-        responseSize = parseInt(contentLength, 10);
-      } else {
+  //    let responseSize = 0;
+  //    const contentLength = trackedResponse.headers.get('content-length');
+  //    if (contentLength) {
+  //      responseSize = parseInt(contentLength, 10);
+  //    } else {
         // Estimate based on endpoint type
-        if (pathname.includes('stats') || pathname.includes('admin')) responseSize = 2048;
-        else if (pathname.includes('scores')) responseSize = 1024;
-        else responseSize = 512;
-      }
+  //      if (pathname.includes('stats') || pathname.includes('admin')) responseSize = 2048;
+  //      else if (pathname.includes('scores')) responseSize = 1024;
+  //      else responseSize = 512;
+  //    }
       
-      apiTracker.trackInternal(
-        pathname, 
-        method, 
-        duration, 
-        success, 
-        memoryEstimate, 
-        responseSize
-      );
-    }, 0);
+  //    apiTracker.trackInternal(
+  //      pathname, 
+  //      method, 
+  //      duration, 
+  //      success, 
+  //      memoryEstimate, 
+  //      responseSize
+  //    );
+  //  }, 0);
     
-    return NextResponse.next();
-  }
+  //  return NextResponse.next();
+  //}
   
   return NextResponse.next();
 }

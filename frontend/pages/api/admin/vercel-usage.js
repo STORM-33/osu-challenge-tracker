@@ -1,5 +1,3 @@
-import { withAdminAuth } from '../../../lib/auth-middleware';
-import { withAPITracking } from '../../../middleware'; 
 import apiTracker from '../../../lib/api-tracker';
 import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
 
@@ -326,4 +324,4 @@ function formatBytes(bytes) {
   return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 }
 
-export default withAPITracking(withAdminAuth(handler), { memoryMB: 256 });
+export default handler;

@@ -1,4 +1,3 @@
-import { withAPITracking } from '../../../middleware';
 import { supabase } from '../../../lib/supabase';
 
 async function handler(req, res) {
@@ -57,4 +56,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAPITracking(handler, { memoryMB: 128 });
+export default handler;

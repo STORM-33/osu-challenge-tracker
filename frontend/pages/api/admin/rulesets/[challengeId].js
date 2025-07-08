@@ -1,4 +1,3 @@
-import { withAPITracking } from '../../../../middleware';
 import { supabaseAdmin } from '../../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../../lib/auth-middleware';
 
@@ -290,4 +289,4 @@ function validateRulesetData({ required_mods, ruleset_match_type }) {
   };
 }
 
-export default withAPITracking(handler, { memoryMB: 256 });
+export default handler;

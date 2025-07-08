@@ -1,5 +1,4 @@
 import { trackedOsuAPI } from '../../lib/osu-api';
-import { withAPITracking } from '../../middleware';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -132,4 +131,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAPITracking(handler, { memoryMB: 192 });
+export default handler;

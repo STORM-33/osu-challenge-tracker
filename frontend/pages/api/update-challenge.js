@@ -1,7 +1,6 @@
 import { supabaseAdmin } from '../../lib/supabase-admin';
 import { trackedOsuAPI } from '../../lib/osu-api'; 
 import apiTracker from '../../lib/api-tracker';
-import { withAPITracking } from '../../middleware';
 import { handleAPIError, validateRequest } from '../../lib/api-utils';
 import { markChallengeUpdated } from '../../lib/global-update-tracker';
 import pLimit from 'p-limit';
@@ -680,4 +679,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAPITracking(handler, { memoryMB: 512 });
+export default handler;

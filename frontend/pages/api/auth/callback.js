@@ -1,5 +1,4 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { withAPITracking } from '../../../middleware';
 
 async function handler(req, res) {
   const { code, state } = req.query;
@@ -218,4 +217,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAPITracking(handler, { memoryMB: 256 });
+export default handler;

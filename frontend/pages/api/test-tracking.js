@@ -1,5 +1,4 @@
 import apiTracker from '../../lib/api-tracker';
-import { withAPITracking } from '../../middleware';
 
 function handler(req, res) {
   console.log('🧪 Testing tracking...');
@@ -16,4 +15,4 @@ function handler(req, res) {
   });
 }
 
-export default withAPITracking(handler, { memoryMB: 128 });
+export default handler;

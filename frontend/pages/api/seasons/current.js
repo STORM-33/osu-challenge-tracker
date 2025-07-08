@@ -1,4 +1,3 @@
-import { withAPITracking } from '../../../middleware';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { seasonUtils } from '../../../lib/seasons';
 
@@ -147,4 +146,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAPITracking(handler, { memoryMB: 192 });
+export default handler;

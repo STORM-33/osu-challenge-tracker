@@ -1,4 +1,3 @@
-import { withAPITracking } from '../../../middleware';
 import { supabase } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
@@ -182,4 +181,4 @@ async function handleDeletePartner(req, res, partnerId) {
   }
 }
 
-export default withAPITracking(handler);
+export default handler;

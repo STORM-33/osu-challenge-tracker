@@ -1,4 +1,3 @@
-import { withAPITracking } from '../../../middleware';
 import { supabase } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
@@ -318,4 +317,4 @@ async function handleCreateChallenge(req, res) {
   }
 }
 
-export default withAPITracking(handler, { memoryMB: 256 });
+export default handler;

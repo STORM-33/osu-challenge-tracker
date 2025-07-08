@@ -1,4 +1,3 @@
-import { withAPITracking } from '../../../middleware';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
 import { handleAPIResponse, handleAPIError, validateRequest } from '../../../lib/api-utils';
@@ -182,4 +181,4 @@ async function handleReorderPartners(req, res) {
   }
 }
 
-export default withAPITracking(handler);
+export default handler;
