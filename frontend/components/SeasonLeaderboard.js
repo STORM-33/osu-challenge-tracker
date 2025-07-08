@@ -179,7 +179,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="glass-1 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-purple">
               <p className="text-xs text-white/90 font-medium mb-2 uppercase tracking-wide text-shadow-adaptive">Your Rank</p>
-              <p className="text-3xl font-black text-transparent bg-clip-text" style={{backgroundImage: 'linear-gradient(to right, #c084fc, #f0abfc)'}}>
+              <p className="text-3xl font-black bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-purple">
                 #{userPosition.user_position}
               </p>
             </div>
@@ -191,7 +191,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             </div>
             <div className="glass-1 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-orange">
               <p className="text-xs text-white/90 font-medium mb-2 uppercase tracking-wide text-shadow-adaptive">Challenges</p>
-              <p className="text-3xl font-black text-transparent bg-clip-text" style={{backgroundImage: 'linear-gradient(to right, #f3eba4, #f3eba4)'}}>
+              <p className="text-3xl font-black bg-gradient-to-r from-yellow-300 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-orange">
                 {userPosition.challenges_participated}
               </p>
             </div>

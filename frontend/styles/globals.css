@@ -15,33 +15,28 @@
 }
 
 @layer components {
-  /* Glass Morphism Card Variants - 4 Levels of Hierarchy */
   
-  /* Level 1: Subtle glass for large containers and backgrounds */
   .glass-1 {
     @apply backdrop-blur-sm bg-white/20;
     border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07), 0 0 10px rgba(255, 255, 255, 0.1);
   }
   
-  /* Level 2: Standard glass for cards and sections */
   .glass-2 {
     @apply backdrop-blur-md bg-white/30;
-    border: 3px solid rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1), 0 0 10px rgba(255, 255, 255, 0.2);
   }
   
-  /* Level 3: Prominent glass for important UI elements */
   .glass-3 {
     @apply backdrop-blur-lg bg-white/40;
-    border: 3px solid rgba(255, 255, 255, 0.4);
+    border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15), 0 0 10px rgba(255, 255, 255, 0.3);
   }
   
-  /* Level 4: Heavy glass for modals, dropdowns, focused content */
   .glass-4 {
     @apply backdrop-blur-xl bg-white/50;
-    border: 3px solid rgba(255, 255, 255, 0.5);
+    border: 3px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2), 0 0 10px rgba(255, 255, 255, 0.4);
   }
 
@@ -386,7 +381,7 @@
 
   /* Podium section override for glass-2 background within glass-1 container */
   .podium-glass-2-bg {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(12px);
   }
   .podium-bg-blue {
