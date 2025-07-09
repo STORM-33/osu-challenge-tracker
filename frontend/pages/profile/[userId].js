@@ -336,15 +336,6 @@ export default function UserProfile() {
                           Joined {new Date(profileUser.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                         </span>
                       </div>
-
-                      {profileUser.global_rank && (
-                        <div className="px-2 py-1 sm:px-4 sm:py-2 glass-3 rounded-full flex items-center gap-1.5 sm:gap-2">
-                          <Trophy className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 icon-shadow-adaptive-sm" />
-                          <span className="font-medium text-white text-shadow-adaptive-sm text-xs sm:text-sm">
-                            #{formatNumber(profileUser.global_rank)} Global
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

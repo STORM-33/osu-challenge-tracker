@@ -594,7 +594,7 @@ export default function Admin() {
       return;
     }
 
-    setLoading(true);
+    setLoading2(true);
     setResult(null);
 
     try {
@@ -633,7 +633,7 @@ export default function Admin() {
         message: 'Network error. Please try again.'
       });
     } finally {
-      setLoading(false);
+      setLoading2(false);
     }
   };
 
