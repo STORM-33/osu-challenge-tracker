@@ -1,5 +1,5 @@
-import { Trophy, Award, Target, Activity } from 'lucide-react';
-import { useState } from 'react';
+import { Trophy, Award, Target, Activity, Crown, Star, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 // Utility function to sanitize user input
@@ -26,28 +26,42 @@ const getCountryFlagUrl = (countryCode) => {
 export default function CombinedLeaderboard({ leaderboard = [], loading = false, totalMaps = 0 }) {
   const [sortBy, setSortBy] = useState('total_score');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [showMobileView, setShowMobileView] = useState(false);
   const router = useRouter();
+
+  // Check if mobile view should be used
+  useEffect(() => {
+    const checkMobile = () => {
+      setShowMobileView(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-        <span className="ml-2 text-gray-600">Loading combined leaderboard...</span>
+      <div className="glass-1 rounded-2xl p-12 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
+        <span className="text-white/70 text-shadow-adaptive-sm">Loading combined leaderboard...</span>
       </div>
     );
   }
 
   if (!Array.isArray(leaderboard) || leaderboard.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        <Trophy className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-        <p>No combined scores available yet.</p>
+      <div className="glass-1 rounded-2xl p-12 text-center">
+        <Trophy className="w-12 h-12 mx-auto mb-4 text-white/30 icon-shadow-adaptive" />
+        <p className="text-white/70 text-shadow-adaptive-sm">No combined scores available yet.</p>
       </div>
     );
   }
 
   const formatScore = (score) => {
     if (typeof score !== 'number' || isNaN(score)) return '0';
+    if (score >= 1000000) return (score / 1000000).toFixed(1) + 'M';
+    if (score >= 1000) return (score / 1000).toFixed(1) + 'K';
     return score.toLocaleString();
   };
 
@@ -66,7 +80,7 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(column);
-      setSortOrder(column === 'player' ? 'asc' : 'desc'); // Default desc for numeric columns
+      setSortOrder(column === 'player' ? 'asc' : 'desc');
     }
   };
 
@@ -77,7 +91,6 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
       return;
     }
     
-    // Navigate to the challenger's profile page
     router.push(`/profile/${player.user_id}`);
   };
 
@@ -121,7 +134,7 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
   const SortButton = ({ column, children, align = 'left' }) => (
     <button
       onClick={() => handleSort(column)}
-      className={`flex items-center gap-1 hover:text-purple-600 transition-colors font-medium w-full ${
+      className={`flex items-center gap-1 hover:text-purple-300 transition-colors font-medium w-full text-shadow-adaptive-sm ${
         align === 'right' ? 'justify-end' : 
         align === 'center' ? 'justify-center' : 
         'justify-start'
@@ -130,207 +143,369 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
     >
       {children}
       {sortBy === column && (
-        <span className="text-xs">
+        <span className="text-xs text-purple-300">
           {sortOrder === 'asc' ? '↑' : '↓'}
         </span>
       )}
     </button>
   );
 
-  const getAccuracyColor = (accuracy) => {
-    if (accuracy >= 98) return 'text-violet-600 bg-violet-50';
-    if (accuracy >= 95) return 'text-emerald-600 bg-emerald-50';
-    if (accuracy >= 90) return 'text-green-600 bg-green-50';
-    if (accuracy >= 80) return 'text-sky-600 bg-sky-50';
-    if (accuracy >= 70) return 'text-orange-600 bg-orange-50';
-    return 'text-red-600 bg-red-50';
+  const getAccuracyGradient = (accuracy) => {
+    if (accuracy >= 98) return 'from-purple-500 to-pink-500';
+    if (accuracy >= 95) return 'from-emerald-500 to-green-500';
+    if (accuracy >= 90) return 'from-blue-500 to-cyan-500';
+    if (accuracy >= 85) return 'from-yellow-500 to-orange-500';
+    return 'from-red-500 to-pink-500';
   };
 
-  const getRankStyle = (rank) => {
-    switch (rank) {
-        case 1:
-            return {
-            row: 'bg-gradient-to-r from-blue-500 via-blue-300 to-transparent border-l-4 border-l-blue-600 border-b-blue-300',
-            rank: 'text-blue-900 text-2xl font-black',
-            icon: ''
-            };
-        case 2:
-            return {
-            row: 'bg-gradient-to-r from-purple-400 via-purple-200 to-transparent border-l-4 border-purple-600 border-b-purple-300',
-            rank: 'text-purple-900 text-xl font-black',
-            icon: ''
-            };
-        case 3:
-            return {
-            row: 'bg-gradient-to-r from-red-400 via-red-200 to-transparent border-l-4 border-red-600 border-b-red-300',
-            rank: 'text-red-900 text-lg font-bold',
-            icon: ''
-            };
-        default:
-            return {
-            row: '',
-            rank: 'text-gray-700 font-bold',
-            icon: ''
-            };
-        }
-    };
+  const getAccuracyBorder = (accuracy) => {
+    if (accuracy >= 98) return 'acc-badge-purple';
+    if (accuracy >= 95) return 'acc-badge-green';
+    if (accuracy >= 90) return 'acc-badge-blue';
+    if (accuracy >= 85) return 'acc-badge-yellow';
+    return 'acc-badge-red';
+  };
 
-  const getParticipationColor = (mapsPlayed) => {
+  const getRankGradient = (rank) => {
+    if (rank === 1) return 'from-yellow-400 to-amber-600';
+    if (rank <= 3) return 'from-gray-300 to-gray-500';
+    if (rank <= 10) return 'from-orange-400 to-red-500';
+    return 'from-blue-400 to-indigo-500';
+  };
+
+  const getParticipationGradient = (mapsPlayed) => {
     const percentage = (mapsPlayed / totalMaps) * 100;
-    if (percentage === 100) return 'text-purple-600 bg-purple-50';
-    if (percentage >= 80) return 'text-blue-600 bg-blue-50';
-    if (percentage >= 60) return 'text-teal-600 bg-teal-50';
-    if (percentage >= 40) return 'text-yellow-600 bg-yellow-50';
-    return 'text-gray-600 bg-gray-50';
+    if (percentage === 100) return 'from-purple-500 to-pink-500';
+    if (percentage >= 80) return 'from-blue-500 to-cyan-500';
+    if (percentage >= 60) return 'from-emerald-500 to-green-500';
+    if (percentage >= 40) return 'from-yellow-500 to-orange-500';
+    return 'from-red-500 to-pink-500';
   };
 
-  return (
-    <div className="overflow-x-auto bg-white/90 rounded-xl shadow-sm">
-      <table className="w-full table-fixed" role="table" aria-label="Combined score leaderboard">
-        <colgroup>
-          <col className="w-20" />
-          <col className="w-56" />
-          <col className="w-32" />
-          <col className="w-28" />
-          <col className="w-28" />
-          <col className="w-28" />
-        </colgroup>
-        <thead>
-          <tr className="border-b border-gray-200 bg-gray-50/50">
-            <th className="py-4 px-4 text-sm font-semibold text-gray-700">
-              <div className="flex items-center justify-start">
-                Rank
-              </div>
-            </th>
-            <th className="py-4 px-4 text-sm font-semibold text-gray-700">
-              <SortButton column="player" align="left">Player</SortButton>
-            </th>
-            <th className="py-4 px-6 text-sm font-semibold text-gray-700">
-              <SortButton column="total_score" align="center">
-                <Trophy className="w-4 h-4" />
-                Total Score
-              </SortButton>
-            </th>
-            <th className="py-4 px-6 text-sm font-semibold text-gray-700">
-              <SortButton column="average_accuracy" align="center">
-                <Target className="w-4 h-4" />
-                Avg Acc
-              </SortButton>
-            </th>
-            <th className="py-4 px-6 text-sm font-semibold text-gray-700">
-              <SortButton column="best_combo" align="center">
-                <Award className="w-4 h-4" />
-                Best Combo
-              </SortButton>
-            </th>
-            <th className="py-4 px-6 text-sm font-semibold text-gray-700">
-              <SortButton column="maps_played" align="center">
-                <Activity className="w-4 h-4" />
-                Maps
-              </SortButton>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedLeaderboard.map((player, index) => {
-            const rank = index + 1;
+  const getParticipationBorder = (mapsPlayed) => {
+    const percentage = (mapsPlayed / totalMaps) * 100;
+    if (percentage === 100) return 'acc-badge-purple';
+    if (percentage >= 80) return 'acc-badge-blue';
+    if (percentage >= 60) return 'acc-badge-green';
+    if (percentage >= 40) return 'acc-badge-yellow';
+    return 'acc-badge-red';
+  };
+
+  // Mobile Card View
+  if (showMobileView) {
+    return (
+      <div className="space-y-4">
+        {/* Top 3 Podium Cards for Mobile */}
+        {sortedLeaderboard.slice(0, 3).length >= 3 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-white/90 mb-4 text-center text-shadow-adaptive flex items-center justify-center gap-2">
+              <Crown className="w-5 h-5 text-yellow-400 icon-shadow-adaptive" />
+              Top 3 Winners
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {sortedLeaderboard.slice(0, 3).map((player, index) => {
+                const rank = index + 1;
+                const username = sanitizeText(player.username || 'Unknown');
+                const country = sanitizeText(player.country || '');
+                
+                return (
+                  <div 
+                    key={player.user_id || index}
+                    className={`glass-2 rounded-2xl p-4 performance-card-${
+                      rank === 1 ? 'orange' : rank === 2 ? 'purple' : 'blue'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Rank Badge */}
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getRankGradient(rank)} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                        <span className="text-white font-black text-sm text-shadow-adaptive">
+                          #{rank}
+                        </span>
+                      </div>
+                      
+                      {/* Player Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          {player.avatar_url && (
+                            <img 
+                              src={player.avatar_url} 
+                              alt={`${username}'s avatar`}
+                              className="w-8 h-8 rounded-full avatar-border flex-shrink-0"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          )}
+                          <button 
+                            className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-left" 
+                            onClick={() => handleUsernameClick(player)}
+                          >
+                            {username}
+                          </button>
+                          {country && getCountryFlagUrl(country) && (
+                            <img 
+                              src={getCountryFlagUrl(country)} 
+                              alt={`${country} flag`}
+                              className="w-5 h-3 object-cover rounded-sm shadow-sm flex-shrink-0"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          )}
+                          {rank === 1 && (
+                            <Crown className="w-4 h-4 text-yellow-300 icon-shadow-adaptive" />
+                          )}
+                        </div>
+                        
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-white/80 text-shadow-adaptive-sm">Total Score:</span>
+                            <div className="font-mono font-bold text-white text-glow-blue text-shadow-adaptive">
+                              {formatScore(player.total_score)}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-white/80 text-shadow-adaptive-sm">Avg Accuracy:</span>
+                            <div className={`inline-flex px-2 py-1 bg-gradient-to-r ${getAccuracyGradient(player.average_accuracy)} ${getAccuracyBorder(player.average_accuracy)} text-white rounded-full font-bold text-xs shadow-md mt-1`}>
+                              {formatAccuracy(player.average_accuracy)}%
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-white/80 text-shadow-adaptive-sm">Best Combo:</span>
+                            <div className="font-mono text-white font-bold text-glow-green text-shadow-adaptive">
+                              {formatCombo(player.best_combo)}x
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-white/80 text-shadow-adaptive-sm">Maps Played:</span>
+                            <div className={`inline-flex px-2 py-1 bg-gradient-to-r ${getParticipationGradient(player.maps_played)} ${getParticipationBorder(player.maps_played)} text-white rounded-full font-bold text-xs shadow-md mt-1`}>
+                              {player.maps_played}/{totalMaps}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Remaining Players */}
+        <div className="space-y-3">
+          {sortedLeaderboard.slice(3).map((player, index) => {
+            const rank = index + 4;
             const username = sanitizeText(player.username || 'Unknown');
             const country = sanitizeText(player.country || '');
-            const rankStyle = getRankStyle(rank);
             
             return (
-              <tr 
+              <div 
                 key={player.user_id || index}
-                className={`border-b border-gray-100 hover:bg-gray-50/70 transition-all ${rankStyle.row}`}
-                role="row"
+                className="glass-1 rounded-2xl p-4 transition-all group hover:glass-2"
               >
-                <td className="py-4 px-4" role="cell">
-                  <div className="flex items-center justify-start gap-1">
-                    {rankStyle.icon && <span className="text-lg">{rankStyle.icon}</span>}
-                    <span className={rankStyle.rank}>
+                <div className="flex items-start gap-4">
+                  {/* Rank Badge */}
+                  <div className="w-10 h-10 rounded-xl glass-2 flex items-center justify-center shadow-md flex-shrink-0">
+                    <span className="text-white/90 font-bold text-sm text-shadow-adaptive">
                       #{rank}
                     </span>
                   </div>
-                </td>
-                <td className="py-4 px-4" role="cell">
-                  <div className="flex items-center justify-start gap-3">
-                    {player.avatar_url && (
-                      <img 
-                        src={player.avatar_url} 
-                        alt={`${username}'s avatar`}
-                        className="w-12 h-12 rounded-full ring-2 ring-white shadow-md flex-shrink-0"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                        loading="lazy"
-                      />
-                    )}
-                    <div className="min-w-0 flex-1">
+                  
+                  {/* Player Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      {player.avatar_url && (
+                        <img 
+                          src={player.avatar_url} 
+                          alt={`${username}'s avatar`}
+                          className="w-8 h-8 rounded-full avatar-border flex-shrink-0"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      )}
                       <button 
-                        className="font-bold text-gray-900 hover:text-purple-600 hover:underline transition-colors cursor-pointer truncate text-lg text-left" 
-                        title={`View ${username}'s profile`}
+                        className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-left" 
                         onClick={() => handleUsernameClick(player)}
                       >
                         {username}
                       </button>
-                      {country && (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          {getCountryFlagUrl(country) ? (
-                            <img 
-                              src={getCountryFlagUrl(country)} 
-                              alt={`${country} flag`}
-                              className="w-5 h-3.5 object-cover border border-gray-300 rounded-sm shadow-sm"
-                              title={country.toUpperCase()}
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'inline-block';
-                              }}
-                            />
-                          ) : null}
-                          <span 
-                            className="text-xs text-gray-600 font-medium"
-                            style={{ display: getCountryFlagUrl(country) ? 'none' : 'inline-block' }}
-                          >
-                            🌍 {country.toUpperCase()}
-                          </span>
-                        </div>
+                      {country && getCountryFlagUrl(country) && (
+                        <img 
+                          src={getCountryFlagUrl(country)} 
+                          alt={`${country} flag`}
+                          className="w-5 h-3 object-cover rounded-sm shadow-sm flex-shrink-0"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
                       )}
                     </div>
+                    
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-white/80 text-shadow-adaptive-sm">Score:</span>
+                        <div className="font-mono font-bold text-white text-shadow-adaptive">
+                          {formatScore(player.total_score)}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-white/80 text-shadow-adaptive-sm">Accuracy:</span>
+                        <div className={`inline-flex px-2 py-1 bg-gradient-to-r ${getAccuracyGradient(player.average_accuracy)} ${getAccuracyBorder(player.average_accuracy)} text-white rounded-full font-bold text-xs shadow-md mt-1`}>
+                          {formatAccuracy(player.average_accuracy)}%
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-white/80 text-shadow-adaptive-sm">Combo:</span>
+                        <div className="font-mono text-white font-bold text-shadow-adaptive">
+                          {formatCombo(player.best_combo)}x
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-white/80 text-shadow-adaptive-sm">Maps:</span>
+                        <div className="text-white/90 font-medium text-shadow-adaptive">
+                          {player.maps_played}/{totalMaps}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </td>
-                <td className="py-4 px-6" role="cell">
-                  <div className="flex items-center justify-center">
-                    <span className="font-mono font-black text-gray-900 text-xl">
-                      {formatScore(player.total_score)}
-                    </span>
-                  </div>
-                </td>
-                <td className="py-4 px-6" role="cell">
-                  <div className="flex items-center justify-center">
-                    <span className={`inline-flex px-3 py-1.5 rounded-full text-sm font-bold ${getAccuracyColor(player.average_accuracy)}`}>
-                      {formatAccuracy(player.average_accuracy)}%
-                    </span>
-                  </div>
-                </td>
-                <td className="py-4 px-6" role="cell">
-                  <div className="flex items-center justify-center">
-                    <span className="font-mono text-gray-700 font-semibold text-lg">
-                      {formatCombo(player.best_combo)}x
-                    </span>
-                  </div>
-                </td>
-                <td className="py-4 px-6" role="cell">
-                  <div className="flex items-center justify-center">
-                    <span className={`inline-flex px-3 py-1.5 rounded-full text-sm font-bold ${getParticipationColor(player.maps_played)}`}>
-                      {player.maps_played}/{totalMaps}
-                    </span>
-                  </div>
-                </td>
-              </tr>
+                </div>
+              </div>
             );
           })}
-        </tbody>
-      </table>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop Table View
+  return (
+    <div className="glass-1 rounded-2xl overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full" role="table" aria-label="Combined score leaderboard">
+          <thead>
+            <tr className="glass-2 border-b border-white/10">
+              <th className="py-4 px-4 text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
+                Rank
+              </th>
+              <th className="py-4 px-4 text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
+                <SortButton column="player" align="left">Player</SortButton>
+              </th>
+              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+                <SortButton column="total_score" align="center">
+                  <Trophy className="w-4 h-4 icon-shadow-adaptive-sm" />
+                  Total Score
+                </SortButton>
+              </th>
+              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+                <SortButton column="average_accuracy" align="center">
+                  <Target className="w-4 h-4 icon-shadow-adaptive-sm" />
+                  Avg Accuracy
+                </SortButton>
+              </th>
+              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+                <SortButton column="best_combo" align="center">
+                  <Award className="w-4 h-4 icon-shadow-adaptive-sm" />
+                  Best Combo
+                </SortButton>
+              </th>
+              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+                <SortButton column="maps_played" align="center">
+                  <Activity className="w-4 h-4 icon-shadow-adaptive-sm" />
+                  Maps
+                </SortButton>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedLeaderboard.map((player, index) => {
+              const rank = index + 1;
+              const username = sanitizeText(player.username || 'Unknown');
+              const country = sanitizeText(player.country || '');
+              const isTop3 = rank <= 3;
+              
+              return (
+                <tr 
+                  key={player.user_id || index}
+                  className={`transition-all border-b border-white/10 last:border-b-0 group hover:bg-white/5 ${
+                    isTop3 ? 'performance-card-purple' : ''
+                  }`}
+                  role="row"
+                >
+                  <td className="py-4 px-4" role="cell">
+                    <div className="flex items-center justify-start gap-1">
+                      {isTop3 ? (
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getRankGradient(rank)} flex items-center justify-center shadow-lg`}>
+                          <span className="text-white font-black text-sm text-shadow-adaptive">
+                            #{rank}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-lg font-bold text-white/90 text-shadow-adaptive">
+                          #{rank}
+                        </span>
+                      )}
+                      {rank === 1 && (
+                        <Crown className="w-5 h-5 text-yellow-300 ml-2 icon-shadow-adaptive" />
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-4 px-4" role="cell">
+                    <div className="flex items-center gap-3">
+                      {player.avatar_url && (
+                        <img 
+                          src={player.avatar_url} 
+                          alt={`${username}'s avatar`}
+                          className="w-12 h-12 rounded-full avatar-border flex-shrink-0"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <button 
+                          className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-lg text-left" 
+                          onClick={() => handleUsernameClick(player)}
+                        >
+                          {username}
+                        </button>
+                        {country && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {getCountryFlagUrl(country) && (
+                              <img 
+                                src={getCountryFlagUrl(country)} 
+                                alt={`${country} flag`}
+                                className="w-5 h-3.5 object-cover rounded-sm shadow-sm"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            )}
+                            <span className="text-xs text-white/70 font-medium text-shadow-adaptive-sm">
+                              {country.toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-center" role="cell">
+                    <span className="font-mono font-black text-white text-xl text-glow-blue text-shadow-adaptive">
+                      {formatScore(player.total_score)}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center" role="cell">
+                    <div className={`inline-flex px-3 py-1.5 bg-gradient-to-r ${getAccuracyGradient(player.average_accuracy)} ${getAccuracyBorder(player.average_accuracy)} text-white rounded-full font-bold text-sm shadow-md`}>
+                      {formatAccuracy(player.average_accuracy)}%
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-center" role="cell">
+                    <span className="font-mono text-white font-bold text-lg text-glow-green text-shadow-adaptive">
+                      {formatCombo(player.best_combo)}x
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center" role="cell">
+                    <div className={`inline-flex px-3 py-1.5 bg-gradient-to-r ${getParticipationGradient(player.maps_played)} ${getParticipationBorder(player.maps_played)} text-white rounded-full font-bold text-sm shadow-md`}>
+                      {player.maps_played}/{totalMaps}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
