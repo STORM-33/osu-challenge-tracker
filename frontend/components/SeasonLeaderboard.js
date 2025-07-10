@@ -96,7 +96,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
   };
 
   const getAccuracyGradient = (accuracy) => {
-    if (accuracy >= 98) return 'from-purple-500 to-pink-500';
+    if (accuracy >= 98) return 'from-pink-500 to-purple-500';
     if (accuracy >= 95) return 'from-green-500 to-emerald-500';
     if (accuracy >= 90) return 'from-cyan-500 to-blue-500';
     if (accuracy >= 85) return 'from-yellow-500 to-orange-500';
