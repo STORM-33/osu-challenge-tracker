@@ -85,7 +85,6 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
 
         <div className="max-w-7xl mx-auto px-4 py-4 relative">
           <div className="flex items-center justify-between">
-            {/* Logo */}
             <Link 
               href="/"
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
@@ -94,7 +93,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
               <img 
                 src="/logo.png" 
                 alt="osu!Challengers Nexus"
-                className="h-12 md:h-16 icon-shadow-adaptive"
+                className="h-12 md:h-16"
                 onError={(e) => {
                   // Fallback to text if logo doesn't load
                   e.target.style.display = 'none';
