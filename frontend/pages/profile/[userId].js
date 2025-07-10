@@ -26,9 +26,9 @@ export default function UserProfile() {
   const { userId } = router.query;
 
   const STAFF_MEMBERS = {
-  268: { type: 'designer', label: 'o!C Staff - Graphic Designer' },
+  0: { type: 'designer', label: 'o!C Staff - Graphic Designer' },
   268: { type: 'developer', label: 'o!C Staff - Developer' },
-  268: { type: 'lead', label: 'o!C Staff - Project Lead' },
+  671: { type: 'lead', label: 'o!C Staff - Project Lead' },
 };
 
   useEffect(() => {
