@@ -23,19 +23,19 @@
   }
   
   .glass-2 {
-    @apply backdrop-blur-md bg-white/30;
-    border: 3px solid rgba(255, 255, 255, 0.1);
+    @apply backdrop-blur-sm bg-white/25;
+    border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1), 0 0 10px rgba(255, 255, 255, 0.2);
   }
   
   .glass-3 {
-    @apply backdrop-blur-lg bg-white/40;
+    @apply backdrop-blur-md bg-white/30;
     border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15), 0 0 10px rgba(255, 255, 255, 0.3);
   }
   
   .glass-4 {
-    @apply backdrop-blur-xl bg-white/50;
+    @apply backdrop-blur-md bg-white/35;
     border: 3px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2), 0 0 10px rgba(255, 255, 255, 0.4);
   }
@@ -625,11 +625,12 @@
     bottom: 4px;
     left: 4px;
     right: 50%;
-    background: linear-gradient(to right, #ec4899, #db2777);
+    background: linear-gradient(to bottom, #e19d2c, #d1653a); /* Match icon gradient */
+    border: 3px solid rgba(252, 211, 77, 1); /* Match icon-container-orange border */
     border-radius: 9999px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 
-      0 0 15px rgba(236, 72, 153, 0.4),
+      0 0 8px rgba(252, 211, 77, 0.5), /* Match icon-container-orange glow */
       0 4px 8px rgba(0, 0, 0, 0.2),
       0 2px 4px rgba(0, 0, 0, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -668,5 +669,49 @@
       0 2px 4px rgba(0, 0, 0, 0.5),
       0 4px 8px rgba(0, 0, 0, 0.4),
       0 0 8px rgba(255, 255, 255, 0.3);
+  }
+
+  .staff-badge {
+    @apply px-4 py-2 rounded-full text-white font-bold text-sm shadow-lg inline-block;
+    font-family: 'Inter', sans-serif;
+    font-weight: 800; /* Inter Extra Bold */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(8px);
+    margin: 0.5rem 0;
+  }
+
+  .staff-badge-designer {
+    @apply bg-blue-500;
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+  }
+
+  .staff-badge-developer {
+    @apply bg-green-500;
+    border-color: rgba(34, 197, 94, 0.6);
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+  }
+
+  .staff-badge-lead {
+    @apply bg-orange-500;
+    border-color: rgba(251, 146, 60, 0.6);
+    box-shadow: 0 0 15px rgba(251, 146, 60, 0.4);
+  }
+
+  .profile-picture {
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  }
+
+  .streak-card-current {
+    background: linear-gradient(to bottom, #e87114, #823314);
+    border: 3px solid #ffa650;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .streak-card-best {
+    background: linear-gradient(to bottom, #9cbada, #5d6979);
+    border: 3px solid #dcf1ff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 }

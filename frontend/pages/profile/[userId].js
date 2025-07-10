@@ -25,6 +25,12 @@ export default function UserProfile() {
   const router = useRouter();
   const { userId } = router.query;
 
+  const STAFF_MEMBERS = {
+  268: { type: 'designer', label: 'o!C Staff - Graphic Designer' },
+  268: { type: 'developer', label: 'o!C Staff - Developer' },
+  268: { type: 'lead', label: 'o!C Staff - Project Lead' },
+};
+
   useEffect(() => {
     if (!userId) return;
     loadUserData();
@@ -111,6 +117,7 @@ export default function UserProfile() {
     return 'from-blue-400 to-indigo-500';
   };
 
+
   const getStreakEmoji = (streak) => {
     if (streak >= 30) return '🔥';
     if (streak >= 14) return '⚡';
@@ -154,6 +161,19 @@ export default function UserProfile() {
           .slice(0, 5);
     }
     return [];
+  };
+
+  const StaffBadge = ({ user }) => {
+    // Check if user is staff by username (or you could use user.id)
+    const staffRole = STAFF_MEMBERS[user.id];
+    
+    if (!staffRole) return null;
+    
+    return (
+      <div className={`staff-badge staff-badge-${staffRole.type}`}>
+        {staffRole.label}
+      </div>
+    );
   };
 
   const isOwnProfile = currentUser && profileUser && currentUser.id === profileUser.id;
@@ -259,39 +279,30 @@ export default function UserProfile() {
             </button>
           </div>
 
-          {/* Mobile-First Profile Hero Section */}
-          <div className="relative overflow-hidden glass-1 rounded-2xl sm:rounded-3xl mb-6 sm:mb-8 shadow-2xl">
-            {/* Enhanced gradient overlay */}
-            <div 
-              className="absolute inset-0 opacity-70"
-              style={{
-                background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.9) 0%, rgba(236, 72, 153, 0.9) 50%, rgba(239, 68, 68, 0.9) 100%)'
-              }}
-            />
-            
-            {/* Background pattern - simplified for mobile */}
-            <div className="absolute inset-0 opacity-20">
+         {/* Profile Hero Section */}
+          <div className="relative overflow-hidden glass-2 rounded-2xl sm:rounded-3xl mb-6 sm:mb-8 shadow-2xl">
+            <div className="absolute inset-0 opacity-10">
               <div className="absolute -top-4 -right-4 sm:-top-8 sm:-right-8 w-48 h-48 sm:w-96 sm:h-96 bg-white rounded-full blur-3xl animate-pulse-soft"></div>
               <div className="absolute -bottom-4 -left-4 sm:-bottom-8 sm:-left-8 w-40 h-40 sm:w-80 sm:h-80 bg-white rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }}></div>
             </div>
-            
+
             <div className="relative z-10 p-4 sm:p-8 text-white">
               <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4 sm:gap-8">
-                {/* Avatar and Basic Info - Mobile Optimized */}
+                {/* Avatar and Basic Info */}
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 flex-1 w-full">
                   <div className="relative group">
                     {profileUser.avatar_url ? (
                       <img 
                         src={profileUser.avatar_url} 
                         alt={profileUser.username}
-                        className="w-20 h-20 sm:w-32 sm:h-32 rounded-2xl sm:rounded-3xl border-2 sm:border-4 border-white/30 shadow-2xl group-hover:scale-105 transition-transform avatar-border"
+                        className="profile-picture w-20 h-20 sm:w-32 sm:h-32 rounded-2xl sm:rounded-3xl border-2 sm:border-4 border-white/30 shadow-2xl group-hover:scale-105 transition-transform avatar-border"
                       />
                     ) : (
-                      <div className="w-20 h-20 sm:w-32 sm:h-32 glass-3 rounded-2xl sm:rounded-3xl flex items-center justify-center border-2 sm:border-4 border-white/30 shadow-2xl">
+                      <div className="profile-picture w-20 h-20 sm:w-32 sm:h-32 glass-3 rounded-2xl sm:rounded-3xl flex items-center justify-center border-2 sm:border-4 border-white/30 shadow-2xl">
                         <span className="text-2xl sm:text-5xl font-bold text-white text-shadow-adaptive">{profileUser.username[0]}</span>
                       </div>
                     )}
-                    {/* Status indicator - smaller on mobile */}
+                    {/* Status indicator */}
                     <div className="absolute -bottom-1 -right-1 sm:-bottom-3 sm:-right-3 w-6 h-6 sm:w-10 sm:h-10 bg-green-400 rounded-full border-2 sm:border-4 border-white flex items-center justify-center shadow-lg">
                       <div className="w-2 h-2 sm:w-4 sm:h-4 bg-green-600 rounded-full animate-pulse"></div>
                     </div>
@@ -336,32 +347,31 @@ export default function UserProfile() {
                           Joined {new Date(profileUser.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                         </span>
                       </div>
+                      <StaffBadge user={profileUser} />
                     </div>
                   </div>
                 </div>
 
-                {/* Mobile-First Streak Display */}
+                {/* Streak Display */}
                 {streaks && (
                   <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
-                    <div className="glass-3 rounded-xl sm:rounded-2xl p-3 sm:p-6 min-w-0 flex-1 sm:min-w-[180px] performance-card-orange">
+                    <div className="streak-card-current rounded-xl sm:rounded-2xl p-3 sm:p-6 min-w-0 flex-1 sm:min-w-[180px]">
                       <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
-                        <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400 icon-shadow-adaptive-sm" />
+                        <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-white/90 icon-shadow-adaptive-sm" />
                         <span className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm">Current</span>
                       </div>
                       <div className="flex items-baseline gap-1 sm:gap-2">
-                        <span className="text-2xl sm:text-4xl font-black text-white text-glow-orange">{streaks.currentStreak}</span>
-                        <span className="text-lg sm:text-2xl">{getStreakEmoji(streaks.currentStreak)}</span>
+                        <span className="text-2xl sm:text-4xl font-black text-white/70 text-shadow-adaptive">{streaks.currentStreak}</span>
                       </div>
                     </div>
                     
-                    <div className="glass-3 rounded-xl sm:rounded-2xl p-3 sm:p-6 min-w-0 flex-1 sm:min-w-[180px] performance-card-purple">
+                    <div className="streak-card-best rounded-xl sm:rounded-2xl p-3 sm:p-6 min-w-0 flex-1 sm:min-w-[180px]">
                       <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
-                        <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-purple-200 icon-shadow-adaptive-sm" />
+                        <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-white/90 icon-shadow-adaptive-sm" />
                         <span className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm">Best</span>
                       </div>
                       <div className="flex items-baseline gap-1 sm:gap-2">
-                        <span className="text-2xl sm:text-4xl font-black text-white text-glow-purple">{streaks.longestStreak}</span>
-                        <Sparkles className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-300 icon-shadow-adaptive" />
+                        <span className="text-2xl sm:text-4xl font-black text-white/70 text-shadow-adaptive">{streaks.longestStreak}</span>
                       </div>
                     </div>
                   </div>
@@ -370,50 +380,57 @@ export default function UserProfile() {
             </div>
           </div>
 
-          {/* Mobile-First Quick Stats Grid */}
+          {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
-            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group performance-card-purple">
+            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
-                <Target className="w-5 h-5 sm:w-8 sm:h-8 text-purple-500 group-hover:scale-110 transition-transform icon-shadow-adaptive" />
-                <span className={`text-lg sm:text-3xl font-black ${getAccuracyColor(parseFloat(stats?.avgAccuracy || 0))} text-glow-purple`}>
+                <div className="p-1.5 sm:p-3 bg-gradient-to-b from-purple-500 to-purple-700 rounded-md sm:rounded-xl icon-container-purple">
+                  <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="text-lg sm:text-3xl font-black text-white/80">
                   {stats?.avgAccuracy ? `${stats.avgAccuracy}%` : '--%'}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm text-center sm:text-left">Avg Accuracy</p>
+              <p className="text-xs sm:text-sm font-medium text-white text-shadow-adaptive-sm text-center sm:text-left">Avg Accuracy</p>
             </div>
             
-            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group performance-card-green">
+            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
-                <Activity className="w-5 h-5 sm:w-8 sm:h-8 text-green-500 group-hover:scale-110 transition-transform icon-shadow-adaptive" />
-                <span className="text-lg sm:text-3xl font-black text-white text-glow-green">
+                <div className="p-1.5 sm:p-3 bg-gradient-to-b from-emerald-400 to-green-600 rounded-md sm:rounded-xl icon-container-green">
+                  <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="text-lg sm:text-3xl font-black text-white/80">
                   #{stats?.avgRank || '--'}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm text-center sm:text-left">Avg Rank</p>
+              <p className="text-xs sm:text-sm font-medium text-white text-shadow-adaptive-sm text-center sm:text-left">Avg Rank</p>
             </div>
             
-            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group performance-card-blue">
+            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
-                <BarChart3 className="w-5 h-5 sm:w-8 sm:h-8 text-blue-500 group-hover:scale-110 transition-transform icon-shadow-adaptive" />
-                <span className="text-lg sm:text-3xl font-black text-white text-glow-blue">
+                <div className="p-1.5 sm:p-3 bg-gradient-to-b from-cyan-400 to-blue-600 rounded-md sm:rounded-xl icon-container-blue">
+                  <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="text-lg sm:text-3xl font-black text-white/80">
                   {stats?.totalScores || 0}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm text-center sm:text-left">Total Plays</p>
+              <p className="text-xs sm:text-sm font-medium text-white text-shadow-adaptive-sm text-center sm:text-left">Total Plays</p>
             </div>
             
-            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group performance-card-orange">
+            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
-                <Trophy className="w-5 h-5 sm:w-8 sm:h-8 text-yellow-500 group-hover:scale-110 transition-transform icon-shadow-adaptive" />
-                <span className="text-lg sm:text-3xl font-black text-white text-glow-orange">
+                <div className="p-1.5 sm:p-3 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-md sm:rounded-xl icon-container-orange">
+                  <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="text-lg sm:text-3xl font-black text-white/80">
                   {stats?.firstPlaceCount || 0}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm text-center sm:text-left">First Places</p>
+              <p className="text-xs sm:text-sm font-medium text-white text-shadow-adaptive-sm text-center sm:text-left">First Places</p>
             </div>
           </div>
-
-          {/* Mobile-First Tab System */}
+          {/* Tab System */}
           <div className="mb-4 sm:mb-6">
             <div className="view-mode-slider text-sm sm:text-base">
               <div className="slider-track">
@@ -452,7 +469,7 @@ export default function UserProfile() {
             </div>
           </div>
 
-          {/* Tab Content - Mobile Optimized */}
+          {/* Tab Content */}
           {tabLoading ? (
             <div className="glass-1 rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center">
               <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-white/70 mx-auto mb-3 sm:mb-4 icon-shadow-adaptive" />
@@ -460,7 +477,7 @@ export default function UserProfile() {
             </div>
           ) : (
             <>
-              {/* Recent/Best Scores Tabs - Mobile Optimized */}
+              {/* Recent/Best Scores Tabs */}
               {(activeTab === 'recent' || activeTab === 'best') && (
                 <div>
                   {scores.length === 0 ? (
@@ -499,20 +516,22 @@ export default function UserProfile() {
                           <div className="flex items-start justify-between gap-3 sm:gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start gap-3 sm:gap-4">
-                                {/* Mobile-Optimized Rank Badge */}
-                                <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-lg sm:rounded-2xl bg-gradient-to-br ${getRankGradient(score.calculated_rank || 0)} flex items-center justify-center shadow-lg transition-transform`}>
+                                {/* Rank Badge */}
+                                <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-lg sm:rounded-2xl bg-gradient-to-b ${getRankGradient(score.calculated_rank || 0)} flex items-center justify-center shadow-lg transition-transform`} style={{
+                                  border: '3px solid rgba(255, 255, 255, 0.6)',
+                                  boxShadow: '0 0 8px rgba(255, 255, 255, 0.3), 0 4px 8px rgba(0, 0, 0, 0.2)'
+                                }}>
                                   <span className="text-white font-black text-sm sm:text-xl text-shadow-adaptive">
                                     #{score.calculated_rank || '?'}
                                   </span>
                                 </div>
-                                
                                 <div className="flex-1 min-w-0">
                                   <h4 className="text-sm sm:text-lg font-bold text-white mb-1 group-hover:text-purple-300 transition-colors text-shadow-adaptive truncate">
                                     {score.playlists?.beatmap_title || 'Unknown Beatmap'}
                                   </h4>
                                   <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/80 mb-2 sm:mb-3 text-shadow-adaptive-sm">
                                     <span className="flex items-center gap-1 truncate">
-                                      <Music className="w-3 h-3 sm:w-4 sm:h-4 icon-shadow-adaptive-sm flex-shrink-0" />
+                                      <Music className="w-3 h-3 sm:w-4 sm:h-4 text-white/90 icon-shadow-adaptive-sm flex-shrink-0" />
                                       <span className="truncate">{score.playlists?.challenges?.name || 'Unknown Challenge'}</span>
                                     </span>
                                     <span className="hidden sm:inline">•</span>
@@ -524,7 +543,7 @@ export default function UserProfile() {
                                     </span>
                                   </div>
                                   
-                                  {/* Mobile-First Score Details */}
+                                  {/* Score Details */}
                                   <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                                     <div className="flex items-center gap-1 sm:gap-2">
                                       <span className="text-xs sm:text-sm text-white/80 text-shadow-adaptive-sm">Score:</span>
@@ -534,9 +553,9 @@ export default function UserProfile() {
                                     </div>
                                     <div className="flex items-center gap-1 sm:gap-2">
                                       <span className="text-xs sm:text-sm text-white/80 text-shadow-adaptive-sm">Acc:</span>
-                                      <div className={`px-2 py-0.5 sm:px-3 sm:py-1 bg-gradient-to-r ${getAccuracyGradient(score.accuracy)} ${getAccuracyBorder(score.accuracy)} text-white rounded-full font-bold text-xs sm:text-sm shadow-md`}>
+                                      <span className="font-bold text-white text-shadow-adaptive text-sm sm:text-base">
                                         {score.accuracy.toFixed(1)}%
-                                      </div>
+                                      </span>
                                     </div>
                                     <div className="flex items-center gap-1 sm:gap-2">
                                       <span className="text-xs sm:text-sm text-white/80 text-shadow-adaptive-sm">Combo:</span>
@@ -547,11 +566,11 @@ export default function UserProfile() {
                               </div>
                             </div>
                             
-                            {/* Mobile-Optimized View Button */}
+                            {/* View Button */}
                             {score.playlists?.challenges?.room_id && (
                               <Link 
                                 href={`/challenges/${score.playlists.challenges.room_id}`}
-                                className="px-3 py-1.5 sm:px-4 sm:py-2 glass-3 hover:performance-card-purple text-white font-medium rounded-full transition-all flex items-center gap-1.5 sm:gap-2 group-hover:shadow-md text-shadow-adaptive-sm text-xs sm:text-sm whitespace-nowrap"
+                                className="px-3 py-1.5 sm:px-4 sm:py-2 glass-1 hover:glass-2 text-white font-medium rounded-full transition-all flex items-center gap-1.5 sm:gap-2 group-hover:shadow-md text-shadow-adaptive-sm text-xs sm:text-sm whitespace-nowrap"
                               >
                                 View
                                 <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 icon-shadow-adaptive-sm" />
@@ -565,222 +584,249 @@ export default function UserProfile() {
                 </div>
               )}
 
-              {/* Statistics Tab - Mobile Optimized */}
+              {/* Statistics Tab */}
               {activeTab === 'stats' && (
-                <div className="space-y-6 sm:space-y-8">
-                  <div className="glass-1 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-lg">
-                    <h3 className="text-lg sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-shadow-adaptive">
-                      <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 icon-shadow-adaptive" />
-                      <span>Statistics</span>
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
-                      {/* Performance Overview - Mobile First */}
-                      <div>
-                        <h4 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 text-shadow-adaptive-sm">Performance Overview</h4>
-                        <div className="space-y-3 sm:space-y-4">
-                          <div className="flex items-center justify-between p-3 sm:p-4 glass-2 rounded-lg sm:rounded-xl performance-card-purple">
-                            <span className="font-medium text-white/90 text-shadow-adaptive-sm text-sm sm:text-base">Total Maps Played</span>
-                            <span className="text-lg sm:text-xl font-bold text-purple-200 text-glow-purple">{stats?.totalScores || 0}</span>
+              <div className="space-y-6 sm:space-y-8">
+                <div className="glass-1 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-lg">
+                  <h3 className="text-lg sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-shadow-adaptive">
+                    <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-white/90 icon-shadow-adaptive" />
+                    <span>Statistics</span>
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                    {/* Performance Overview */}
+                    <div>
+                      <h4 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 text-shadow-adaptive">Performance Overview</h4>
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-white text-shadow-adaptive text-sm sm:text-base">Total Maps Played</span>
+                            <span className="text-lg sm:text-xl font-bold text-white text-shadow-adaptive">{stats?.totalScores || 0}</span>
                           </div>
-                          <div className="flex items-center justify-between p-3 sm:p-4 glass-2 rounded-lg sm:rounded-xl performance-card-blue">
-                            <span className="font-medium text-white/90 text-shadow-adaptive-sm text-sm sm:text-base">Average Score</span>
-                            <span className="text-lg sm:text-xl font-bold text-blue-200 text-glow-blue">
-                              {stats?.avgScore ? formatNumber(stats.avgScore) : '0'}
+                        </div>
+                        <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-white text-shadow-adaptive text-sm sm:text-base">Average Score</span>
+                            <span className="text-lg sm:text-xl font-bold text-white text-shadow-adaptive">
+                              {stats?.avgScore ? formatNumber(stats.avgScore) : '###.#K'}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between p-3 sm:p-4 glass-2 rounded-lg sm:rounded-xl performance-card-green">
-                            <span className="font-medium text-white/90 text-shadow-adaptive-sm text-sm sm:text-base">Perfect Scores (100%)</span>
-                            <span className="text-lg sm:text-xl font-bold text-green-200 text-glow-green">
+                        </div>
+                        <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-white text-shadow-adaptive text-sm sm:text-base">Perfect Scores (100%)</span>
+                            <span className="text-lg sm:text-xl font-bold text-white text-shadow-adaptive">
                               {stats?.perfectScoreCount || 0}
                             </span>
                           </div>
                         </div>
                       </div>
-                      
-                      {/* Rank Distribution - Mobile First */}
-                      <div>
-                        <h4 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 text-shadow-adaptive-sm">Rank Distribution</h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-gray-300 to-gray-500 rounded-lg sm:rounded-xl flex items-center justify-center">
-                              <span className="text-white font-bold text-xs sm:text-sm text-shadow-adaptive-sm">2-3</span>
-                            </div>
-                            <div className="flex-1 glass-2 rounded-full h-6 sm:h-8 relative overflow-hidden">
-                              <div 
-                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-gray-300 to-gray-500 rounded-full flex items-center justify-end pr-2 sm:pr-3"
-                                style={{ width: `${Math.min((stats?.rankDistribution?.topThree || 0) / (stats?.totalScores || 1) * 100, 100)}%` }}
-                              >
-                                <span className="text-white font-bold text-xs sm:text-sm text-shadow-adaptive-sm">
-                                  {stats?.rankDistribution?.topThree || 0}
-                                </span>
-                              </div>
+                    </div>
+                    {/* Rank Distribution */}
+                    <div>
+                      <h4 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 text-shadow-adaptive">Rank Distribution</h4>
+                      <div className="space-y-3">
+                        {/* 2-3 ranks: Red gradient */}
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center" style={{
+                            background: 'linear-gradient(to bottom, #d35656, #a93838)',
+                            border: '3px solid #e3716b'
+                          }}>
+                            <span className="text-white font-bold text-xs sm:text-sm text-shadow-adaptive-sm">2-3</span>
+                          </div>
+                          <div className="flex-1 glass-1 rounded-full h-6 sm:h-8 relative overflow-hidden" style={{ padding: '1px' }}>
+                            <div 
+                              className="absolute rounded-full"
+                              style={{ 
+                                top: '1px',
+                                bottom: '1px',
+                                left: '1px',
+                                width: `${Math.min((stats?.rankDistribution?.topThree || 0) / (stats?.totalScores || 1) * 100, 100)}%`,
+                                background: 'linear-gradient(to bottom, #d35656, #a93838)',
+                                border: '3px solid #e3716b',
+                                maxWidth: 'calc(100% - 2px)'
+                              }}
+                            >
                             </div>
                           </div>
-                          
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg sm:rounded-xl flex items-center justify-center">
-                              <span className="text-white font-bold text-xs sm:text-sm text-shadow-adaptive-sm">4-10</span>
-                            </div>
-                            <div className="flex-1 glass-2 rounded-full h-6 sm:h-8 relative overflow-hidden">
-                              <div 
-                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-end pr-2 sm:pr-3"
-                                style={{ width: `${Math.min((stats?.rankDistribution?.topTen || 0) / (stats?.totalScores || 1) * 100, 100)}%` }}
-                              >
-                                <span className="text-white font-bold text-xs sm:text-sm text-shadow-adaptive-sm">
-                                  {stats?.rankDistribution?.topTen || 0}
-                                </span>
-                              </div>
+                        </div>
+                        
+                        {/* 4-10 ranks: Gray gradient */}
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center" style={{
+                            background: 'linear-gradient(to bottom, #777778, #545455)',
+                            border: '3px solid #959595'
+                          }}>
+                            <span className="text-white font-bold text-xs sm:text-sm text-shadow-adaptive-sm">4-10</span>
+                          </div>
+                          <div className="flex-1 glass-1 rounded-full h-6 sm:h-8 relative overflow-hidden" style={{ padding: '1px' }}>
+                            <div 
+                              className="absolute rounded-full"
+                              style={{ 
+                                top: '1px',
+                                bottom: '1px',
+                                left: '1px',
+                                width: `${Math.min((stats?.rankDistribution?.topTen || 0) / (stats?.totalScores || 1) * 100, 100)}%`,
+                                background: 'linear-gradient(to bottom, #777778, #545455)',
+                                border: '3px solid #959595',
+                                maxWidth: 'calc(100% - 2px)'
+                              }}
+                            >
                             </div>
                           </div>
-                          
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg sm:rounded-xl flex items-center justify-center">
-                              <span className="text-white font-bold text-xs sm:text-sm text-shadow-adaptive-sm">11+</span>
-                            </div>
-                            <div className="flex-1 glass-2 rounded-full h-6 sm:h-8 relative overflow-hidden">
-                              <div 
-                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-end pr-2 sm:pr-3"
-                                style={{ width: `${Math.min((stats?.rankDistribution?.other || 0) / (stats?.totalScores || 1) * 100, 100)}%` }}
-                              >
-                                <span className="text-white font-bold text-xs sm:text-sm text-shadow-adaptive-sm">
-                                  {stats?.rankDistribution?.other || 0}
-                                </span>
-                              </div>
+                        </div>
+                        
+                        {/* 11+ ranks: Purple gradient */}
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center" style={{
+                            background: 'linear-gradient(to bottom, #9f5dbf, #6d3f87)',
+                            border: '3px solid #a77bc3'
+                          }}>
+                            <span className="text-white font-bold text-xs sm:text-sm text-shadow-adaptive-sm">11+</span>
+                          </div>
+                          <div className="flex-1 glass-1 rounded-full h-6 sm:h-8 relative overflow-hidden" style={{ padding: '1px' }}>
+                            <div 
+                              className="absolute rounded-full"
+                              style={{ 
+                                top: '1px',
+                                bottom: '1px',
+                                left: '1px',
+                                width: `${Math.min((stats?.rankDistribution?.other || 0) / (stats?.totalScores || 1) * 100, 100)}%`,
+                                background: 'linear-gradient(to bottom, #9f5dbf, #6d3f87)',
+                                border: '3px solid #a77bc3',
+                                maxWidth: 'calc(100% - 2px)'
+                              }}
+                            >
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Monthly Activity - Mobile First */}
-                    <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-white/20">
-                      <h4 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 text-shadow-adaptive-sm">Monthly Activity</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                        {stats?.monthlyActivity && Object.entries(stats.monthlyActivity).slice(-4).map(([month, count]) => (
-                          <div key={month} className="text-center p-3 sm:p-4 glass-2 rounded-lg sm:rounded-xl performance-card-blue">
-                            <p className="text-xs sm:text-sm text-white/80 mb-1 text-shadow-adaptive-sm">{month}</p>
-                            <p className="text-xl sm:text-2xl font-bold text-blue-200 text-glow-blue">{count}</p>
-                            <p className="text-xs text-white/70 mt-1 text-shadow-adaptive-sm">plays</p>
-                          </div>
-                        ))}
-                        {(!stats?.monthlyActivity || Object.keys(stats.monthlyActivity).length === 0) && (
-                          <div className="col-span-full text-center py-6 sm:py-8 text-white/70 text-shadow-adaptive-sm text-sm sm:text-base">
-                            No activity data available
-                          </div>
-                        )}
-                      </div>
+                  </div>
+
+                  {/* Full-width separator that actually goes to the edges */}
+                  <div className="my-6 sm:my-8 -mx-4 sm:-mx-8">
+                    <div className="w-full h-px bg-white/30"></div>
+                  </div>
+                  
+                  {/* Monthly Activity */}
+                  <div>
+                    <h4 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 text-shadow-adaptive">Monthly Activity</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                      {stats?.monthlyActivity && Object.entries(stats.monthlyActivity).slice(-4).map(([month, count]) => (
+                        <div key={month} className="text-center p-3 sm:p-4 glass-1 rounded-lg sm:rounded-xl">
+                          <p className="text-xs sm:text-sm text-white/80 mb-1 text-shadow-adaptive-sm">{month}</p>
+                          <p className="text-xl sm:text-2xl font-bold text-white text-shadow-adaptive">{count}</p>
+                          <p className="text-xs text-white/70 mt-1 text-shadow-adaptive-sm">plays</p>
+                        </div>
+                      ))}
+                      {(!stats?.monthlyActivity || Object.keys(stats.monthlyActivity).length === 0) && (
+                        <div className="col-span-full text-center py-6 sm:py-8 text-white/70 text-shadow-adaptive-sm text-sm sm:text-base">
+                          No activity data available
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
             </>
           )}
 
-          {/* Mobile-First Achievement Showcase */}
+          {/* Achievement Showcase */}
           {stats?.firstPlaceCount > 0 && (
             <div className="mt-6 sm:mt-8 relative overflow-hidden glass-1 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-lg">
-              {/* Trophy cabinet gradient overlay */}
-              <div 
-                className="absolute inset-0 opacity-30 rounded-2xl sm:rounded-3xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.4) 0%, rgba(245, 158, 11, 0.4) 50%, rgba(217, 119, 6, 0.4) 100%)'
-                }}
-              />
               <div className="relative z-10">
                 <h3 className="text-lg sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-shadow-adaptive">
-                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500 icon-shadow-adaptive" />
+                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white/90 icon-shadow-adaptive" />
                   Trophy Cabinet
                 </h3>
+                
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="glass-2 rounded-lg sm:rounded-xl p-4 sm:p-6 text-center performance-card-orange">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
-                      <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive" />
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-black text-yellow-400 mb-1 text-glow-orange">
-                      {stats?.firstPlaceCount || 0}
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm">First Places</p>
-                  </div>
-                  
-                  <div className="glass-2 rounded-lg sm:rounded-xl p-4 sm:p-6 text-center performance-card-purple">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
-                      <Award className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive" />
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-black text-gray-400 mb-1">
+                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg" style={{
+                    background: 'linear-gradient(to bottom, rgba(66, 101, 196, 0.9), rgba(52, 87, 171, 0.9))',
+                    border: '3px solid #5f94ec'
+                  }}>
+                    <Award className="w-8 h-8 sm:w-12 sm:h-12 text-white mx-auto mb-2 sm:mb-3 icon-shadow-adaptive" />
+                    <p className="text-2xl sm:text-3xl font-black text-white/50 mb-1 text-shadow-adaptive">
                       {stats?.podiumCount || 0}
                     </p>
-                    <p className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm">Podium Finishes</p>
+                    <p className="text-xs sm:text-sm font-medium text-white/80 text-shadow-adaptive-sm">Podium Finishes</p>
                   </div>
                   
-                  <div className="glass-2 rounded-lg sm:rounded-xl p-4 sm:p-6 text-center performance-card-blue">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
-                      <Star className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive" />
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-black text-blue-200 mb-1 text-glow-blue">
+                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg" style={{
+                    background: 'linear-gradient(to bottom, rgba(181, 64, 67, 0.9), rgba(163, 48, 49, 0.9))',
+                    border: '3px solid #dd615e'
+                  }}>
+                    <Star className="w-8 h-8 sm:w-12 sm:h-12 text-white mx-auto mb-2 sm:mb-3 icon-shadow-adaptive" />
+                    <p className="text-2xl sm:text-3xl font-black text-white/50 mb-1 text-shadow-adaptive">
                       {stats?.top10Count || 0}
                     </p>
-                    <p className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm">Top 10 Finishes</p>
+                    <p className="text-xs sm:text-sm font-medium text-white/80 text-shadow-adaptive-sm">Top 10 Finishes</p>
                   </div>
                   
-                  <div className="glass-2 rounded-lg sm:rounded-xl p-4 sm:p-6 text-center performance-card-green">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
-                      <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive" />
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-black text-green-200 mb-1 text-glow-green">
+                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg" style={{
+                    background: 'linear-gradient(to bottom, rgba(94, 93, 94, 0.9), rgba(76, 75, 76, 0.9))',
+                    border: '3px solid #a1a1a1'
+                  }}>
+                    <Zap className="w-8 h-8 sm:w-12 sm:h-12 text-white mx-auto mb-2 sm:mb-3 icon-shadow-adaptive" />
+                    <p className="text-2xl sm:text-3xl font-black text-white/50 mb-1 text-shadow-adaptive">
                       {stats?.highAccuracyCount || 0}
                     </p>
-                    <p className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm">98%+ Accuracy</p>
+                    <p className="text-xs sm:text-sm font-medium text-white/80 text-shadow-adaptive-sm">98%+ Accuracy</p>
+                  </div>
+                  
+                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg" style={{
+                    background: 'linear-gradient(to bottom, rgba(60, 166, 97, 0.9), rgba(45, 141, 99, 0.9))',
+                    border: '3px solid #4ed484'
+                  }}>
+                    <Trophy className="w-8 h-8 sm:w-12 sm:h-12 text-white mx-auto mb-2 sm:mb-3 icon-shadow-adaptive" />
+                    <p className="text-2xl sm:text-3xl font-black text-white/50 mb-1 text-shadow-adaptive">
+                      {stats?.firstPlaceCount || 0}
+                    </p>
+                    <p className="text-xs sm:text-sm font-medium text-white/80 text-shadow-adaptive-sm">First Places</p>
                   </div>
                 </div>
               </div>
             </div>
           )}
-
-          {/* Mobile-First Progress & Milestones Section */}
+          {/* Progress & Milestones Section */}
           {allScores.length > 0 && (
             <div className="mt-6 sm:mt-8 relative overflow-hidden glass-1 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-lg">
-              {/* Progress gradient overlay */}
-              <div 
-                className="absolute inset-0 opacity-25 rounded-2xl sm:rounded-3xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%)'
-                }}
-              />
               <div className="relative z-10">
                 <h3 className="text-lg sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-shadow-adaptive">
-                  <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 icon-shadow-adaptive" />
+                  <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-white/90 icon-shadow-adaptive" />
                   Progress & Insights
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                  <div className="glass-2 rounded-lg sm:rounded-xl p-4 sm:p-6 performance-card-purple">
-                    <p className="text-xs sm:text-sm font-medium text-white/80 mb-2 text-shadow-adaptive-sm">Most Active Month</p>
-                    <p className="text-base sm:text-lg font-bold text-purple-200 text-glow-purple">
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm font-medium text-white/90 mb-2 text-shadow-adaptive-sm">Most Active Month</p>
+                    <p className="text-base sm:text-lg font-bold text-white/90 text-shadow-adaptive">
                       {stats?.monthlyActivity && Object.keys(stats.monthlyActivity).length > 0 
                         ? Object.entries(stats.monthlyActivity).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'
                         : 'N/A'
                       }
                     </p>
-                    <p className="text-xs sm:text-sm text-white/70 mt-1 text-shadow-adaptive-sm">
+                    <p className="text-xs sm:text-sm text-white mt-1 text-shadow-adaptive-sm">
                       {stats?.monthlyActivity && Object.keys(stats.monthlyActivity).length > 0
                         ? `${Object.entries(stats.monthlyActivity).sort((a, b) => b[1] - a[1])[0]?.[1] || 0} plays`
                         : '0 plays'
                       }
                     </p>
                   </div>
-                  <div className="glass-2 rounded-lg sm:rounded-xl p-4 sm:p-6 performance-card-blue">
-                    <p className="text-xs sm:text-sm font-medium text-white/80 mb-2 text-shadow-adaptive-sm">Total Score Points</p>
-                    <p className="text-base sm:text-lg font-bold text-blue-200 text-glow-blue">
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm font-medium text-white/90 mb-2 text-shadow-adaptive-sm">Total Score Points</p>
+                    <p className="text-base sm:text-lg font-bold text-white/90 text-shadow-adaptive">
                       {formatNumber(stats?.totalScorePoints || 0)}
                     </p>
-                    <p className="text-xs sm:text-sm text-white/70 mt-1 text-shadow-adaptive-sm">Lifetime total</p>
+                    <p className="text-xs sm:text-sm text-white mt-1 text-shadow-adaptive-sm">Lifetime total</p>
                   </div>
-                  <div className="glass-2 rounded-lg sm:rounded-xl p-4 sm:p-6 performance-card-green">
-                    <p className="text-xs sm:text-sm font-medium text-white/80 mb-2 text-shadow-adaptive-sm">Next Milestone</p>
-                    <p className="text-base sm:text-lg font-bold text-green-200 text-glow-green">
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm font-medium text-white/90 mb-2 text-shadow-adaptive-sm">Next Milestone</p>
+                    <p className="text-base sm:text-lg font-bold text-white/90 text-shadow-adaptive">
                       {milestone.title}
                     </p>
-                    <p className="text-xs sm:text-sm text-white/70 mt-1 text-shadow-adaptive-sm">
+                    <p className="text-xs sm:text-sm text-white mt-1 text-shadow-adaptive-sm">
                       {milestone.isLegend ? 'Achieved!' : `${milestone.remaining} to go`}
                     </p>
                   </div>
@@ -788,16 +834,6 @@ export default function UserProfile() {
               </div>
             </div>
           )}
-
-          {/* Mobile-First Footer */}
-          <div className="mt-12 sm:mt-16 text-center pb-6 sm:pb-8">
-            <div className="inline-flex items-center gap-2 sm:gap-3 px-4 py-2 sm:px-6 sm:py-3 glass-1 rounded-full shadow-md">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <p className="text-xs sm:text-sm font-medium text-white/90 text-shadow-adaptive-sm">
-                Profile syncs with osu! automatically
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </Layout>

@@ -319,7 +319,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             </div>
           )}
           
-          {/* Main Leaderboard - Mobile Optimized */}
+          {/* Main Leaderboard */}
           <div className="shadow-xl overflow-hidden">
             {leaderboardLoading ? (
               <div className="p-4 sm:p-8">
