@@ -92,7 +92,7 @@ export default function SeasonLeaderboardPage() {
               {/* Current Season Card */}
               <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transform hover:scale-105 transition-all">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
-                  <div className="p-1.5 sm:p-3 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-md sm:rounded-xl icon-container-orange">
+                  <div className="p-1.5 sm:p-3 icon-gradient-orange rounded-md sm:rounded-xl icon-container-orange">
                     <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                 </div>
@@ -110,7 +110,7 @@ export default function SeasonLeaderboardPage() {
               {/* How It Works Card */}
               <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transform hover:scale-105 transition-all">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
-                  <div className="p-1.5 sm:p-3 bg-gradient-to-b from-cyan-400 to-blue-600 rounded-md sm:rounded-xl icon-container-blue">
+                  <div className="p-1.5 sm:p-3 icon-gradient-blue rounded-md sm:rounded-xl icon-container-blue">
                     <BookOpen className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                 </div>
@@ -125,7 +125,7 @@ export default function SeasonLeaderboardPage() {
               {/* Scoring System Card - Full width on mobile when in 2-col, normal on 3-col */}
               <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transform hover:scale-105 transition-all sm:col-span-2 lg:col-span-1">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
-                  <div className="p-1.5 sm:p-3 bg-gradient-to-b from-emerald-400 to-green-600 rounded-md sm:rounded-xl icon-container-green">
+                  <div className="p-1.5 sm:p-3 icon-gradient-green rounded-md sm:rounded-xl icon-container-green">
                     <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                 </div>
@@ -145,10 +145,10 @@ export default function SeasonLeaderboardPage() {
             selectedSeason={selectedSeason}
           />
 
-          {/* Additional Info - Mobile Compact */}
+          {/* Additional Info */}
           <div className="mt-8 sm:mt-10 lg:mt-12 glass-1 rounded-xl sm:rounded-2xl p-3 sm:p-6 lg:p-8">
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-6">
-              <div className="p-1.5 sm:p-3 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-lg sm:rounded-xl icon-container-orange">
+              <div className="p-1.5 sm:p-3 icon-gradient-orange rounded-lg sm:rounded-xl icon-container-orange">
                 <Info className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
               <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-white text-shadow-adaptive">

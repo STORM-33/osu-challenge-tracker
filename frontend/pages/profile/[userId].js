@@ -26,7 +26,7 @@ export default function UserProfile() {
   const { userId } = router.query;
 
   const STAFF_MEMBERS = {
-  0: { type: 'designer', label: 'o!C Staff - Graphic Designer' },
+  35: { type: 'designer', label: 'o!C Staff - Graphic Designer' },
   268: { type: 'developer', label: 'o!C Staff - Developer' },
   671: { type: 'lead', label: 'o!C Staff - Project Lead' },
 };
@@ -164,7 +164,7 @@ export default function UserProfile() {
   };
 
   const StaffBadge = ({ user }) => {
-    // Check if user is staff by username (or you could use user.id)
+    // Check if user is staff by user id
     const staffRole = STAFF_MEMBERS[user.id];
     
     if (!staffRole) return null;
@@ -329,7 +329,7 @@ export default function UserProfile() {
                     
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
                       {profileUser.country && (
-                        <div className="flex items-center gap-1.5 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 glass-3 rounded-full">
+                        <div className="flex items-center gap-1.5 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 glass-1 rounded-full">
                           {getCountryFlagUrl(profileUser.country) && (
                             <img 
                               src={getCountryFlagUrl(profileUser.country)} 
@@ -341,13 +341,15 @@ export default function UserProfile() {
                         </div>
                       )}
                       
-                      <div className="px-2 py-1 sm:px-4 sm:py-2 glass-3 rounded-full flex items-center gap-1.5 sm:gap-2">
+                      <div className="px-2 py-1 sm:px-4 sm:py-2 glass-1 rounded-full flex items-center gap-1.5 sm:gap-2">
                         <Calendar className="w-3 h-3 sm:w-4 sm:h-4 icon-shadow-adaptive-sm" />
                         <span className="font-medium text-white text-shadow-adaptive-sm text-xs sm:text-sm">
                           Joined {new Date(profileUser.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                         </span>
                       </div>
+
                       <StaffBadge user={profileUser} />
+                      
                     </div>
                   </div>
                 </div>
@@ -384,7 +386,7 @@ export default function UserProfile() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
             <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-3 bg-gradient-to-b from-purple-500 to-purple-700 rounded-md sm:rounded-xl icon-container-purple">
+                <div className="p-1.5 sm:p-3 icon-gradient-purple rounded-md sm:rounded-xl icon-container-purple">
                   <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <span className="text-lg sm:text-3xl font-black text-white/80">
@@ -396,7 +398,7 @@ export default function UserProfile() {
             
             <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-3 bg-gradient-to-b from-emerald-400 to-green-600 rounded-md sm:rounded-xl icon-container-green">
+                <div className="p-1.5 sm:p-3 icon-gradient-green rounded-md sm:rounded-xl icon-container-green">
                   <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <span className="text-lg sm:text-3xl font-black text-white/80">
@@ -408,7 +410,7 @@ export default function UserProfile() {
             
             <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-3 bg-gradient-to-b from-cyan-400 to-blue-600 rounded-md sm:rounded-xl icon-container-blue">
+                <div className="p-1.5 sm:p-3 icon-gradient-blue rounded-md sm:rounded-xl icon-container-blue">
                   <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <span className="text-lg sm:text-3xl font-black text-white/80">
@@ -420,7 +422,7 @@ export default function UserProfile() {
             
             <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-3 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-md sm:rounded-xl icon-container-orange">
+                <div className="p-1.5 sm:p-3 icon-gradient-orange rounded-md sm:rounded-xl icon-container-orange">
                   <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <span className="text-lg sm:text-3xl font-black text-white/80">

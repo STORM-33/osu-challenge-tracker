@@ -94,7 +94,7 @@ export default function SeasonSelector({ onSeasonChange, currentSeasonId }) {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 w-full max-w-64 mt-2 glass-3 border-3 border-white/20 rounded-2xl shadow-lg z-50 max-h-64 overflow-y-auto backdrop-blur-lg">
+        <div className="absolute top-full left-0 w-full max-w-64 mt-2 season-dropdown rounded-2xl shadow-lg z-50 max-h-64 overflow-y-auto backdrop-blur-lg">
           {seasons.map((season) => (
             <button
               key={season.id}

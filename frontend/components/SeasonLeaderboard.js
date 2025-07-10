@@ -97,10 +97,10 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
 
   const getAccuracyGradient = (accuracy) => {
     if (accuracy >= 98) return 'from-purple-500 to-pink-500';
-    if (accuracy >= 95) return 'from-emerald-500 to-green-500';
-    if (accuracy >= 90) return 'from-blue-500 to-cyan-500';
+    if (accuracy >= 95) return 'from-green-500 to-emerald-500';
+    if (accuracy >= 90) return 'from-cyan-500 to-blue-500';
     if (accuracy >= 85) return 'from-yellow-500 to-orange-500';
-    return 'from-red-500 to-pink-500';
+    return 'from-pink-500 to-red-500';
   };
 
   const getAccuracyBorder = (accuracy) => {
@@ -114,7 +114,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
   if (initialLoading) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        {/* User Stats Loading Skeleton - Mobile Compact */}
+        {/* User Stats Loading Skeleton */}
         <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6">
           <div className="animate-pulse">
             <div className="h-4 sm:h-6 bg-gray-200/60 rounded w-24 sm:w-32 mb-3 sm:mb-4"></div>
@@ -126,7 +126,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
           </div>
         </div>
         
-        {/* Leaderboard Loading Skeleton - Mobile Compact */}
+        {/* Leaderboard Loading Skeleton */}
         <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-12">
           <div className="animate-pulse space-y-3 sm:space-y-4">
             <div className="h-6 sm:h-8 bg-gray-200/60 rounded-lg w-1/2 sm:w-1/3"></div>
@@ -163,7 +163,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* User Performance Panel - Mobile Compact */}
+      {/* User Performance Panel */}
       {userPosition && (
         <div className="mb-4 sm:mb-6">
           <h3 className="text-lg sm:text-2xl font-bold text-white text-shadow-adaptive mb-3 sm:mb-4 flex items-center gap-2">
@@ -171,27 +171,27 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             Your Performance
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-purple">
+            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Your Rank</p>
-              <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-purple">
+              <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-purple-300 to-purple-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
                 #{userPosition.user_position}
               </p>
             </div>
-            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-green">
+            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Total Score</p>
-              <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-green">
+              <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
                 {formatNumber(userPosition.total_score)}
               </p>
             </div>
-            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-orange">
+            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Challenges</p>
-              <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-yellow-300 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-orange">
+              <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-yellow-300 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
                 {userPosition.challenges_participated}
               </p>
             </div>
-            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all performance-card-blue">
+            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Top</p>
-              <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight text-glow-blue">
+              <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
                 {Math.max(1, Math.round(100 - userPosition.percentile))}%
               </p>
             </div>
@@ -199,10 +199,10 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
         </div>
       )}
 
-      {/* Leaderboard Container - Mobile Optimized */}
+      {/* Leaderboard Container */}
       <div>
         <div className="glass-1 rounded-xl sm:rounded-2xl shadow-xl overflow-hidden">
-          {/* Header Card - Mobile Compact */}
+          {/* Header Card */}
           <div className="p-4 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
@@ -218,7 +218,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                 )}
               </div>
               
-              {/* View Mode Slider - Mobile Adapted */}
+              {/* View Mode Slider */}
               {currentUser && (
                 <div className="view-mode-slider text-sm sm:text-base">
                   <div className="slider-track">
@@ -243,14 +243,14 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             </div>
           </div>
 
-          {/* Podium Section for Top 3 - Mobile Optimized */}
+          {/* Podium Section for Top 3 */}
           {leaderboard.length >= 3 && viewMode === 'full' && !leaderboardLoading && (
             <div className="podium-glass-2-bg p-4 sm:p-8 border-t border-white/10">
               <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-3xl mx-auto">
                 {/* 2nd Place */}
                 {leaderboard[1] && (
-                  <div className="order-1 md:order-1">
-                    <div className="podium-bg-purple rounded-lg sm:rounded-2xl p-3 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg podium-border-purple">
+                  <div className="order-1 md:order-1 flex items-center justify-center">
+                    <div className="podium-bg-purple rounded-lg sm:rounded-2xl p-3 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg podium-border-purple w-full">
                       <div className="w-12 h-12 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 relative">
                         <img
                           src={leaderboard[1].avatar_url || '/default-avatar.png'}
@@ -264,15 +264,15 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                         </div>
                       </div>
                       <h3 className="font-bold text-white text-shadow-adaptive text-xs sm:text-base truncate cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push(`/profile/${leaderboard[1].user_id}`)}>{leaderboard[1].username}</h3>
-                      <p className="text-sm sm:text-2xl font-black text-white text-shadow-adaptive mt-1 sm:mt-2">{formatNumber(leaderboard[1].total_score)}</p>
+                      <p className="text-sm sm:text-2xl font-extrabold text-white/70 text-shadow-adaptive mt-1 sm:mt-2">{formatNumber(leaderboard[1].total_score)}</p>
                     </div>
                   </div>
                 )}
 
                 {/* 1st Place */}
                 {leaderboard[0] && (
-                  <div className="order-2 md:order-2">
-                    <div className="podium-bg-blue rounded-lg sm:rounded-2xl p-3 sm:p-6 text-center transform hover:scale-105 transition-all relative shadow-xl podium-border-blue">
+                  <div className="order-2 md:order-2 flex justify-center">
+                    <div className="podium-bg-blue rounded-lg sm:rounded-2xl p-3 sm:p-6 text-center transform hover:scale-105 transition-all relative shadow-xl podium-border-blue w-full">
                       <Crown className="absolute top-1 right-1 sm:top-2 sm:right-2 w-4 h-4 sm:w-6 sm:h-6 text-white icon-shadow-adaptive" />
                       <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2 sm:mb-3 relative">
                         <img
@@ -287,7 +287,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                         </div>
                       </div>
                       <h3 className="font-bold text-white text-shadow-adaptive text-sm sm:text-lg truncate cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push(`/profile/${leaderboard[0].user_id}`)}>{leaderboard[0].username}</h3>
-                      <p className="text-lg sm:text-3xl font-black text-white text-shadow-adaptive mt-1 sm:mt-2">
+                      <p className="text-lg sm:text-3xl font-extrabold text-white/70 text-shadow-adaptive mt-1 sm:mt-2">
                         {formatNumber(leaderboard[0].total_score)}
                       </p>
                     </div>
@@ -296,8 +296,8 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
 
                 {/* 3rd Place */}
                 {leaderboard[2] && (
-                  <div className="order-3 md:order-3">
-                    <div className="podium-bg-red rounded-lg sm:rounded-2xl p-3 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg podium-border-red">
+                  <div className="order-3 md:order-3 flex items-center justify-center">
+                    <div className="podium-bg-red rounded-lg sm:rounded-2xl p-3 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg podium-border-red w-full">
                       <div className="w-12 h-12 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 relative">
                         <img
                           src={leaderboard[2].avatar_url || '/default-avatar.png'}
@@ -311,7 +311,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                         </div>
                       </div>
                       <h3 className="font-bold text-white text-shadow-adaptive text-xs sm:text-base truncate cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push(`/profile/${leaderboard[2].user_id}`)}>{leaderboard[2].username}</h3>
-                      <p className="text-sm sm:text-2xl font-black text-white text-shadow-adaptive mt-1 sm:mt-2">{formatNumber(leaderboard[2].total_score)}</p>
+                      <p className="text-sm sm:text-2xl font-extrabold text-white/70 text-shadow-adaptive mt-1 sm:mt-2">{formatNumber(leaderboard[2].total_score)}</p>
                     </div>
                   </div>
                 )}
@@ -359,12 +359,12 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                     }`}
                   >
                     <div className="flex items-center gap-2 sm:gap-4">
-                      {/* Rank - Mobile Compact */}
+                      {/* Rank */}
                       <div className={`text-center min-w-[2rem] sm:min-w-[3rem] ${isTop10 ? 'font-black text-lg sm:text-2xl' : 'font-bold text-base sm:text-lg'} text-white text-shadow-adaptive`}>
                         {position}
                       </div>
 
-                      {/* Player Info - Mobile Optimized */}
+                      {/* Player Info */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                         <div className="relative">
                           <img
@@ -406,11 +406,11 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                         </div>
                       </div>
 
-                      {/* Stats - Mobile Compact */}
+                      {/* Stats */}
                       <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-6">
-                        {/* Accuracy Badge - Hidden on very small screens, shown on sm+ */}
-                        <div className={`hidden sm:flex w-[60px] sm:w-[72px] py-1 sm:py-1.5 bg-gradient-to-r ${getAccuracyGradient(user.average_accuracy)} ${getAccuracyBorder(user.average_accuracy)} text-white rounded-full font-bold text-xs sm:text-sm shadow-md items-center justify-center`}>
-                          {user.average_accuracy?.toFixed(1)}%
+                        {/* Accuracy Badge */}
+                        <div className={`hidden sm:flex w-[60px] sm:w-[72px] py-1 sm:py-1.5 bg-gradient-to-b ${getAccuracyGradient(user.average_accuracy)} ${getAccuracyBorder(user.average_accuracy)} text-white rounded-full font-bold text-xs sm:text-sm shadow-md items-center justify-center`}>
+                          <span className="drop-shadow-md">{user.average_accuracy?.toFixed(1)}%</span>
                         </div>
 
                         {/* Score */}
@@ -431,7 +431,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             )}
           </div>
 
-          {/* Load More Button - Mobile Optimized */}
+          {/* Load More Button */}
           {viewMode === 'full' && hasMore && !leaderboardLoading && (
             <div className="p-4 sm:p-6 text-center border-t border-white/20">
               <button
@@ -458,7 +458,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             </div>
           )}
 
-          {/* End of results indicator - Mobile Optimized */}
+          {/* End of results indicator */}
           {viewMode === 'full' && !hasMore && leaderboard.length > 50 && !leaderboardLoading && (
             <div className="p-4 sm:p-6 text-center border-t border-white/20">
               <div className="flex items-center justify-center gap-2 text-white/90">

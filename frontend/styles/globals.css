@@ -132,20 +132,20 @@
     @apply p-3 rounded-xl inline-flex;
   }
   
-  .icon-gradient-purple {
-    @apply bg-gradient-to-br from-purple-500 to-pink-500;
+  .icon-gradient-orange {
+    background: linear-gradient(to bottom, #f6b026, #d9703f);
   }
   
   .icon-gradient-blue {
-    @apply bg-gradient-to-br from-blue-500 to-cyan-500;
+    background: linear-gradient(to bottom, #16adda, #2f89ef);
   }
   
   .icon-gradient-green {
-    @apply bg-gradient-to-br from-green-500 to-emerald-500;
+    background: linear-gradient(to bottom, #22c065, #16a66d);
   }
   
-  .icon-gradient-orange {
-    @apply bg-gradient-to-br from-orange-500 to-red-500;
+  .icon-gradient-purple {
+    background: linear-gradient(to bottom, #b666d2, #9d6bb3);
   }
 
   /* Podium Cards for Top 3 */
@@ -344,39 +344,39 @@
 
   /* Icon container borders */
   .icon-container-orange {
-    border: 3px solid rgba(252, 211, 77, 1);
-    box-shadow: 0 0 8px rgba(252, 211, 77, 0.5);
+    border: 3px solid #ffd75a;  
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   .icon-container-blue {
-    border: 3px solid rgba(147, 197, 253, 1);
-    box-shadow: 0 0 8px rgba(147, 197, 253, 0.5);
+    border: 3px solid #4dd4f0;  
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   .icon-container-green {
     border: 3px solid rgba(134, 239, 172, 1);
-    box-shadow: 0 0 8px rgba(134, 239, 172, 0.5);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   .icon-container-purple {
-    border: 3px solid rgba(196, 181, 253, 1);
-    box-shadow: 0 0 8px rgba(196, 181, 253, 0.5);
+    border: 3px solid #ea82d5;  
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   /* Podium card borders */
   .podium-border-blue {
     border: 3px solid rgba(147, 197, 253, 1);
-    box-shadow: 0 0 8px rgba(147, 197, 253, 0.5);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   .podium-border-purple {
     border: 3px solid rgba(196, 181, 253, 1);
-    box-shadow: 0 0 8px rgba(196, 181, 253, 0.5);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   .podium-border-red {
     border: 3px solid rgba(252, 165, 165, 1);
-    box-shadow: 0 0 8px rgba(252, 165, 165, 0.5);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   /* Podium section override for glass-2 background within glass-1 container */
@@ -396,36 +396,43 @@
     background: linear-gradient(to bottom, rgba(239, 68, 68, 0.8), rgba(185, 28, 28, 0.8));
   }
 
-  /* Accuracy badge borders - brighter matching colors with glow */
+  /* Accuracy badge borders */
   .acc-badge-purple {
-    border: 3px solid rgba(196, 181, 253, 1);
-    box-shadow: 0 0 10px rgba(196, 181, 253, 0.6);
+    border: 3px solid #ea82d5;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   .acc-badge-green {
-    border: 3px solid rgba(134, 239, 172, 1);
-    box-shadow: 0 0 10px rgba(134, 239, 172, 0.6);
+    border: 3px solid rgba(134, 239, 172, 0.8);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   .acc-badge-blue {
-    border: 3px solid rgba(147, 197, 253, 1);
-    box-shadow: 0 0 10px rgba(147, 197, 253, 0.6);
+    border: 3px solid rgba(147, 197, 253, 0.8);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   .acc-badge-yellow {
-    border: 3px solid rgba(254, 240, 138, 1);
-    box-shadow: 0 0 10px rgba(254, 240, 138, 0.6);
+    border: 3px solid rgba(254, 240, 138, 0.8);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   .acc-badge-red {
-    border: 3px solid rgba(252, 165, 165, 1);
-    box-shadow: 0 0 10px rgba(252, 165, 165, 0.6);
+    border: 3px solid rgba(252, 165, 165, 0.8);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   /* Avatar border with glow */
   .avatar-border {
     border: 3px solid rgba(255, 255, 255, 0.7);
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .season-dropdown {
+    @apply backdrop-blur-md;
+    background-color: rgba(255, 255, 255, 0.22);
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   /* Season selector button styling */
@@ -537,42 +544,42 @@
   /* Performance card glow effects */
   .performance-card-purple {
     border: 3px solid rgba(196, 181, 253, 0.4);
-    box-shadow: 0 0 8px rgba(196, 181, 253, 0.3);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   .performance-card-purple:hover {
     border: 3px solid rgba(196, 181, 253, 0.6);
-    box-shadow: 0 0 12px rgba(196, 181, 253, 0.5);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
   }
 
   .performance-card-green {
     border: 3px solid rgba(134, 239, 172, 0.3);
-    box-shadow: 0 0 8px rgba(134, 239, 172, 0.2);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   .performance-card-green:hover {
     border: 3px solid rgba(134, 239, 172, 0.5);
-    box-shadow: 0 0 12px rgba(134, 239, 172, 0.4);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
   }
 
   .performance-card-orange {
     border: 3px solid rgba(252, 211, 77, 0.3);
-    box-shadow: 0 0 8px rgba(252, 211, 77, 0.2);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   .performance-card-orange:hover {
     border: 3px solid rgba(252, 211, 77, 0.5);
-    box-shadow: 0 0 12px rgba(252, 211, 77, 0.4);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
   }
 
   .performance-card-blue {
     border: 3px solid rgba(147, 197, 253, 0.4);
-    box-shadow: 0 0 8px rgba(147, 197, 253, 0.3);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   .performance-card-blue:hover {
     border: 3px solid rgba(147, 197, 253, 0.6);
-    box-shadow: 0 0 12px rgba(147, 197, 253, 0.5);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
   }
 
   /* Text glow effects */
@@ -672,31 +679,48 @@
   }
 
   .staff-badge {
-    @apply px-4 py-2 rounded-full text-white font-bold text-sm shadow-lg inline-block;
-    font-family: 'Inter', sans-serif;
-    font-weight: 800; /* Inter Extra Bold */
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(8px);
-    margin: 0.5rem 0;
+    padding: 0.5rem 1rem !important;
+    border-radius: 9999px !important;
+    color: white !important;
+    font-weight: 800 !important;
+    font-size: 0.875rem !important;
+    font-family: 'Inter', sans-serif !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(8px) !important;
+    margin: 0.5rem 0 !important;
+    display: inline-block !important;
+    /* Override any inherited backgrounds */
+    background: none !important;
+    background-image: none !important;
+    background-color: transparent !important;
   }
 
-  .staff-badge-designer {
-    @apply bg-blue-500;
-    border-color: rgba(59, 130, 246, 0.6);
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+  /* Use higher specificity selectors */
+  div.staff-badge.staff-badge-designer,
+  .staff-badge-designer.staff-badge {
+    background: linear-gradient(to bottom, #15abdc, #2d86dd) !important;
+    background-color: #15abdc !important;
+    background-image: linear-gradient(to bottom, #15abdc, #2d86dd) !important;
+    border: 3px solid #7ad6ff !important;
+    box-shadow: 0 0 15px rgba(122, 214, 255, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
   }
 
-  .staff-badge-developer {
-    @apply bg-green-500;
-    border-color: rgba(34, 197, 94, 0.6);
-    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+  div.staff-badge.staff-badge-developer,
+  .staff-badge-developer.staff-badge {
+    background: linear-gradient(to bottom, #1ebc65, #15a86c) !important;
+    background-color: #1ebc65 !important;
+    background-image: linear-gradient(to bottom, #1ebc65, #15a86c) !important;
+    border: 3px solid #5efa97 !important;
+    box-shadow: 0 0 15px rgba(94, 250, 151, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
   }
 
-  .staff-badge-lead {
-    @apply bg-orange-500;
-    border-color: rgba(251, 146, 60, 0.6);
-    box-shadow: 0 0 15px rgba(251, 146, 60, 0.4);
+  div.staff-badge.staff-badge-lead,
+  .staff-badge-lead.staff-badge {
+    background: linear-gradient(to bottom, #eeb345, #c35e2e) !important;
+    background-color: #eeb345 !important;
+    background-image: linear-gradient(to bottom, #eeb345, #c35e2e) !important;
+    border: 3px solid #ffd782 !important;
+    box-shadow: 0 0 15px rgba(255, 215, 130, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
   }
 
   .profile-picture {
