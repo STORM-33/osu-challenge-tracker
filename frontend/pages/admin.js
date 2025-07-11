@@ -598,6 +598,11 @@ export default function Admin() {
     setResult(null);
 
     try {
+      console.log('🚀 Submitting challenge creation:', {
+        roomId: parseInt(roomId),
+        custom_name: customName.trim() || null
+      });
+
       const response = await fetch('/api/challenges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -607,30 +612,77 @@ export default function Admin() {
         })
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', response.headers.get('content-type'));
+
+      // Check if the response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('❌ Response is not JSON:', contentType);
+        const textResponse = await response.text();
+        console.error('❌ Response text:', textResponse);
+        throw new Error('Server returned invalid response format');
+      }
+
       const data = await response.json();
+      console.log('📦 Response data:', data);
 
       if (response.ok) {
+        // Handle successful response
+        const challengeName = data.challenge?.custom_name || data.challenge?.name || `Challenge ${roomId}`;
+        
         setResult({
           success: true,
-          message: `Successfully added challenge: ${data.challenge.custom_name || data.challenge.name}`,
+          message: `Successfully added challenge: ${challengeName}`,
           challenge: data.challenge
         });
+        
+        // Clear the form
         setRoomId('');
         setCustomName('');
         
+        // Reload challenges list after a short delay
         setTimeout(() => {
           loadActiveChallenges();
         }, 1000);
+        
       } else {
+        // Handle error response
+        console.error('❌ Server returned error:', data);
+        
+        let errorMessage = 'Failed to add challenge';
+        
+        if (data.error) {
+          errorMessage = typeof data.error === 'string' ? data.error : data.error.message || errorMessage;
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+        
         setResult({
           success: false,
-          message: data.error || 'Failed to add challenge'
+          message: errorMessage
         });
       }
+
     } catch (error) {
+      console.error('❌ Network/Parse error:', error);
+      
+      let errorMessage = 'Network error. Please try again.';
+      
+      // Provide more specific error messages
+      if (error.name === 'SyntaxError') {
+        errorMessage = 'Server returned invalid response. Please try again.';
+      } else if (error.message?.includes('fetch')) {
+        errorMessage = 'Connection error. Please check your internet connection.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setResult({
         success: false,
-        message: 'Network error. Please try again.'
+        message: errorMessage
       });
     } finally {
       setLoading2(false);
@@ -803,10 +855,10 @@ export default function Admin() {
 
                 <button
                   type="submit"
-                  disabled={loading || !roomId.trim()}
+                  disabled={loading2 || !roomId.trim()}
                   className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary-600 to-blue-600 hover:from-primary-700 hover:to-blue-700 disabled:from-neutral-400 disabled:to-neutral-500 disabled:cursor-not-allowed text-white px-6 py-4 rounded-xl transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
                 >
-                  {loading ? (
+                  {loading2 ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       Adding Challenge...

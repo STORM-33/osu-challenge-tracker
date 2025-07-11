@@ -81,15 +81,13 @@
   .btn-primary {
     @apply px-6 py-3 rounded-full font-semibold transition-all duration-300;
     @apply backdrop-blur-md text-white;
-    background: rgba(236, 72, 153, 0.5);
+    background: linear-gradient(to bottom, #b43b77, #8f2f5d);
     border: 3px solid rgba(244, 114, 182, 1);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
-  
+
   .btn-primary:hover {
-    background: rgba(236, 72, 153, 0.6);
+    background: linear-gradient(to bottom, #c44287, #9f3f6d);
     border: 3px solid rgba(244, 114, 182, 1);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
     transform: translateY(-2px);
   }
   

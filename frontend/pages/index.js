@@ -102,22 +102,6 @@ export default function Home() {
     }
   };
 
-  const fetchQuickStats = async () => {
-    try {
-      // Calculate stats from available data instead of calling a potentially non-existent endpoint
-      const totalParticipants = activeChallenges.reduce((sum, c) => sum + (c.participant_count || 0), 0);
-      const totalMaps = activeChallenges.reduce((sum, c) => sum + (c.playlists?.length || 0), 0);
-      
-      setQuickStats({
-        totalParticipants,
-        totalMaps,
-        // We can calculate more stats here if needed
-      });
-    } catch (err) {
-      console.error('Stats calculation error:', err);
-    }
-  };
-
   const fetchHistoricalChallenges = async (seasonId) => {
     try {
       setLoadingHistorical(true);
@@ -206,19 +190,19 @@ export default function Home() {
     // Only show if there's active syncing or recent completion
     if (total_syncing > 0 || (completionBannerVisible && background_syncs_triggered > 0)) {
       return (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-right fade-in duration-300">
-          <div className="flex items-center gap-3 px-4 py-3 glass-card rounded-full border border-neutral-200 shadow-lg backdrop-blur-lg">
+        <div className="fixed bottom-6 right-6 z-50 animate-slide-up">
+          <div className="flex items-center gap-3 px-4 py-3 glass-1 rounded-xl shadow-lg">
             {total_syncing > 0 ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-sm text-neutral-700 font-medium">
+                <Loader2 className="w-4 h-4 animate-spin text-white icon-shadow-adaptive-sm" />
+                <span className="text-sm text-white font-medium text-shadow-adaptive-sm">
                   Syncing {total_syncing} challenge{total_syncing !== 1 ? 's' : ''}
                 </span>
               </>
             ) : (
               <>
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-neutral-700 font-medium">
+                <CheckCircle className="w-4 h-4 text-green-400 icon-shadow-adaptive-sm" />
+                <span className="text-sm text-white font-medium text-shadow-adaptive-sm">
                   Sync complete
                 </span>
               </>
@@ -241,46 +225,54 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="min-h-screen">
+      <div className="min-h-screen py-4 sm:py-6 lg:py-8">
         {/* Sync Status Indicator - Fixed positioned */}
         <SyncStatusIndicator />
         
         {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           {/* Active Challenges Section */}
-          <div className="mb-16">
-            <div className="flex items-start justify-between mb-10">
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="relative">
-                    <Trophy className="w-8 h-8 text-primary-600 icon-adaptive-shadow" />
-                    <Sparkles className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1" />
+          <div className="mb-8 sm:mb-12 lg:mb-16">
+            {/* Header Section - Mobile First */}
+            <div className="mb-6 sm:mb-8 lg:mb-10">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 lg:gap-8">
+                <div className="text-center lg:text-left">
+                  {/* Icon and Title - Stacked on mobile, inline on larger screens */}
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4 mb-4">
+                    <div className="relative">
+                      <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white icon-shadow-adaptive-lg" />
+                      <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 absolute -top-1 -right-1 icon-shadow-adaptive-sm" />
+                    </div>
+                    
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white text-shadow-adaptive-lg">
+                      Active Challenges
+                    </h1>
+                    
+                    {activeChallenges.length > 0 && (
+                      <span className="px-3 py-1 sm:px-4 sm:py-2 glass-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 text-xs sm:text-sm font-semibold rounded-full border border-green-400/30 shadow-sm">
+                        {activeChallenges.length} Live
+                      </span>
+                    )}
                   </div>
-                  <h1 className="text-4xl font-bold white text-neutral-800 text-white/90 text-adaptive-shadow">
-                    Active Challenges
-                  </h1>
-                  {activeChallenges.length > 0 && (
-                    <span className="px-4 py-2 glass-card bg-gradient-to-r from-green-100/80 to-emerald-100/80 text-green-700 text-sm font-semibold rounded-full border border-green-200/60 shadow-sm backdrop-blur-md">
-                      {activeChallenges.length} Live
-                    </span>
-                  )}
+                  
+                  {/* Description - Mobile optimized */}
+                  <p className="text-white/85 text-sm sm:text-base lg:text-lg max-w-none lg:max-w-2xl text-shadow-adaptive px-4 sm:px-0">
+                    Jump into any of our currently active challenges and compete with players worldwide for the top spots!
+                  </p>
                 </div>
-                <p className="text-neutral-600 text-lg max-w-2xl text-white/85 text-adaptive-shadow">
-                  Jump into any of our currently active challenges and compete with players worldwide for the top spots!
-                </p>
-              </div>
-              
-              {/* About Challenges Button */}
-              <div className="text-right flex-shrink-0 ml-8">
-                <Link href="/about-challengers">
-                  <button className="flex items-center gap-3 px-6 py-3 glass-card from-primary-50/80 to-purple-50/80 hover:glass-card-enhanced text-neutral-700 font-semibold rounded-full transition-all duration-200 transform hover:scale-105 border border-primary-200/60 hover:border-primary-300/60 shadow-sm hover:shadow-md backdrop-blur-md">
-                    <Info className="w-5 h-5 text-primary-600" />
-                    About Challengers
-                  </button>
-                </Link>
-                <p className="text-sm text-neutral-500 mt-2 max-w-[200px] text-white/85 text-adaptive-shadow">
-                  New here? Learn how challenges work!
-                </p>
+                
+                {/* About Challenges Button - Mobile First */}
+                <div className="flex flex-col items-center lg:items-end lg:flex-shrink-0">
+                  <Link href="/about-challengers">
+                    <button className="flex items-center gap-2 sm:gap-3 px-4 py-2 sm:px-6 sm:py-3 glass-2 hover:glass-3 text-white font-semibold rounded-xl sm:rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl text-sm sm:text-base">
+                      <Info className="w-4 h-4 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
+                      About Challengers
+                    </button>
+                  </Link>
+                  <p className="text-xs sm:text-sm text-white/70 mt-2 max-w-[200px] text-center lg:text-right text-shadow-adaptive-sm">
+                    New here? Learn how challenges work!
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -289,38 +281,38 @@ export default function Home() {
               {/* Subtle Loading Indicator */}
               {loading && (
                 <div className="absolute top-4 right-4 z-10">
-                  <div className="flex items-center gap-2 px-4 py-2 glass-card rounded-full border border-neutral-200/60 shadow-sm backdrop-blur-md">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                    <span className="text-sm text-white/80 text-adaptive-shadow font-medium">Loading challenges</span>
+                  <div className="flex items-center gap-2 px-4 py-2 glass-1 rounded-xl shadow-sm">
+                    <Loader2 className="w-4 h-4 animate-spin text-white icon-shadow-adaptive-sm" />
+                    <span className="text-sm text-white font-medium text-shadow-adaptive-sm">Loading challenges</span>
                   </div>
                 </div>
               )}
 
               {/* Content */}
               {error ? (
-                <div className="glass-card-enhanced bg-gradient-to-br from-red-50/80 to-rose-100/80 rounded-3xl p-12 text-center border border-red-200/60 backdrop-blur-lg">
-                  <div className="w-16 h-16 bg-red-200/80 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                    <AlertCircle className="w-8 h-8 text-red-600" />
+                <div className="glass-1 rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center shadow-xl">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                    <AlertCircle className="w-8 h-8 sm:w-10 sm:h-10 text-red-400 icon-shadow-adaptive" />
                   </div>
-                  <p className="text-red-700 mb-6 font-medium">Failed to load challenges: {error.message}</p>
+                  <p className="text-red-300 mb-6 font-medium text-shadow-adaptive text-sm sm:text-base">Failed to load challenges: {error.message}</p>
                   <button 
                     onClick={refreshActiveChallenges}
-                    className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:scale-105"
+                    className="px-4 py-2 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-all hover:shadow-lg transform hover:scale-105 text-sm sm:text-base"
                   >
                     Try Again
                   </button>
                 </div>
               ) : activeChallenges.length === 0 && !loading ? (
-                <div className="glass-card-enhanced rounded-3xl p-16 text-center border border-neutral-200/60 backdrop-blur-lg">
-                  <div className="w-20 h-20 bg-neutral-200/80 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
-                    <Trophy className="w-10 h-10 text-neutral-400" />
+                <div className="glass-1 rounded-2xl sm:rounded-3xl p-8 sm:p-16 text-center shadow-xl">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                    <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white/70 icon-shadow-adaptive" />
                   </div>
-                  <h3 className="text-xl font-bold text-neutral-700 mb-3">No Active Challenges</h3>
-                  <p className="text-neutral-600 mb-2">Check back soon for new challenges!</p>
-                  <p className="text-sm text-neutral-500">New challenges are added regularly</p>
+                  <h3 className="text-lg sm:text-xl font-bold text-white/90 mb-3 text-shadow-adaptive">No Active Challenges</h3>
+                  <p className="text-white/70 mb-2 text-shadow-adaptive-sm text-sm sm:text-base">Check back soon for new challenges!</p>
+                  <p className="text-xs sm:text-sm text-white/60 text-shadow-adaptive-sm">New challenges are added regularly</p>
                 </div>
               ) : (
-                <div className={`grid gap-8 transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
+                <div className={`grid gap-4 sm:gap-6 lg:gap-8 transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
                   {activeChallenges.map(challenge => {
                     const isUpdating = challenge.sync_metadata?.sync_in_progress;
                     const isStale = challenge.sync_metadata?.is_stale;
@@ -347,11 +339,11 @@ export default function Home() {
           </div>
 
           {/* History Section */}
-          <div className="mt-20">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
-              <div className="flex items-center gap-3">
-                <History className="w-8 h-8 text-white/90 icon-adaptive-shadow" />
-                <h2 className="text-4xl font-bold text-white/90 text-adaptive-shadow">
+          <div className="mt-12 sm:mt-16 lg:mt-20">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 sm:mb-8 gap-4">
+              <div className="flex items-center gap-3 justify-center lg:justify-start">
+                <History className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive" />
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white text-shadow-adaptive">
                   Challenge History
                 </h2>
               </div>
@@ -362,24 +354,24 @@ export default function Home() {
             </div>
 
             {selectedSeason && (
-              <div className="mb-8">
-                <div className="glass-card-enhanced rounded-2xl p-6 border border-purple-200/60 backdrop-blur-lg shadow-lg">
+              <div className="mb-6 sm:mb-8">
+                <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-2xl font-bold text-neutral-800 mb-2">
+                      <h3 className="text-lg sm:text-2xl font-bold text-white mb-2 text-shadow-adaptive">
                         {selectedSeason.name}
                       </h3>
-                      <p className="text-neutral-600">
+                      <p className="text-white/80 text-shadow-adaptive-sm text-sm sm:text-base">
                         {formatDate(selectedSeason.start_date)} - {formatDate(selectedSeason.end_date)}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
                       {selectedSeason.is_current && (
-                        <span className="px-4 py-2 glass-card bg-gradient-to-r from-green-100/80 to-emerald-100/80 text-green-700 text-sm font-semibold rounded-full border border-green-200/60 shadow-sm backdrop-blur-md">
+                        <span className="px-3 py-1 sm:px-4 sm:py-2 glass-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 text-xs sm:text-sm font-semibold rounded-full border border-green-400/30 shadow-sm">
                           Current Season
                         </span>
                       )}
-                      <span className="px-4 py-2 glass-card text-neutral-600 text-sm font-medium rounded-full shadow-sm backdrop-blur-md border border-neutral-200/60">
+                      <span className="px-3 py-1 sm:px-4 sm:py-2 glass-2 text-white/80 text-xs sm:text-sm font-medium rounded-full shadow-sm">
                         {filteredChallenges.length} challenges
                       </span>
                     </div>
@@ -391,79 +383,79 @@ export default function Home() {
             {/* Historical Challenges Table */}
             <div className="relative">
               {loadingHistorical && (
-                <div className="absolute inset-0 glass-card-subtle backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                <div className="absolute inset-0 glass-2 z-10 flex items-center justify-center rounded-2xl">
                   <Loading.Section message="Loading history..." />
                 </div>
               )}
 
               {filteredChallenges.length > 0 ? (
-                <div className="glass-card-enhanced rounded-2xl border border-neutral-200/60 overflow-hidden shadow-xl backdrop-blur-lg">
+                <div className="glass-1 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="glass-card-subtle border-b border-neutral-200/60 backdrop-blur-md">
+                      <thead className="glass-2 border-b border-white/10">
                         <tr>
-                          <th className="px-6 py-4 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider">
+                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
                             Challenge
                           </th>
-                          <th className="px-6 py-4 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider">
+                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
                             Type
                           </th>
-                          <th className="px-6 py-4 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider">
+                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
                             Maps
                           </th>
-                          <th className="px-6 py-4 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider">
+                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
                             Participants
                           </th>
-                          <th className="px-6 py-4 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider">
+                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
                             Ended
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-neutral-100/60 backdrop-blur-sm">
+                      <tbody className="divide-y divide-white/10">
                         {filteredChallenges.map((challenge) => {
                           const challengeType = getChallengeType(challenge);
                           const displayName = challenge.custom_name || challenge.name;
                           
                           return (
-                            <tr key={challenge.id} className="hover:bg-white/20 transition-all group">
-                              <td className="px-6 py-4">
+                            <tr key={challenge.id} className="hover:bg-white/5 transition-all group">
+                              <td className="px-4 py-3 sm:px-6 sm:py-4">
                                 <Link href={`/challenges/${challenge.room_id}`}>
                                   <div className="cursor-pointer">
-                                    <div className="font-semibold text-neutral-800 group-hover:text-purple-600 transition-colors">
+                                    <div className="font-semibold text-white group-hover:text-purple-300 transition-colors text-shadow-adaptive text-sm sm:text-base">
                                       {displayName || `Challenge #${challenge.id}`}
                                     </div>
                                     {challenge.description && (
-                                      <div className="text-sm text-neutral-500 truncate max-w-xs mt-1">
+                                      <div className="text-xs sm:text-sm text-white/60 truncate max-w-xs mt-1 text-shadow-adaptive-sm">
                                         {challenge.description}
                                       </div>
                                     )}
                                   </div>
                                 </Link>
                               </td>
-                              <td className="px-6 py-4">
-                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
+                              <td className="px-4 py-3 sm:px-6 sm:py-4">
+                                <span className={`inline-flex items-center px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold ${
                                   challengeType === 'weekly' 
-                                    ? 'bg-gradient-to-r from-blue-100/80 to-cyan-100/80 text-blue-700 border border-blue-200/60' 
-                                    : 'bg-gradient-to-r from-purple-100/80 to-pink-100/80 text-purple-700 border border-purple-200/60'
+                                    ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' 
+                                    : 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
                                 }`}>
                                   {challengeType}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-sm text-neutral-600">
+                              <td className="px-4 py-3 sm:px-6 sm:py-4 text-sm text-white/80 text-shadow-adaptive-sm">
                                 <div className="flex items-center gap-2">
-                                  <MapPin className="w-4 h-4 text-purple-500" />
+                                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400 icon-shadow-adaptive-sm" />
                                   <span className="font-medium">{challenge.playlists?.length || 0}</span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-sm text-neutral-600">
+                              <td className="px-4 py-3 sm:px-6 sm:py-4 text-sm text-white/80 text-shadow-adaptive-sm">
                                 <div className="flex items-center gap-2">
-                                  <Users className="w-4 h-4 text-blue-500" />
+                                  <Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 icon-shadow-adaptive-sm" />
                                   <span className="font-medium">{challenge.participant_count || 0}</span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-sm text-neutral-500">
+                              <td className="px-4 py-3 sm:px-6 sm:py-4 text-sm text-white/70 text-shadow-adaptive-sm">
                                 <div className="flex items-center gap-2">
-                                  <Clock className="w-4 h-4 text-gray-400" />
+                                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 icon-shadow-adaptive-sm" />
                                   {challenge.end_date ? formatDate(challenge.end_date) : 'N/A'}
                                 </div>
                               </td>
@@ -475,18 +467,18 @@ export default function Home() {
                   </div>
                 </div>
               ) : !loadingHistorical && (
-                <div className="glass-card-enhanced rounded-3xl p-16 text-center border border-neutral-200/60 shadow-xl backdrop-blur-lg">
-                  <div className="w-20 h-20 bg-gradient-to-br from-gray-200/60 to-gray-300/60 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
-                    <History className="w-10 h-10 text-gray-500" />
+                <div className="glass-1 rounded-2xl sm:rounded-3xl p-8 sm:p-16 text-center shadow-xl">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                    <History className="w-8 h-8 sm:w-10 sm:h-10 text-white/70 icon-shadow-adaptive" />
                   </div>
-                  <h3 className="text-2xl font-bold text-neutral-700 mb-3">No Historical Challenges</h3>
-                  <p className="text-neutral-600 mb-2">
+                  <h3 className="text-lg sm:text-2xl font-bold text-white/90 mb-3 text-shadow-adaptive">No Historical Challenges</h3>
+                  <p className="text-white/70 mb-2 text-shadow-adaptive-sm text-sm sm:text-base">
                     {selectedSeason?.is_current 
                       ? 'Completed challenges will appear here as they finish'
                       : 'This season had no completed challenges'
                     }
                   </p>
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-xs sm:text-sm text-white/60 text-shadow-adaptive-sm">
                     Challenge history helps track your progress over time
                   </p>
                 </div>
@@ -495,13 +487,13 @@ export default function Home() {
           </div>
 
           {/* Footer Status Indicator */}
-          <div className="mt-20 text-center">
-            <div className="inline-flex items-center gap-2 px-6 py-3 glass-card rounded-full shadow-lg border border-neutral-200/60 backdrop-blur-lg">
+          <div className="mt-12 sm:mt-16 lg:mt-20 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-3 sm:px-6 sm:py-3 glass-1 rounded-xl sm:rounded-2xl shadow-lg">
               <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                syncSummary?.total_syncing > 0 ? 'bg-blue-500 animate-pulse' : 
-                syncSummary?.auto_sync_enabled ? 'bg-green-500' : 'bg-gray-500'
+                syncSummary?.total_syncing > 0 ? 'bg-blue-400 animate-pulse' : 
+                syncSummary?.auto_sync_enabled ? 'bg-green-400' : 'bg-gray-400'
               }`}></div>
-              <p className="text-sm text-neutral-600 font-medium">
+              <p className="text-xs sm:text-sm text-white/80 font-medium text-shadow-adaptive-sm">
                 {syncSummary?.total_syncing > 0 ? 
                   `Fetching latest scores (${syncSummary.total_syncing} active)...` : 
                   syncSummary?.auto_sync_enabled ? 
@@ -516,9 +508,9 @@ export default function Home() {
               <button
                 onClick={refreshActiveChallenges}
                 disabled={isValidating}
-                className="text-xs text-white/70 text-adaptive-shadow hover:text-neutral-700 transition-colors flex items-center gap-1 mx-auto disabled:opacity-50 hover:bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm"
+                className="text-xs text-white/70 hover:text-white/90 transition-colors flex items-center gap-1 mx-auto disabled:opacity-50 hover:bg-white/10 px-3 py-1 rounded-full text-shadow-adaptive-sm"
               >
-                <RefreshCw className={`w-3 h-3 icon-adaptive-shadow ${isValidating ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3 h-3 icon-shadow-adaptive-sm ${isValidating ? 'animate-spin' : ''}`} />
                 Manual Refresh
               </button>
             </div>

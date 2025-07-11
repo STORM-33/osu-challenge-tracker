@@ -16,6 +16,8 @@ async function handler(req, res) {
     return withAdminAuth(handleUpdateChallengeName)(req, res);
   } else if (req.method === 'POST' && req.body.action === 'reset_name') {
     return withAdminAuth(handleResetChallengeName)(req, res);
+  } else if (req.method === 'DELETE') {
+    return withAdminAuth(handleDeleteChallenge)(req, res);
   } else {
     console.log('❌ Method not allowed:', req.method);
     return res.status(405).json({ 
@@ -209,6 +211,160 @@ async function handleGetAllChallenges(req, res) {
 
   } catch (error) {
     console.error('🚨 Unexpected error in handleGetAllChallenges:', error);
+    return handleAPIError(res, error);
+  }
+}
+
+// Delete challenge and all related data
+async function handleDeleteChallenge(req, res) {
+  try {
+    // Validate request
+    validateRequest(req, {
+      method: 'DELETE',
+      body: {
+        roomId: { required: true, type: 'number' }
+      }
+    });
+
+    const { roomId } = req.body;
+
+    console.log(`🗑️ Admin ${req.user.username} attempting to delete challenge ${roomId}`);
+
+    // First, get the challenge details for logging and verification
+    const { data: challengeToDelete, error: fetchError } = await supabase
+      .from('challenges')
+      .select(`
+        id,
+        room_id,
+        name,
+        custom_name,
+        participant_count,
+        is_active,
+        created_at
+      `)
+      .eq('room_id', roomId)
+      .single();
+
+    if (fetchError || !challengeToDelete) {
+      console.log('❌ Challenge not found:', roomId);
+      return res.status(404).json({ 
+        success: false,
+        error: 'Challenge not found' 
+      });
+    }
+
+    // Get statistics about what will be deleted for logging
+    const { data: playlistStats } = await supabase
+      .from('playlists')
+      .select('id')
+      .eq('challenge_id', challengeToDelete.id);
+
+    const playlistIds = playlistStats?.map(p => p.id) || [];
+    
+    let scoreCount = 0;
+    let userCount = 0;
+    
+    if (playlistIds.length > 0) {
+      // Get score count
+      const { count: scores } = await supabase
+        .from('scores')
+        .select('*', { count: 'exact', head: true })
+        .in('playlist_id', playlistIds);
+      
+      // Get unique user count
+      const { data: users } = await supabase
+        .from('scores')
+        .select('user_id')
+        .in('playlist_id', playlistIds);
+      
+      scoreCount = scores || 0;
+      userCount = new Set(users?.map(u => u.user_id) || []).size;
+    }
+
+    console.log(`📊 Challenge ${roomId} deletion impact:`, {
+      challengeName: challengeToDelete.custom_name || challengeToDelete.name,
+      playlists: playlistIds.length,
+      scores: scoreCount,
+      uniqueUsers: userCount,
+      isActive: challengeToDelete.is_active
+    });
+
+    // Perform the deletion using a transaction-like approach
+    // The CASCADE constraints should handle most of the cleanup, but we'll be explicit
+
+    try {
+      console.log('🗑️ Step 1: Deleting challenge_ruleset_winners...');
+      await supabaseAdmin
+        .from('challenge_ruleset_winners')
+        .delete()
+        .eq('challenge_id', challengeToDelete.id);
+
+      console.log('🗑️ Step 2: Deleting scores...');
+      if (playlistIds.length > 0) {
+        await supabaseAdmin
+          .from('scores')
+          .delete()
+          .in('playlist_id', playlistIds);
+      }
+
+      console.log('🗑️ Step 3: Deleting user_challenges...');
+      await supabaseAdmin
+        .from('user_challenges')
+        .delete()
+        .eq('challenge_id', challengeToDelete.id);
+
+      console.log('🗑️ Step 4: Deleting playlists...');
+      await supabaseAdmin
+        .from('playlists')
+        .delete()
+        .eq('challenge_id', challengeToDelete.id);
+
+      console.log('🗑️ Step 5: Deleting challenge...');
+      const { error: deleteError } = await supabaseAdmin
+        .from('challenges')
+        .delete()
+        .eq('id', challengeToDelete.id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      console.log('✅ Challenge deleted successfully');
+
+    } catch (deleteError) {
+      console.error('❌ Error during deletion:', deleteError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete challenge',
+        details: process.env.NODE_ENV === 'development' ? deleteError.message : undefined
+      });
+    }
+
+    // Log the deletion for audit purposes
+    console.log(`🎯 Admin ${req.user.username} (ID: ${req.user.id}) deleted challenge:`, {
+      roomId: challengeToDelete.room_id,
+      challengeId: challengeToDelete.id,
+      name: challengeToDelete.custom_name || challengeToDelete.name,
+      wasActive: challengeToDelete.is_active,
+      deletedPlaylists: playlistIds.length,
+      deletedScores: scoreCount,
+      affectedUsers: userCount,
+      timestamp: new Date().toISOString()
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Challenge "${challengeToDelete.custom_name || challengeToDelete.name}" deleted successfully`,
+      deletionStats: {
+        challenge: challengeToDelete.custom_name || challengeToDelete.name,
+        playlists: playlistIds.length,
+        scores: scoreCount,
+        affectedUsers: userCount
+      }
+    });
+
+  } catch (error) {
+    console.error('🚨 Delete challenge error:', error);
     return handleAPIError(res, error);
   }
 }

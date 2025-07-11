@@ -200,20 +200,30 @@ async function handleGetChallenges(req, res) {
 
 async function handleCreateChallenge(req, res) {
   try {
+    console.log('🎯 Create challenge request:', {
+      method: req.method,
+      body: req.body,
+      user: req.user?.username
+    });
+
+    // Fixed validation - make name optional and custom_name optional
     validateRequest(req, {
       method: 'POST',
       body: {
-        roomId: { required: true, type: 'number' },
-        name: { type: 'string', maxLength: 500 },
-        custom_name: { type: 'string', maxLength: 255 }
+        roomId: { required: true, type: 'number', min: 1 },
+        name: { type: 'string', maxLength: 500 }, // Optional
+        custom_name: { type: 'string', maxLength: 255 } // Optional
       }
     });
 
     const { roomId, name, custom_name } = req.body;
 
-    if (!/^\d+$/.test(roomId.toString())) {
-      throw new Error('Invalid room ID format');
+    // Validate room ID format
+    if (!Number.isInteger(roomId) || roomId <= 0) {
+      throw new Error('Room ID must be a positive integer');
     }
+
+    console.log(`🔍 Creating challenge for room ID: ${roomId}`);
 
     const limitStatus = apiTracker.checkLimits();
     if (limitStatus === 'critical') {
@@ -221,20 +231,31 @@ async function handleCreateChallenge(req, res) {
     }
 
     // Check if challenge already exists
-    const { data: existingChallenge } = await supabase
+    const { data: existingChallenge, error: checkError } = await supabase
       .from('challenges')
-      .select('id, room_id, name, custom_name')
-      .eq('room_id', parseInt(roomId))
+      .select('id, room_id, name, custom_name, is_active')
+      .eq('room_id', roomId)
       .single();
 
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('❌ Error checking existing challenge:', checkError);
+      throw new Error('Database error while checking existing challenge');
+    }
+
     if (existingChallenge) {
-      return handleAPIError(res, new Error('Challenge already exists'));
+      console.log(`⚠️ Challenge already exists:`, existingChallenge);
+      return res.status(409).json({
+        success: false,
+        error: 'Challenge already exists',
+        existing_challenge: existingChallenge
+      });
     }
 
     // Get current season
     let currentSeasonId = null;
     try {
-      const seasonResponse = await trackedFetch(`${req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL}/api/seasons/current`, {
+      const baseUrl = req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+      const seasonResponse = await trackedFetch(`${baseUrl}/api/seasons/current`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       }, 'internal-api');
@@ -243,33 +264,51 @@ async function handleCreateChallenge(req, res) {
         const seasonData = await seasonResponse.json();
         if (seasonData.success && seasonData.season) {
           currentSeasonId = seasonData.season.id;
+          console.log(`✅ Found current season: ${currentSeasonId}`);
         }
       }
     } catch (seasonError) {
-      console.warn('Could not fetch current season:', seasonError);
+      console.warn('⚠️ Could not fetch current season:', seasonError.message);
     }
+
+    // Prepare challenge data
+    const challengeData = {
+      room_id: roomId,
+      name: name || `Challenge ${roomId}`,
+      custom_name: custom_name || null,
+      host: 'Unknown', // Will be updated when synced
+      room_type: 'playlisted',
+      participant_count: 0,
+      is_active: true,
+      season_id: currentSeasonId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('📝 Inserting challenge data:', challengeData);
 
     // Create challenge in database
     const { data: challenge, error: createError } = await supabaseAdmin
       .from('challenges')
-      .insert({
-        room_id: parseInt(roomId),
-        name: name || `Challenge ${roomId}`,
-        custom_name: custom_name || null,
-        host: 'Unknown',
-        room_type: 'playlisted',
-        participant_count: 0,
-        is_active: true,
-        season_id: currentSeasonId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
+      .insert(challengeData)
+      .select(`
+        *,
+        seasons (
+          id,
+          name,
+          start_date,
+          end_date,
+          is_current
+        )
+      `)
       .single();
 
     if (createError) {
-      throw createError;
+      console.error('❌ Error creating challenge:', createError);
+      throw new Error(`Failed to create challenge: ${createError.message}`);
     }
+
+    console.log('✅ Challenge created successfully:', challenge.id);
 
     // Trigger initial sync in background
     let backgroundSyncTriggered = false;
@@ -285,12 +324,16 @@ async function handleCreateChallenge(req, res) {
         backgroundSyncTriggered = true;
         syncJobId = queueResult.jobId;
         console.log(`✅ Initial background sync queued for new challenge ${roomId} (job: ${syncJobId})`);
+      } else {
+        console.warn(`⚠️ Could not queue sync for new challenge ${roomId}: ${queueResult.reason}`);
       }
     } catch (syncError) {
       console.warn(`⚠️ Failed to queue initial sync for new challenge ${roomId}:`, syncError.message);
     }
 
     const usageStats = apiTracker.getUsageStats();
+
+    console.log('🎉 Challenge creation completed successfully');
 
     return handleAPIResponse(res, {
       challenge: {
@@ -312,7 +355,23 @@ async function handleCreateChallenge(req, res) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Create challenge error:', error);
+    console.error('❌ Create challenge error:', error);
+    
+    // Provide more specific error messages
+    if (error.message?.includes('duplicate key')) {
+      return res.status(409).json({
+        success: false,
+        error: 'Challenge with this room ID already exists'
+      });
+    }
+    
+    if (error.message?.includes('validation')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
     return handleAPIError(res, error);
   }
 }

@@ -6,7 +6,7 @@ import RulesetManager from '../../components/RulesetManager';
 import { 
   Loader2, Settings, Search, Filter, Edit2, Save, RotateCcw, 
   CheckCircle, AlertCircle, Users, Calendar, Clock, MapPin,
-  ChevronLeft, ChevronRight, X, Eye, EyeOff, Crown, Target
+  ChevronLeft, ChevronRight, X, Eye, EyeOff, Crown, Target, Trash2
 } from 'lucide-react';
 import { auth } from '../../lib/supabase';
 import { useRouter } from 'next/router';
@@ -49,6 +49,11 @@ export default function AdminChallenges() {
   const [editingChallenge, setEditingChallenge] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [savingChanges, setSavingChanges] = useState(new Set());
+  
+  // Delete state
+  const [challengeToDelete, setChallengeToDelete] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
   
   // Ruleset management state
   const [showRulesetManager, setShowRulesetManager] = useState(false);
@@ -167,6 +172,81 @@ export default function AdminChallenges() {
   const cancelEditing = () => {
     setEditingChallenge(null);
     setEditingName('');
+  };
+
+  // Delete functions
+  const startDelete = (challenge) => {
+    setChallengeToDelete(challenge);
+    setDeleteConfirmText('');
+  };
+
+  const cancelDelete = () => {
+    setChallengeToDelete(null);
+    setDeleteConfirmText('');
+  };
+
+  const confirmDelete = async () => {
+    if (!challengeToDelete) return;
+    
+    const expectedText = `DELETE ${challengeToDelete.room_id}`;
+    if (deleteConfirmText !== expectedText) {
+      setResult({
+        success: false,
+        error: `Please type "${expectedText}" to confirm deletion`
+      });
+      return;
+    }
+
+    setDeleting(true);
+    
+    try {
+      const response = await fetch('/api/admin/challenges', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: challengeToDelete.room_id
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setResult({
+          success: true,
+          message: data.message
+        });
+
+        // Remove from local state
+        setChallenges(prev => prev.filter(c => c.room_id !== challengeToDelete.room_id));
+        
+        // Update summary
+        setSummary(prev => ({
+          ...prev,
+          total: Math.max(0, prev.total - 1),
+          active: challengeToDelete.is_active ? Math.max(0, prev.active - 1) : prev.active,
+          inactive: !challengeToDelete.is_active ? Math.max(0, prev.inactive - 1) : prev.inactive,
+          withCustomNames: challengeToDelete.custom_name ? Math.max(0, prev.withCustomNames - 1) : prev.withCustomNames,
+          withoutCustomNames: !challengeToDelete.custom_name ? Math.max(0, prev.withoutCustomNames - 1) : prev.withoutCustomNames,
+          withRulesets: challengeToDelete.has_ruleset ? Math.max(0, prev.withRulesets - 1) : prev.withRulesets,
+          withoutRulesets: !challengeToDelete.has_ruleset ? Math.max(0, prev.withoutRulesets - 1) : prev.withoutRulesets
+        }));
+
+        cancelDelete();
+      } else {
+        setResult({
+          success: false,
+          error: data.error || 'Failed to delete challenge'
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting challenge:', error);
+      setResult({
+        success: false,
+        error: 'Network error. Please try again.'
+      });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // Ruleset management functions
@@ -634,6 +714,17 @@ export default function AdminChallenges() {
                                       )}
                                     </button>
                                   )}
+                                  
+                                  {/* Delete Button */}
+                                  <button
+                                    onClick={() => startDelete(challenge)}
+                                    disabled={isSaving}
+                                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                                    title="Delete challenge"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                  
                                   <Link href={`/challenges/${challenge.room_id}`}>
                                     <button
                                       className="p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 rounded-md transition-colors"
@@ -687,6 +778,80 @@ export default function AdminChallenges() {
             </>
           )}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {challengeToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-md w-full p-6">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-2">
+                    Delete Challenge
+                  </h3>
+                  <p className="text-neutral-600 mb-4">
+                    You are about to permanently delete:
+                  </p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                    <div className="font-medium text-red-800">
+                      {getDisplayName(challengeToDelete)} (Room #{challengeToDelete.room_id})
+                    </div>
+                    <div className="text-sm text-red-600 mt-1">
+                      {challengeToDelete.participant_count || 0} participants • {challengeToDelete.is_active ? 'Active' : 'Inactive'}
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <div className="text-sm text-yellow-800">
+                      <strong>Warning:</strong> This action cannot be undone. All associated playlists, scores, and user participation data will be permanently deleted.
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Type <code className="bg-gray-100 px-1 rounded text-red-600 font-mono">DELETE {challengeToDelete.room_id}</code> to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                      placeholder={`DELETE ${challengeToDelete.room_id}`}
+                      disabled={deleting}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={cancelDelete}
+                  disabled={deleting}
+                  className="px-4 py-2 text-neutral-700 border border-neutral-300 rounded-lg hover:bg-neutral-50 disabled:opacity-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={deleting || deleteConfirmText !== `DELETE ${challengeToDelete.room_id}`}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Delete Challenge
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Ruleset Manager Modal */}
         {showRulesetManager && selectedChallengeForRuleset && (
