@@ -16,10 +16,21 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
 
   const handleLogout = async () => {
     try {
-      await signOut(); // Use context method
-      router.push('/');
+      console.log('🚪 Starting logout...');
+      await signOut();
+      
+      console.log('✅ Logout completed');
+      
+      if (router.pathname !== '/') {
+        router.push('/');
+      }
+      
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('🚨 Logout error:', error);
+      // Still redirect on error
+      if (router.pathname !== '/') {
+        router.push('/');
+      }
     }
   };
 
