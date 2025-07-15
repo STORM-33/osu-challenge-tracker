@@ -1,69 +1,60 @@
 function handler(req, res) {
     const { OSU_CLIENT_ID, OSU_REDIRECT_URI } = process.env;
     
-    console.log('🔑 === LOGIN HANDLER DEBUG START ===');
+    console.log('🔑 === SECURE LOGIN START ===');
     console.log('🌍 Environment:', process.env.NODE_ENV);
     console.log('🏠 Host:', req.headers.host);
-    console.log('🔗 Redirect URI configured:', OSU_REDIRECT_URI);
-    console.log('🆔 Client ID:', OSU_CLIENT_ID ? 'present' : 'missing');
+    console.log('🔗 Redirect URI:', OSU_REDIRECT_URI);
     
     if (!OSU_CLIENT_ID || !OSU_REDIRECT_URI) {
-        console.error('❌ Missing required environment variables');
+        console.error('❌ Missing OAuth configuration');
         return res.status(500).json({ error: 'Server configuration error' });
     }
     
-    // Generate a random state for security
-    const state = Math.random().toString(36).substring(7);
+    // Generate cryptographically secure state
+    const state = require('crypto').randomBytes(16).toString('hex');
     console.log('🎲 Generated state:', state);
-    console.log('🎲 State length:', state.length);
     
-    // Try multiple cookie setting approaches for better compatibility
     const isProduction = process.env.NODE_ENV === 'production';
     
-    // Primary cookie with all attributes
-    const primaryCookieOptions = [
+    // Set cookies with proper attributes for OAuth flows
+    const stateCookieOptions = [
         `osu_auth_state=${state}`,
         'Path=/',
         'HttpOnly',
+        'SameSite=None', // Allow cross-site for OAuth
+        'Max-Age=600', // 10 minutes
+        ...(isProduction ? ['Secure'] : [])
+    ].join('; ');
+    
+    // Backup cookie with Lax (in case browser doesn't support None)
+    const backupCookieOptions = [
+        `osu_auth_state_backup=${state}`,
+        'Path=/',
+        'HttpOnly', 
         'SameSite=Lax',
         'Max-Age=600',
         ...(isProduction ? ['Secure'] : [])
     ].join('; ');
     
-    // Fallback cookie with minimal attributes (in case SameSite causes issues)
-    const fallbackCookieOptions = [
-        `osu_auth_state_backup=${state}`,
-        'Path=/',
-        'HttpOnly',
-        'Max-Age=600',
-        ...(isProduction ? ['Secure'] : [])
-    ].join('; ');
+    console.log('🍪 Setting primary cookie (SameSite=None):', stateCookieOptions);
+    console.log('🍪 Setting backup cookie (SameSite=Lax):', backupCookieOptions);
     
-    console.log('🍪 Setting primary cookie:', primaryCookieOptions);
-    console.log('🍪 Setting fallback cookie:', fallbackCookieOptions);
+    // Set both cookies for maximum compatibility
+    res.setHeader('Set-Cookie', [stateCookieOptions, backupCookieOptions]);
     
-    // Set both cookies
-    res.setHeader('Set-Cookie', [primaryCookieOptions, fallbackCookieOptions]);
-    
-    // Build OAuth URL
+    // Build OAuth URL with proper parameters
     const authUrl = new URL('https://osu.ppy.sh/oauth/authorize');
-    authUrl.searchParams.append('client_id', OSU_CLIENT_ID);
-    authUrl.searchParams.append('redirect_uri', OSU_REDIRECT_URI);
-    authUrl.searchParams.append('response_type', 'code');
-    authUrl.searchParams.append('scope', 'identify public');
-    authUrl.searchParams.append('state', state);
+    authUrl.searchParams.set('client_id', OSU_CLIENT_ID);
+    authUrl.searchParams.set('redirect_uri', OSU_REDIRECT_URI);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('scope', 'identify public');
+    authUrl.searchParams.set('state', state);
     
     const finalAuthUrl = authUrl.toString();
-    console.log('↗️ Final OAuth URL:', finalAuthUrl);
-    console.log('📏 URL length:', finalAuthUrl.length);
+    console.log('🔑 Redirecting to OAuth provider');
     
-    // Additional debugging: log the exact redirect URI being used
-    console.log('🔍 OAuth redirect URI match check:');
-    console.log('  - Env var:', OSU_REDIRECT_URI);
-    console.log('  - URL param:', authUrl.searchParams.get('redirect_uri'));
-    console.log('  - Match:', OSU_REDIRECT_URI === authUrl.searchParams.get('redirect_uri'));
-    
-    console.log('🔑 === REDIRECTING TO OSU ===');
+    // Always redirect to OAuth, never skip this step
     res.redirect(finalAuthUrl);
 }
 

@@ -42,18 +42,18 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
 
   if (loading) {
     return (
-      <div className="glass-1 rounded-2xl p-12 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
-        <span className="text-white/70 text-shadow-adaptive-sm">Loading combined leaderboard...</span>
+      <div className="text-center py-8 sm:py-12">
+        <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-purple-400 mx-auto mb-3 sm:mb-4"></div>
+        <span className="text-white/70 text-shadow-adaptive-sm text-sm sm:text-base">Loading combined leaderboard...</span>
       </div>
     );
   }
 
   if (!Array.isArray(leaderboard) || leaderboard.length === 0) {
     return (
-      <div className="glass-1 rounded-2xl p-12 text-center">
-        <Trophy className="w-12 h-12 mx-auto mb-4 text-white/30 icon-shadow-adaptive" />
-        <p className="text-white/70 text-shadow-adaptive-sm">No combined scores available yet.</p>
+      <div className="text-center py-8 sm:py-12">
+        <Trophy className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-white/30 icon-shadow-adaptive" />
+        <p className="text-white/70 text-shadow-adaptive-sm text-sm sm:text-base">No combined scores available yet.</p>
       </div>
     );
   }
@@ -167,10 +167,11 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
   };
 
   const getRankGradient = (rank) => {
-    if (rank === 1) return 'from-yellow-400 to-amber-600';
-    if (rank <= 3) return 'from-gray-300 to-gray-500';
+    if (rank === 1) return 'from-blue-400 to-blue-600';      // 7★
+    if (rank === 2) return 'from-purple-400 to-purple-600';  // 6★
+    if (rank === 3) return 'from-red-400 to-red-600';        // 5★
     if (rank <= 10) return 'from-orange-400 to-red-500';
-    return 'from-blue-400 to-indigo-500';
+    return 'from-gray-400 to-gray-600';
   };
 
   const getParticipationGradient = (mapsPlayed) => {
@@ -194,48 +195,48 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
   // Mobile Card View
   if (showMobileView) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Top 3 Podium Cards for Mobile */}
         {sortedLeaderboard.slice(0, 3).length >= 3 && (
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-white/90 mb-4 text-center text-shadow-adaptive flex items-center justify-center gap-2">
-              <Crown className="w-5 h-5 text-yellow-400 icon-shadow-adaptive" />
+          <div className="mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-bold text-white/90 mb-3 sm:mb-4 text-center text-shadow-adaptive flex items-center justify-center gap-2">
+              <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 icon-shadow-adaptive" />
               Top 3 Winners
             </h3>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2 sm:gap-3">
               {sortedLeaderboard.slice(0, 3).map((player, index) => {
                 const rank = index + 1;
                 const username = sanitizeText(player.username || 'Unknown');
                 const country = sanitizeText(player.country || '');
+                const bgGradient = rank === 1 ? 'podium-bg-blue' : rank === 2 ? 'podium-bg-purple' : 'podium-bg-red';
+                const borderClass = rank === 1 ? 'podium-border-blue' : rank === 2 ? 'podium-border-purple' : 'podium-border-red';
                 
                 return (
                   <div 
                     key={player.user_id || index}
-                    className={`glass-2 rounded-2xl p-4 performance-card-${
-                      rank === 1 ? 'orange' : rank === 2 ? 'purple' : 'blue'
-                    }`}
+                    className={`${bgGradient} ${borderClass} rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-[1.02] transition-all`}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
                       {/* Rank Badge */}
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getRankGradient(rank)} flex items-center justify-center shadow-lg flex-shrink-0`}>
-                        <span className="text-white font-black text-sm text-shadow-adaptive">
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-b ${getRankGradient(rank)} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                        <span className="text-white font-black text-xs sm:text-sm text-shadow-adaptive">
                           #{rank}
                         </span>
                       </div>
                       
                       {/* Player Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-1 sm:mb-2">
                           {player.avatar_url && (
                             <img 
                               src={player.avatar_url} 
                               alt={`${username}'s avatar`}
-                              className="w-8 h-8 rounded-full avatar-border flex-shrink-0"
+                              className="w-6 h-6 sm:w-8 sm:h-8 rounded-full avatar-border flex-shrink-0"
                               onError={(e) => { e.target.style.display = 'none'; }}
                             />
                           )}
                           <button 
-                            className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-left" 
+                            className="font-bold text-white hover:text-white/80 transition-colors text-shadow-adaptive truncate text-left text-sm sm:text-base" 
                             onClick={() => handleUsernameClick(player)}
                           >
                             {username}
@@ -244,17 +245,17 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
                             <img 
                               src={getCountryFlagUrl(country)} 
                               alt={`${country} flag`}
-                              className="w-5 h-3 object-cover rounded-sm shadow-sm flex-shrink-0"
+                              className="w-4 h-3 sm:w-5 sm:h-3 object-cover rounded-sm shadow-sm flex-shrink-0"
                               onError={(e) => { e.target.style.display = 'none'; }}
                             />
                           )}
                           {rank === 1 && (
-                            <Crown className="w-4 h-4 text-yellow-300 icon-shadow-adaptive" />
+                            <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300 icon-shadow-adaptive" />
                           )}
                         </div>
                         
                         {/* Stats Grid */}
-                        <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                           <div>
                             <span className="text-white/80 text-shadow-adaptive-sm">Total Score:</span>
                             <div className="font-mono font-bold text-white text-glow-blue text-shadow-adaptive">
@@ -263,7 +264,7 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
                           </div>
                           <div>
                             <span className="text-white/80 text-shadow-adaptive-sm">Avg Accuracy:</span>
-                            <div className={`inline-flex px-2 py-1 bg-gradient-to-r ${getAccuracyGradient(player.average_accuracy)} ${getAccuracyBorder(player.average_accuracy)} text-white rounded-full font-bold text-xs shadow-md mt-1`}>
+                            <div className={`inline-flex px-1.5 py-0.5 sm:px-2 sm:py-1 bg-gradient-to-b ${getAccuracyGradient(player.average_accuracy)} ${getAccuracyBorder(player.average_accuracy)} text-white rounded-full font-bold text-xs shadow-md mt-0.5 sm:mt-1`}>
                               {formatAccuracy(player.average_accuracy)}%
                             </div>
                           </div>
@@ -275,7 +276,7 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
                           </div>
                           <div>
                             <span className="text-white/80 text-shadow-adaptive-sm">Maps Played:</span>
-                            <div className={`inline-flex px-2 py-1 bg-gradient-to-r ${getParticipationGradient(player.maps_played)} ${getParticipationBorder(player.maps_played)} text-white rounded-full font-bold text-xs shadow-md mt-1`}>
+                            <div className={`inline-flex px-1.5 py-0.5 sm:px-2 sm:py-1 bg-gradient-to-b ${getParticipationGradient(player.maps_played)} ${getParticipationBorder(player.maps_played)} text-white rounded-full font-bold text-xs shadow-md mt-0.5 sm:mt-1`}>
                               {player.maps_played}/{totalMaps}
                             </div>
                           </div>
@@ -290,7 +291,7 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
         )}
 
         {/* Remaining Players */}
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {sortedLeaderboard.slice(3).map((player, index) => {
             const rank = index + 4;
             const username = sanitizeText(player.username || 'Unknown');
@@ -299,29 +300,29 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
             return (
               <div 
                 key={player.user_id || index}
-                className="glass-1 rounded-2xl p-4 transition-all group hover:glass-2"
+                className="p-3 sm:p-4 transition-all rounded-lg sm:rounded-xl border border-white/10 hover:bg-white/5"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3">
                   {/* Rank Badge */}
-                  <div className="w-10 h-10 rounded-xl glass-2 flex items-center justify-center shadow-md flex-shrink-0">
-                    <span className="text-white/90 font-bold text-sm text-shadow-adaptive">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl glass-2 flex items-center justify-center shadow-md flex-shrink-0">
+                    <span className="text-white/90 font-bold text-xs sm:text-sm text-shadow-adaptive">
                       #{rank}
                     </span>
                   </div>
                   
                   {/* Player Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-1 sm:mb-2">
                       {player.avatar_url && (
                         <img 
                           src={player.avatar_url} 
                           alt={`${username}'s avatar`}
-                          className="w-8 h-8 rounded-full avatar-border flex-shrink-0"
+                          className="w-6 h-6 sm:w-8 sm:h-8 rounded-full avatar-border flex-shrink-0"
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
                       )}
                       <button 
-                        className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-left" 
+                        className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-left text-sm" 
                         onClick={() => handleUsernameClick(player)}
                       >
                         {username}
@@ -330,34 +331,34 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
                         <img 
                           src={getCountryFlagUrl(country)} 
                           alt={`${country} flag`}
-                          className="w-5 h-3 object-cover rounded-sm shadow-sm flex-shrink-0"
+                          className="w-4 h-3 sm:w-5 sm:h-3 object-cover rounded-sm shadow-sm flex-shrink-0"
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
                       )}
                     </div>
                     
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
                       <div>
-                        <span className="text-white/80 text-shadow-adaptive-sm">Score:</span>
+                        <span className="text-white/70 text-shadow-adaptive-sm">Score:</span>
                         <div className="font-mono font-bold text-white text-shadow-adaptive">
                           {formatScore(player.total_score)}
                         </div>
                       </div>
                       <div>
-                        <span className="text-white/80 text-shadow-adaptive-sm">Accuracy:</span>
-                        <div className={`inline-flex px-2 py-1 bg-gradient-to-r ${getAccuracyGradient(player.average_accuracy)} ${getAccuracyBorder(player.average_accuracy)} text-white rounded-full font-bold text-xs shadow-md mt-1`}>
+                        <span className="text-white/70 text-shadow-adaptive-sm">Accuracy:</span>
+                        <div className={`inline-flex px-1.5 py-0.5 sm:px-2 sm:py-1 bg-gradient-to-b ${getAccuracyGradient(player.average_accuracy)} ${getAccuracyBorder(player.average_accuracy)} text-white rounded-full font-bold text-xs shadow-md mt-0.5`}>
                           {formatAccuracy(player.average_accuracy)}%
                         </div>
                       </div>
                       <div>
-                        <span className="text-white/80 text-shadow-adaptive-sm">Combo:</span>
+                        <span className="text-white/70 text-shadow-adaptive-sm">Combo:</span>
                         <div className="font-mono text-white font-bold text-shadow-adaptive">
                           {formatCombo(player.best_combo)}x
                         </div>
                       </div>
                       <div>
-                        <span className="text-white/80 text-shadow-adaptive-sm">Maps:</span>
+                        <span className="text-white/70 text-shadow-adaptive-sm">Maps:</span>
                         <div className="text-white/90 font-medium text-shadow-adaptive">
                           {player.maps_played}/{totalMaps}
                         </div>
@@ -373,139 +374,137 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
     );
   }
 
-  // Desktop Table View
+  // Desktop Table View - No glass wrapping, integrated into parent
   return (
-    <div className="glass-1 rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full" role="table" aria-label="Combined score leaderboard">
-          <thead>
-            <tr className="glass-2 border-b border-white/10">
-              <th className="py-4 px-4 text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
-                Rank
-              </th>
-              <th className="py-4 px-4 text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
-                <SortButton column="player" align="left">Player</SortButton>
-              </th>
-              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
-                <SortButton column="total_score" align="center">
-                  <Trophy className="w-4 h-4 icon-shadow-adaptive-sm" />
-                  Total Score
-                </SortButton>
-              </th>
-              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
-                <SortButton column="average_accuracy" align="center">
-                  <Target className="w-4 h-4 icon-shadow-adaptive-sm" />
-                  Avg Accuracy
-                </SortButton>
-              </th>
-              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
-                <SortButton column="best_combo" align="center">
-                  <Award className="w-4 h-4 icon-shadow-adaptive-sm" />
-                  Best Combo
-                </SortButton>
-              </th>
-              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
-                <SortButton column="maps_played" align="center">
-                  <Activity className="w-4 h-4 icon-shadow-adaptive-sm" />
-                  Maps
-                </SortButton>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedLeaderboard.map((player, index) => {
-              const rank = index + 1;
-              const username = sanitizeText(player.username || 'Unknown');
-              const country = sanitizeText(player.country || '');
-              const isTop3 = rank <= 3;
-              
-              return (
-                <tr 
-                  key={player.user_id || index}
-                  className={`transition-all border-b border-white/10 last:border-b-0 group hover:bg-white/5 ${
-                    isTop3 ? 'performance-card-purple' : ''
-                  }`}
-                  role="row"
-                >
-                  <td className="py-4 px-4" role="cell">
-                    <div className="flex items-center justify-start gap-1">
-                      {isTop3 ? (
-                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getRankGradient(rank)} flex items-center justify-center shadow-lg`}>
-                          <span className="text-white font-black text-sm text-shadow-adaptive">
-                            #{rank}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-lg font-bold text-white/90 text-shadow-adaptive">
+    <div className="overflow-x-auto">
+      <table className="w-full" role="table" aria-label="Combined score leaderboard">
+        <thead>
+          <tr className="border-b border-white/20">
+            <th className="py-3 sm:py-4 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
+              Rank
+            </th>
+            <th className="py-3 sm:py-4 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
+              <SortButton column="player" align="left">Player</SortButton>
+            </th>
+            <th className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+              <SortButton column="total_score" align="center">
+                <Trophy className="w-3 h-3 sm:w-4 sm:h-4 icon-shadow-adaptive-sm" />
+                Total Score
+              </SortButton>
+            </th>
+            <th className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+              <SortButton column="average_accuracy" align="center">
+                <Target className="w-3 h-3 sm:w-4 sm:h-4 icon-shadow-adaptive-sm" />
+                Avg Accuracy
+              </SortButton>
+            </th>
+            <th className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+              <SortButton column="best_combo" align="center">
+                <Award className="w-3 h-3 sm:w-4 sm:h-4 icon-shadow-adaptive-sm" />
+                Best Combo
+              </SortButton>
+            </th>
+            <th className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+              <SortButton column="maps_played" align="center">
+                <Activity className="w-3 h-3 sm:w-4 sm:h-4 icon-shadow-adaptive-sm" />
+                Maps
+              </SortButton>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedLeaderboard.map((player, index) => {
+            const rank = index + 1;
+            const username = sanitizeText(player.username || 'Unknown');
+            const country = sanitizeText(player.country || '');
+            const isTop3 = rank <= 3;
+            
+            return (
+              <tr 
+                key={player.user_id || index}
+                className={`transition-all border-b border-white/10 last:border-b-0 hover:bg-white/5 ${
+                  isTop3 ? 'bg-white/5' : ''
+                }`}
+                role="row"
+              >
+                <td className="py-3 sm:py-4 px-3 sm:px-4" role="cell">
+                  <div className="flex items-center justify-start gap-1">
+                    {isTop3 ? (
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-b ${getRankGradient(rank)} flex items-center justify-center shadow-lg`}>
+                        <span className="text-white font-black text-xs sm:text-sm text-shadow-adaptive">
                           #{rank}
                         </span>
-                      )}
-                      {rank === 1 && (
-                        <Crown className="w-5 h-5 text-yellow-300 ml-2 icon-shadow-adaptive" />
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-4 px-4" role="cell">
-                    <div className="flex items-center gap-3">
-                      {player.avatar_url && (
-                        <img 
-                          src={player.avatar_url} 
-                          alt={`${username}'s avatar`}
-                          className="w-12 h-12 rounded-full avatar-border flex-shrink-0"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <button 
-                          className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-lg text-left" 
-                          onClick={() => handleUsernameClick(player)}
-                        >
-                          {username}
-                        </button>
-                        {country && (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            {getCountryFlagUrl(country) && (
-                              <img 
-                                src={getCountryFlagUrl(country)} 
-                                alt={`${country} flag`}
-                                className="w-5 h-3.5 object-cover rounded-sm shadow-sm"
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                              />
-                            )}
-                            <span className="text-xs text-white/70 font-medium text-shadow-adaptive-sm">
-                              {country.toUpperCase()}
-                            </span>
-                          </div>
-                        )}
                       </div>
+                    ) : (
+                      <span className="text-sm sm:text-lg font-bold text-white/90 text-shadow-adaptive">
+                        #{rank}
+                      </span>
+                    )}
+                    {rank === 1 && (
+                      <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 ml-2 icon-shadow-adaptive" />
+                    )}
+                  </div>
+                </td>
+                <td className="py-3 sm:py-4 px-3 sm:px-4" role="cell">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    {player.avatar_url && (
+                      <img 
+                        src={player.avatar_url} 
+                        alt={`${username}'s avatar`}
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full avatar-border flex-shrink-0"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <button 
+                        className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-sm sm:text-lg text-left" 
+                        onClick={() => handleUsernameClick(player)}
+                      >
+                        {username}
+                      </button>
+                      {country && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {getCountryFlagUrl(country) && (
+                            <img 
+                              src={getCountryFlagUrl(country)} 
+                              alt={`${country} flag`}
+                              className="w-4 h-3 sm:w-5 sm:h-3.5 object-cover rounded-sm shadow-sm"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          )}
+                          <span className="text-xs text-white/70 font-medium text-shadow-adaptive-sm">
+                            {country.toUpperCase()}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </td>
-                  <td className="py-4 px-6 text-center" role="cell">
-                    <span className="font-mono font-black text-white text-xl text-glow-blue text-shadow-adaptive">
-                      {formatScore(player.total_score)}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-center" role="cell">
-                    <div className={`inline-flex px-3 py-1.5 bg-gradient-to-r ${getAccuracyGradient(player.average_accuracy)} ${getAccuracyBorder(player.average_accuracy)} text-white rounded-full font-bold text-sm shadow-md`}>
-                      {formatAccuracy(player.average_accuracy)}%
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-center" role="cell">
-                    <span className="font-mono text-white font-bold text-lg text-glow-green text-shadow-adaptive">
-                      {formatCombo(player.best_combo)}x
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-center" role="cell">
-                    <div className={`inline-flex px-3 py-1.5 bg-gradient-to-r ${getParticipationGradient(player.maps_played)} ${getParticipationBorder(player.maps_played)} text-white rounded-full font-bold text-sm shadow-md`}>
-                      {player.maps_played}/{totalMaps}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  </div>
+                </td>
+                <td className="py-3 sm:py-4 px-4 sm:px-6 text-center" role="cell">
+                  <span className="font-mono font-black text-white text-base sm:text-xl text-glow-blue text-shadow-adaptive">
+                    {formatScore(player.total_score)}
+                  </span>
+                </td>
+                <td className="py-3 sm:py-4 px-4 sm:px-6 text-center" role="cell">
+                  <div className={`inline-flex px-2 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-b ${getAccuracyGradient(player.average_accuracy)} ${getAccuracyBorder(player.average_accuracy)} text-white rounded-full font-bold text-xs sm:text-sm shadow-md`}>
+                    {formatAccuracy(player.average_accuracy)}%
+                  </div>
+                </td>
+                <td className="py-3 sm:py-4 px-4 sm:px-6 text-center" role="cell">
+                  <span className="font-mono text-white font-bold text-base sm:text-lg text-glow-green text-shadow-adaptive">
+                    {formatCombo(player.best_combo)}x
+                  </span>
+                </td>
+                <td className="py-3 sm:py-4 px-4 sm:px-6 text-center" role="cell">
+                  <div className={`inline-flex px-2 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-b ${getParticipationGradient(player.maps_played)} ${getParticipationBorder(player.maps_played)} text-white rounded-full font-bold text-xs sm:text-sm shadow-md`}>
+                    {player.maps_played}/{totalMaps}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -72,18 +72,18 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
 
   if (loading) {
     return (
-      <div className="glass-1 rounded-2xl p-12 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
-        <span className="text-white/70 text-shadow-adaptive-sm">Loading scores...</span>
+      <div className="text-center py-8 sm:py-12">
+        <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-purple-400 mx-auto mb-3 sm:mb-4"></div>
+        <span className="text-white/70 text-shadow-adaptive-sm text-sm sm:text-base">Loading scores...</span>
       </div>
     );
   }
 
   if (!Array.isArray(scores) || scores.length === 0) {
     return (
-      <div className="glass-1 rounded-2xl p-12 text-center">
-        <Trophy className="w-12 h-12 mx-auto mb-4 text-white/30 icon-shadow-adaptive" />
-        <p className="text-white/70 text-shadow-adaptive-sm">No scores available yet.</p>
+      <div className="text-center py-8 sm:py-12">
+        <Trophy className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-white/30 icon-shadow-adaptive" />
+        <p className="text-white/70 text-shadow-adaptive-sm text-sm sm:text-base">No scores available yet.</p>
       </div>
     );
   }
@@ -182,10 +182,11 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
   };
 
   const getRankGradient = (rank) => {
-    if (rank === 1) return 'from-yellow-400 to-amber-600';
-    if (rank <= 3) return 'from-gray-300 to-gray-500';
+    if (rank === 1) return 'from-blue-400 to-blue-600';      // 7★
+    if (rank === 2) return 'from-purple-400 to-purple-600';  // 6★  
+    if (rank === 3) return 'from-red-400 to-red-600';        // 5★
     if (rank <= 10) return 'from-orange-400 to-red-500';
-    return 'from-blue-400 to-indigo-500';
+    return 'from-gray-400 to-gray-600';
   };
 
   const SortButton = ({ column, children, align = 'left' }) => (
@@ -210,40 +211,43 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
   // Mobile Card View
   if (showMobileView) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {sortedScores.map((score, index) => {
           const rank = score.originalRank;
           const username = sanitizeText(score.users?.username || 'Unknown');
           const country = sanitizeText(score.users?.country || '');
           const mods = sanitizeText(score.mods || 'None');
           const isWinner = isRulesetWinner(score);
+          const isTop3 = rank <= 3;
           
           return (
             <div 
               key={score.id || index}
-              className="glass-1 rounded-2xl p-4 transition-all group hover:glass-2"
+              className={`p-3 sm:p-4 transition-all rounded-lg sm:rounded-xl ${
+                isTop3 ? 'glass-2 border border-white/20' : 'border border-white/10'
+              } ${isTop3 ? `performance-card-${rank === 1 ? 'blue' : rank === 2 ? 'purple' : 'orange'}` : ''}`}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3">
                 {/* Rank Badge */}
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getRankGradient(rank)} flex items-center justify-center shadow-lg flex-shrink-0`}>
-                  <span className="text-white font-black text-sm text-shadow-adaptive">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-b ${getRankGradient(rank)} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                  <span className="text-white font-black text-xs sm:text-sm text-shadow-adaptive">
                     #{rank}
                   </span>
                 </div>
                 
                 {/* Player Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                     {score.users?.avatar_url && (
                       <img 
                         src={score.users.avatar_url} 
                         alt={`${username}'s avatar`}
-                        className="w-8 h-8 rounded-full avatar-border flex-shrink-0"
+                        className="w-6 h-6 sm:w-8 sm:h-8 rounded-full avatar-border flex-shrink-0"
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     )}
                     <button 
-                      className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-left" 
+                      className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-left text-sm sm:text-base" 
                       onClick={() => handleUsernameClick(score.users)}
                     >
                       {username}
@@ -252,7 +256,7 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
                       <img 
                         src={getCountryFlagUrl(country)} 
                         alt={`${country} flag`}
-                        className="w-5 h-3 object-cover rounded-sm shadow-sm flex-shrink-0"
+                        className="w-4 h-3 sm:w-5 sm:h-3 object-cover rounded-sm shadow-sm flex-shrink-0"
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     )}
@@ -260,8 +264,8 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
                   
                   {/* Badges */}
                   {isWinner && (
-                    <div className="mb-2">
-                      <span className="inline-flex items-center gap-1 glass-2 text-yellow-300 text-xs font-medium px-2 py-1 rounded-full performance-card-orange">
+                    <div className="mb-1.5 sm:mb-2">
+                      <span className="inline-flex items-center gap-1 glass-2 text-yellow-300 text-xs font-medium px-2 py-0.5 sm:py-1 rounded-full performance-card-orange">
                         <Target className="w-3 h-3 icon-shadow-adaptive-sm" />
                         Ruleset Winner
                       </span>
@@ -269,30 +273,30 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
                   )}
                   
                   {/* Score Details */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div>
-                      <span className="text-white/80 text-shadow-adaptive-sm">Score:</span>
+                      <span className="text-white/70 text-shadow-adaptive-sm">Score:</span>
                       <div className="font-mono font-bold text-white text-shadow-adaptive">
                         {formatScore(score.score)}
                       </div>
                     </div>
                     <div>
-                      <span className="text-white/80 text-shadow-adaptive-sm">Accuracy:</span>
-                      <div className={`inline-flex px-2 py-1 bg-gradient-to-r ${getAccuracyGradient(score.accuracy)} ${getAccuracyBorder(score.accuracy)} text-white rounded-full font-bold text-xs shadow-md mt-1`}>
+                      <span className="text-white/70 text-shadow-adaptive-sm">Accuracy:</span>
+                      <div className={`inline-flex px-1.5 py-0.5 sm:px-2 sm:py-1 bg-gradient-to-b ${getAccuracyGradient(score.accuracy)} ${getAccuracyBorder(score.accuracy)} text-white rounded-full font-bold text-xs shadow-md mt-0.5 sm:mt-1`}>
                         {formatAccuracy(score.accuracy)}%
                       </div>
                     </div>
                     <div>
-                      <span className="text-white/80 text-shadow-adaptive-sm">Combo:</span>
+                      <span className="text-white/70 text-shadow-adaptive-sm">Combo:</span>
                       <div className="font-mono text-white font-bold text-shadow-adaptive">
                         {formatCombo(score.max_combo)}x
                       </div>
                     </div>
                     <div>
-                      <span className="text-white/80 text-shadow-adaptive-sm">Mods:</span>
-                      <div className="mt-1">
+                      <span className="text-white/70 text-shadow-adaptive-sm">Mods:</span>
+                      <div className="mt-0.5 sm:mt-1">
                         {mods !== 'None' ? (
-                          <span className="text-xs glass-2 text-purple-300 px-2 py-1 rounded-full font-medium">
+                          <span className="text-xs glass-2 text-purple-300 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full font-medium">
                             {mods}
                           </span>
                         ) : (
@@ -310,138 +314,136 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
     );
   }
 
-  // Desktop Table View
+  // Desktop Table View - No glass wrapping, integrated into parent
   return (
-    <div className="glass-1 rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full" role="table" aria-label="Score leaderboard">
-          <thead>
-            <tr className="glass-2 border-b border-white/10">
-              <th className="py-4 px-4 text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
-                Rank
-              </th>
-              <th className="py-4 px-4 text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
-                <SortButton column="player" align="left">Player</SortButton>
-              </th>
-              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
-                <SortButton column="score" align="center">Score</SortButton>
-              </th>
-              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
-                <SortButton column="accuracy" align="center">Accuracy</SortButton>
-              </th>
-              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
-                <SortButton column="combo" align="center">Combo</SortButton>
-              </th>
-              <th className="py-4 px-6 text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
-                Mods
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedScores.map((score, index) => {
-              const rank = score.originalRank;
-              const username = sanitizeText(score.users?.username || 'Unknown');
-              const country = sanitizeText(score.users?.country || '');
-              const mods = sanitizeText(score.mods || 'None');
-              const isWinner = isRulesetWinner(score);
-              const isTop3 = rank <= 3;
-              
-              return (
-                <tr 
-                  key={score.id || index}
-                  className={`transition-all border-b border-white/10 last:border-b-0 group hover:bg-white/5 ${
-                    isTop3 ? 'performance-card-purple' : ''
-                  }`}
-                  role="row"
-                >
-                  <td className="py-4 px-4" role="cell">
-                    <div className="flex items-center justify-start">
-                      {isTop3 ? (
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getRankGradient(rank)} flex items-center justify-center shadow-lg`}>
-                          <span className="text-white font-black text-sm text-shadow-adaptive">
-                            #{rank}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-lg font-bold text-white/90 text-shadow-adaptive">
+    <div className="overflow-x-auto">
+      <table className="w-full" role="table" aria-label="Score leaderboard">
+        <thead>
+          <tr className="border-b border-white/20">
+            <th className="py-3 sm:py-4 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
+              Rank
+            </th>
+            <th className="py-3 sm:py-4 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-white/90 text-left text-shadow-adaptive-sm">
+              <SortButton column="player" align="left">Player</SortButton>
+            </th>
+            <th className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+              <SortButton column="score" align="center">Score</SortButton>
+            </th>
+            <th className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+              <SortButton column="accuracy" align="center">Accuracy</SortButton>
+            </th>
+            <th className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+              <SortButton column="combo" align="center">Combo</SortButton>
+            </th>
+            <th className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-white/90 text-center text-shadow-adaptive-sm">
+              Mods
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedScores.map((score, index) => {
+            const rank = score.originalRank;
+            const username = sanitizeText(score.users?.username || 'Unknown');
+            const country = sanitizeText(score.users?.country || '');
+            const mods = sanitizeText(score.mods || 'None');
+            const isWinner = isRulesetWinner(score);
+            const isTop3 = rank <= 3;
+            
+            return (
+              <tr 
+                key={score.id || index}
+                className={`transition-all border-b border-white/10 last:border-b-0 hover:bg-white/5 ${
+                  isTop3 ? 'bg-white/5' : ''
+                }`}
+                role="row"
+              >
+                <td className="py-3 sm:py-4 px-3 sm:px-4" role="cell">
+                  <div className="flex items-center justify-start">
+                    {isTop3 ? (
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-b ${getRankGradient(rank)} flex items-center justify-center shadow-lg`}>
+                        <span className="text-white font-black text-xs sm:text-sm text-shadow-adaptive">
                           #{rank}
                         </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-4 px-4" role="cell">
-                    <div className="flex items-center gap-3">
-                      {score.users?.avatar_url && (
-                        <img 
-                          src={score.users.avatar_url} 
-                          alt={`${username}'s avatar`}
-                          className="w-10 h-10 rounded-full avatar-border flex-shrink-0"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <button 
-                            className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-left" 
-                            onClick={() => handleUsernameClick(score.users)}
-                          >
-                            {username}
-                          </button>
-                          {isWinner && (
-                            <span className="inline-flex items-center gap-1 glass-2 text-yellow-300 text-xs font-medium px-2 py-1 rounded-full performance-card-orange">
-                              <Target className="w-3 h-3 icon-shadow-adaptive-sm" />
-                              Ruleset Winner
-                            </span>
-                          )}
-                        </div>
-                        {country && (
-                          <div className="flex items-center gap-1 mt-1">
-                            {getCountryFlagUrl(country) && (
-                              <img 
-                                src={getCountryFlagUrl(country)} 
-                                alt={`${country} flag`}
-                                className="w-4 h-3 object-cover rounded-sm shadow-sm"
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                              />
-                            )}
-                            <span className="text-xs text-white/70 font-medium text-shadow-adaptive-sm">
-                              {country.toUpperCase()}
-                            </span>
-                          </div>
+                      </div>
+                    ) : (
+                      <span className="text-sm sm:text-lg font-bold text-white/90 text-shadow-adaptive">
+                        #{rank}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="py-3 sm:py-4 px-3 sm:px-4" role="cell">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    {score.users?.avatar_url && (
+                      <img 
+                        src={score.users.avatar_url} 
+                        alt={`${username}'s avatar`}
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full avatar-border flex-shrink-0"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <button 
+                          className="font-bold text-white hover:text-purple-300 transition-colors text-shadow-adaptive truncate text-left text-sm sm:text-base" 
+                          onClick={() => handleUsernameClick(score.users)}
+                        >
+                          {username}
+                        </button>
+                        {isWinner && (
+                          <span className="inline-flex items-center gap-1 glass-2 text-yellow-300 text-xs font-medium px-2 py-0.5 sm:py-1 rounded-full performance-card-orange">
+                            <Target className="w-3 h-3 icon-shadow-adaptive-sm" />
+                            Ruleset Winner
+                          </span>
                         )}
                       </div>
+                      {country && (
+                        <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
+                          {getCountryFlagUrl(country) && (
+                            <img 
+                              src={getCountryFlagUrl(country)} 
+                              alt={`${country} flag`}
+                              className="w-4 h-3 object-cover rounded-sm shadow-sm"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          )}
+                          <span className="text-xs text-white/70 font-medium text-shadow-adaptive-sm">
+                            {country.toUpperCase()}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </td>
-                  <td className="py-4 px-6 text-center" role="cell">
-                    <span className="font-mono font-bold text-white text-lg text-glow-blue text-shadow-adaptive">
-                      {formatScore(score.score)}
+                  </div>
+                </td>
+                <td className="py-3 sm:py-4 px-4 sm:px-6 text-center" role="cell">
+                  <span className="font-mono font-bold text-white text-sm sm:text-lg text-glow-blue text-shadow-adaptive">
+                    {formatScore(score.score)}
+                  </span>
+                </td>
+                <td className="py-3 sm:py-4 px-4 sm:px-6 text-center" role="cell">
+                  <div className={`inline-flex px-2 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-b ${getAccuracyGradient(score.accuracy)} ${getAccuracyBorder(score.accuracy)} text-white rounded-full font-bold text-xs sm:text-sm shadow-md`}>
+                    {formatAccuracy(score.accuracy)}%
+                  </div>
+                </td>
+                <td className="py-3 sm:py-4 px-4 sm:px-6 text-center" role="cell">
+                  <span className="font-mono text-white font-bold text-sm sm:text-lg text-glow-green text-shadow-adaptive">
+                    {formatCombo(score.max_combo)}x
+                  </span>
+                </td>
+                <td className="py-3 sm:py-4 px-4 sm:px-6 text-center" role="cell">
+                  {mods !== 'None' ? (
+                    <span className="text-xs glass-2 text-purple-300 px-2 py-0.5 sm:py-1 rounded-full font-medium">
+                      {mods}
                     </span>
-                  </td>
-                  <td className="py-4 px-6 text-center" role="cell">
-                    <div className={`inline-flex px-3 py-1.5 bg-gradient-to-r ${getAccuracyGradient(score.accuracy)} ${getAccuracyBorder(score.accuracy)} text-white rounded-full font-bold text-sm shadow-md`}>
-                      {formatAccuracy(score.accuracy)}%
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-center" role="cell">
-                    <span className="font-mono text-white font-bold text-lg text-glow-green text-shadow-adaptive">
-                      {formatCombo(score.max_combo)}x
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-center" role="cell">
-                    {mods !== 'None' ? (
-                      <span className="text-xs glass-2 text-purple-300 px-2 py-1 rounded-full font-medium">
-                        {mods}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-white/60 text-shadow-adaptive-sm">—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  ) : (
+                    <span className="text-xs text-white/60 text-shadow-adaptive-sm">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

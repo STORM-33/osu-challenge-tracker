@@ -1,119 +1,66 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { handleSecureAuthCallback } from '../../../lib/secure-auth';
 
 async function handler(req, res) {
-  const { code, state } = req.query;
+  const { code, state, error } = req.query;
   
-  // Enhanced debugging
-  console.log('🔑 === AUTH CALLBACK DEBUG START ===');
+  console.log('🔑 === SECURE AUTH CALLBACK START ===');
   console.log('📍 URL:', req.url);
-  console.log('🌍 Environment:', process.env.NODE_ENV);
-  console.log('🏠 Host:', req.headers.host);
-  console.log('🔗 Referer:', req.headers.referer);
-  console.log('🍪 Raw Cookie Header:', req.headers.cookie);
-  console.log('📨 Query params:', req.query);
   console.log('🔑 Code present:', !!code);
   console.log('🎲 State received:', state);
+  console.log('❌ Error param:', error);
   
-  // Parse all cookies with detailed logging
+  // Check for OAuth errors first
+  if (error) {
+    console.log('❌ OAuth error received:', error);
+    return res.redirect('/?error=oauth_denied');
+  }
+  
+  // Verify state parameter - NO BYPASS ALLOWED
   const cookieHeader = req.headers.cookie || '';
-  console.log('🍪 Cookie header length:', cookieHeader.length);
+  console.log('🍪 Cookie header:', cookieHeader);
   
   if (!cookieHeader) {
-    console.log('❌ NO COOKIE HEADER FOUND AT ALL');
-    return res.status(400).json({ 
-      error: 'Invalid state parameter',
-      details: 'No cookies received',
-      debug: {
-        cookieHeader: cookieHeader,
-        allHeaders: Object.keys(req.headers),
-        host: req.headers.host,
-        userAgent: req.headers['user-agent']?.substring(0, 100)
-      }
-    });
+    console.log('❌ SECURITY: No cookies received - potential attack');
+    return res.redirect('/?error=security_violation');
   }
   
   const cookies = cookieHeader.split('; ');
-  console.log('🍪 All cookies found:', cookies);
-  console.log('🍪 Cookie count:', cookies.length);
+  console.log('🍪 All cookies:', cookies);
   
-  // Look for our state cookie with multiple approaches
-  let savedState = null;
-  let stateCookieFound = false;
-  
-  // Method 1: Direct search
-  const stateCookie = cookies.find(c => c.startsWith('osu_auth_state='));
-  if (stateCookie) {
-    savedState = stateCookie.split('=')[1];
-    stateCookieFound = true;
-    console.log('✅ State cookie found (method 1):', stateCookie);
+  // Look for state cookie with multiple fallbacks
+  let stateCookie = cookies.find(c => c.startsWith('osu_auth_state='));
+  if (!stateCookie) {
+    stateCookie = cookies.find(c => c.startsWith('osu_auth_state_backup='));
   }
   
-  // Method 2: Manual parsing (in case of encoding issues)
-  if (!stateCookieFound) {
-    for (const cookie of cookies) {
-      const [name, value] = cookie.split('=');
-      if (name?.trim() === 'osu_auth_state') {
-        savedState = value;
-        stateCookieFound = true;
-        console.log('✅ State cookie found (method 2):', cookie);
-        break;
-      }
-    }
+  if (!stateCookie) {
+    console.log('❌ SECURITY: State cookie not found - BLOCKING AUTH');
+    console.log('Available cookies:', cookies);
+    return res.redirect('/?error=security_violation');
   }
   
-  console.log('🔍 State verification details:');
-  console.log('  - State cookie found:', stateCookieFound);
-  console.log('  - Saved state:', savedState);
-  console.log('  - Received state:', state);
-  console.log('  - States match:', savedState === state);
-  console.log('  - Saved state length:', savedState?.length);
-  console.log('  - Received state length:', state?.length);
+  const savedState = stateCookie.split('=')[1];
+  console.log('🔍 Saved state:', savedState);
+  console.log('🔍 Received state:', state);
   
-  if (!stateCookieFound || !savedState) {
-    console.log('❌ State cookie not found');
-    return res.status(400).json({ 
-      error: 'Invalid state parameter',
-      details: 'State cookie not found',
-      debug: {
-        cookiesReceived: cookies,
-        cookieCount: cookies.length,
-        cookieHeader: cookieHeader,
-        stateCookieFound,
-        host: req.headers.host
-      }
-    });
+  if (!savedState || savedState !== state) {
+    console.log('❌ SECURITY: State mismatch - BLOCKING AUTH');
+    return res.redirect('/?error=security_violation');
   }
   
-  if (savedState !== state) {
-    console.log('❌ State mismatch');
-    return res.status(400).json({ 
-      error: 'Invalid state parameter',
-      details: 'State values do not match',
-      debug: {
-        expected: savedState,
-        received: state,
-        expectedLength: savedState?.length,
-        receivedLength: state?.length
-      }
-    });
+  if (!code) {
+    console.log('❌ No authorization code received');
+    return res.redirect('/?error=auth_failed');
   }
   
-  console.log('✅ State verification PASSED');
-  console.log('🔑 === PROCEEDING WITH AUTH ===');
+  console.log('✅ State verification PASSED - proceeding with auth');
   
-  // Clear the state cookie with same attributes as when we set it
+  // Clear state cookies immediately
   const isProduction = process.env.NODE_ENV === 'production';
-  const clearCookieOptions = [
-    'osu_auth_state=',
-    'Path=/',
-    'HttpOnly',
-    'SameSite=Lax', 
-    'Max-Age=0',
-    ...(isProduction ? ['Secure'] : [])
-  ].join('; ');
-  
-  console.log('🧹 Clearing state cookie:', clearCookieOptions);
+  const clearCookies = [
+    'osu_auth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (isProduction ? '; Secure' : ''),
+    'osu_auth_state_backup=; Path=/; HttpOnly; Max-Age=0' + (isProduction ? '; Secure' : '')
+  ];
   
   try {
     console.log('🔄 Exchanging code for access token...');
@@ -136,7 +83,7 @@ async function handler(req, res) {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error('❌ Token exchange failed:', tokenResponse.status, errorText);
-      throw new Error(`Failed to exchange code for token: ${tokenResponse.status}`);
+      return res.redirect('/?error=token_exchange_failed');
     }
     
     const { access_token } = await tokenResponse.json();
@@ -152,7 +99,7 @@ async function handler(req, res) {
     
     if (!userResponse.ok) {
       console.error('❌ User info fetch failed:', userResponse.status);
-      throw new Error('Failed to fetch user info');
+      return res.redirect('/?error=user_fetch_failed');
     }
     
     const osuUser = await userResponse.json();
@@ -162,8 +109,8 @@ async function handler(req, res) {
       country: osuUser.country_code 
     });
     
-    // Upsert user in database using admin client (bypasses RLS)
-    console.log('💾 Upserting user in database...');
+    // Create NEW session, never reuse existing ones
+    console.log('💾 Creating new user session...');
     const { data: dbUser, error: dbError } = await supabaseAdmin
       .from('users')
       .upsert({
@@ -184,7 +131,7 @@ async function handler(req, res) {
     
     if (dbError) {
       console.error('❌ Database error:', dbError);
-      throw new Error('Failed to save user data');
+      return res.redirect('/?error=database_error');
     }
     
     console.log('✅ User saved to database:', { 
@@ -193,22 +140,33 @@ async function handler(req, res) {
       admin: dbUser.admin 
     });
     
-    // Set session cookie with proper attributes for production
-    const sessionCookieOptions = [
-      `osu_session=${dbUser.id}`,
-      'Path=/',
-      'HttpOnly',
-      'SameSite=Lax',
-      'Max-Age=2592000', // 30 days
-      ...(isProduction ? ['Secure'] : [])
-    ].join('; ');
+    // Generate completely new session token with security metadata
+    const sessionData = {
+      userId: dbUser.id,
+      timestamp: Date.now(),
+      random: require('crypto').randomBytes(32).toString('hex'),
+      userAgent: req.headers['user-agent']?.substring(0, 100),
+      ipAddress: (req.headers['x-forwarded-for'] || req.connection.remoteAddress || '').split(',')[0].trim(),
+      expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+    };
     
-    console.log('🍪 Setting session cookie:', sessionCookieOptions);
+    const sessionToken = Buffer.from(JSON.stringify({
+      data: sessionData,
+      signature: require('crypto')
+        .createHmac('sha256', process.env.SESSION_SECRET)
+        .update(JSON.stringify(sessionData))
+        .digest('hex')
+    })).toString('base64');
     
-    // Set both cookies in response
-    res.setHeader('Set-Cookie', [clearCookieOptions, sessionCookieOptions]);
+    // Set NEW session cookie
+    const sessionCookie = `osu_session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000` + (isProduction ? '; Secure' : '');
     
-    // Redirect to profile page
+    console.log('🍪 Setting NEW session cookie');
+    
+    // Set all cookies
+    res.setHeader('Set-Cookie', [...clearCookies, sessionCookie]);
+    
+    // Redirect to profile
     console.log('↩️ Redirecting to profile...');
     res.redirect(`/profile/${dbUser.id}`);
     
@@ -218,4 +176,4 @@ async function handler(req, res) {
   }
 }
 
-export default handleSecureAuthCallback;
+export default handler;
