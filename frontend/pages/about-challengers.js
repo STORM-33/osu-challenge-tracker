@@ -119,7 +119,7 @@ export default function AboutChallengers() {
                 {/* Header: icon and title */}
                 <div>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 sm:p-3 icon-gradient-green rounded-lg sm:rounded-xl icon-container-green">
+                    <div className="p-2 sm:p-3 icon-gradient-orange rounded-lg sm:rounded-xl icon-container-orange">
                       <Gift className="w-5 h-5 sm:w-6 sm:h-6 text-white icon-shadow-adaptive" />
                     </div>
                     <h3 className="text-lg sm:text-xl font-bold text-white text-shadow-adaptive">

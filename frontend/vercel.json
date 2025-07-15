@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "destination": "https://challengersnexus.com/:path*",
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
+          "value": "osu-challenge-tracker.vercel.app"
+        }
+      ]
+    }
+  ]
+}
