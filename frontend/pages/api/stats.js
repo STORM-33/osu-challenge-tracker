@@ -1,6 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { withOptionalAuth } from '../../lib/auth-middleware';
-import { handleAPIResponse, handleAPIError } from '../../../../lib/api-utils';
+import { handleAPIResponse, handleAPIError } from '../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
