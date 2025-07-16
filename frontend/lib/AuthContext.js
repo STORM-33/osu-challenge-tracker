@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 
 const AuthContext = createContext();
@@ -10,27 +10,52 @@ export function AuthProvider({ children }) {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
+  // Add refs to prevent loops and rate limit checks
+  const checkingUserRef = useRef(false);
+  const lastUserCheckRef = useRef(0);
+  const userCheckTimeoutRef = useRef(null);
+  const isInitialCheckRef = useRef(true);
+
   useEffect(() => {
     setMounted(true);
     checkUser();
 
     // Listen for auth changes in other tabs
     const handleStorageChange = (e) => {
-      if (e.key === 'auth_change') {
+      // FIXED: Only respond to actual auth state changes, not our own notifications
+      if (e.key === 'auth_state_changed' && e.newValue) {
         console.log('🔄 AuthContext: Cross-tab auth change detected');
-        checkUser();
+        const authData = JSON.parse(e.newValue);
+        
+        // FIXED: Don't call checkUser(), just update state directly from other tab
+        if (authData.user) {
+          console.log('✅ AuthContext: User synced from other tab:', authData.user.username);
+          setUser(authData.user);
+          setIsAdmin(authData.user.admin || false);
+        } else {
+          console.log('❌ AuthContext: User cleared from other tab');
+          setUser(null);
+          setIsAdmin(false);
+        }
+        setLoading(false);
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      if (userCheckTimeoutRef.current) {
+        clearTimeout(userCheckTimeoutRef.current);
+      }
+    };
   }, []);
 
   // SIMPLIFIED: Only refresh on route changes for OAuth redirects
   useEffect(() => {
     if (mounted && router.pathname.startsWith('/profile/') && !user && !loading) {
       console.log('🔄 AuthContext: OAuth redirect detected, refreshing...');
-      setTimeout(() => checkUser(), 300);
+      // Use debounced check
+      debouncedCheckUser();
     }
   }, [router.pathname, user, loading, mounted]);
 
@@ -44,15 +69,43 @@ export function AuthProvider({ children }) {
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
       
-      // Force one final auth check
-      setTimeout(() => checkUser(), 100);
+      // Use debounced check instead of immediate
+      debouncedCheckUser();
     }
   }, [router.asPath]);
+
+  // FIXED: Add debounced user check to prevent rapid successive calls
+  const debouncedCheckUser = useCallback(() => {
+    if (userCheckTimeoutRef.current) {
+      clearTimeout(userCheckTimeoutRef.current);
+    }
+    
+    userCheckTimeoutRef.current = setTimeout(() => {
+      checkUser();
+    }, 100); // 100ms debounce
+  }, []);
 
   const checkUser = useCallback(async () => {
     if (typeof window === 'undefined') return;
     
+    // FIXED: Prevent concurrent checks and rate limiting
+    if (checkingUserRef.current) {
+      console.log('🔄 AuthContext: User check already in progress, skipping...');
+      return;
+    }
+
+    // FIXED: Rate limit checks (max once per 2 seconds, except initial)
+    const now = Date.now();
+    if (!isInitialCheckRef.current && now - lastUserCheckRef.current < 2000) {
+      console.log('🔄 AuthContext: Rate limiting user check, skipping...');
+      return;
+    }
+
     try {
+      checkingUserRef.current = true;
+      lastUserCheckRef.current = now;
+      isInitialCheckRef.current = false;
+      
       console.log('🔍 AuthContext: Checking user...');
       
       const timestamp = Date.now();
@@ -77,15 +130,37 @@ export function AuthProvider({ children }) {
           setUser(responseData.user);
           setIsAdmin(responseData.user.admin || false);
           
-          // Notify other tabs
+          // FIXED: Only notify other tabs about actual state changes
+          // Store the actual auth state instead of just a timestamp
           if (typeof window !== 'undefined') {
-            localStorage.setItem('auth_change', Date.now().toString());
-            localStorage.removeItem('auth_change');
+            const authState = {
+              user: responseData.user,
+              admin: responseData.user.admin || false,
+              timestamp: Date.now()
+            };
+            localStorage.setItem('auth_state_changed', JSON.stringify(authState));
+            // Remove after a short delay to trigger the event
+            setTimeout(() => {
+              localStorage.removeItem('auth_state_changed');
+            }, 50);
           }
         } else {
           console.log('❌ AuthContext: No user found');
           setUser(null);
           setIsAdmin(false);
+          
+          // FIXED: Notify other tabs about logout
+          if (typeof window !== 'undefined') {
+            const authState = {
+              user: null,
+              admin: false,
+              timestamp: Date.now()
+            };
+            localStorage.setItem('auth_state_changed', JSON.stringify(authState));
+            setTimeout(() => {
+              localStorage.removeItem('auth_state_changed');
+            }, 50);
+          }
         }
       }
     } catch (error) {
@@ -94,6 +169,7 @@ export function AuthProvider({ children }) {
       setIsAdmin(false);
     } finally {
       setLoading(false);
+      checkingUserRef.current = false;
     }
   }, []);
 
@@ -117,10 +193,17 @@ export function AuthProvider({ children }) {
       setUser(null);
       setIsAdmin(false);
       
-      // Notify other tabs
+      // FIXED: Notify other tabs about logout with actual state
       if (typeof window !== 'undefined') {
-        localStorage.setItem('auth_change', Date.now().toString());
-        localStorage.removeItem('auth_change');
+        const authState = {
+          user: null,
+          admin: false,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('auth_state_changed', JSON.stringify(authState));
+        setTimeout(() => {
+          localStorage.removeItem('auth_state_changed');
+        }, 50);
       }
       
       console.log('✅ AuthContext: Signed out successfully');
@@ -139,8 +222,9 @@ export function AuthProvider({ children }) {
 
   const refreshUser = useCallback(() => {
     setLoading(true);
-    return checkUser();
-  }, [checkUser]);
+    // Use debounced check for manual refreshes too
+    debouncedCheckUser();
+  }, [debouncedCheckUser]);
 
   const value = {
     user,
