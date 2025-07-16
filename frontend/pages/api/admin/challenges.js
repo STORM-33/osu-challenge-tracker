@@ -1,7 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
-import { validateRequest, handleAPIError } from '../../../lib/api-utils';
+import { validateRequest, handleAPIError, handleAPIResponse } from '../../../lib/api-utils';
 
 async function handler(req, res) {
   console.log('🔍 Admin challenges API called:', {
@@ -134,11 +134,7 @@ async function handleGetAllChallenges(req, res) {
 
     if (error) {
       console.error('❌ Database error:', error);
-      return res.status(500).json({ 
-        success: false,
-        error: 'Failed to fetch challenges',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
+      return handleAPIError(res, error);
     }
 
     console.log('✅ Challenges fetched:', {
@@ -180,8 +176,7 @@ async function handleGetAllChallenges(req, res) {
     }
 
     console.log('✅ Sending successful response');
-    res.status(200).json({
-      success: true,
+    handleAPIResponse(res, {
       challenges: data || [],
       pagination: {
         total: count || 0,
@@ -207,7 +202,7 @@ async function handleGetAllChallenges(req, res) {
         dateFrom,
         dateTo
       }
-    });
+    }, { cache: false });
 
   } catch (error) {
     console.error('🚨 Unexpected error in handleGetAllChallenges:', error);
@@ -352,8 +347,7 @@ async function handleDeleteChallenge(req, res) {
       timestamp: new Date().toISOString()
     });
 
-    res.status(200).json({
-      success: true,
+    handleAPIResponse(res, {
       message: `Challenge "${challengeToDelete.custom_name || challengeToDelete.name}" deleted successfully`,
       deletionStats: {
         challenge: challengeToDelete.custom_name || challengeToDelete.name,
@@ -361,7 +355,7 @@ async function handleDeleteChallenge(req, res) {
         scores: scoreCount,
         affectedUsers: userCount
       }
-    });
+    }, { cache: false });
 
   } catch (error) {
     console.error('🚨 Delete challenge error:', error);
@@ -434,8 +428,7 @@ async function handleUpdateChallengeName(req, res) {
       timestamp: new Date().toISOString()
     });
 
-    res.status(200).json({
-      success: true,
+    handleAPIResponse(res, {
       message: 'Challenge name updated successfully',
       challenge: updatedChallenge,
       changes: {
@@ -443,7 +436,7 @@ async function handleUpdateChallengeName(req, res) {
         oldValue: existingChallenge.custom_name,
         newValue: customName.trim()
       }
-    });
+    }, { cache: false });
 
   } catch (error) {
     console.error('Update challenge name error:', error);
@@ -522,8 +515,7 @@ async function handleResetChallengeName(req, res) {
       timestamp: new Date().toISOString()
     });
 
-    res.status(200).json({
-      success: true,
+    handleAPIResponse(res, {
       message: 'Challenge name reset to original',
       challenge: updatedChallenge,
       changes: {
@@ -531,7 +523,7 @@ async function handleResetChallengeName(req, res) {
         oldValue: existingChallenge.custom_name,
         newValue: null
       }
-    });
+    }, { cache: false });
 
   } catch (error) {
     console.error('Reset challenge name error:', error);

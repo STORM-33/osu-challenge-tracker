@@ -50,16 +50,17 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
         throw new Error(data.error || 'Failed to fetch leaderboard');
       }
 
+      const responseData = data.data || data;
       if (isLoadMore) {
-        setLeaderboard(prev => [...prev, ...data.leaderboard]);
+        setLeaderboard(prev => [...prev, ...responseData.leaderboard]);
         setCurrentOffset(prev => prev + pageSize);
       } else {
-        setLeaderboard(data.leaderboard);
-        setCurrentOffset(data.leaderboard.length);
+        setLeaderboard(responseData.leaderboard || []);
+        setCurrentOffset(responseData.leaderboard?.length || 0);
       }
 
-      setUserPosition(data.userPosition);
-      setHasMore(data.hasMore || false);
+      setUserPosition(responseData.userPosition);
+      setHasMore(responseData.hasMore || false);
 
     } catch (err) {
       console.error('Error fetching season leaderboard:', err);

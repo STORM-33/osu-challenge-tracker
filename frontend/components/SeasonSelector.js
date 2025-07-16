@@ -1,4 +1,3 @@
-// frontend/components/SeasonSelector.js
 import { useState, useEffect } from 'react';
 import { ChevronDown, Calendar, Clock, X } from 'lucide-react';
 
@@ -28,7 +27,7 @@ export default function SeasonSelector({ onSeasonChange, currentSeasonId }) {
       const data = await response.json();
       
       if (data.success) {
-        setSeasons(data.seasons);
+        setSeasons(data.data?.seasons || data.seasons || []); // Handle both formats
       }
     } catch (error) {
       console.error('Error fetching seasons:', error);

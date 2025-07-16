@@ -92,9 +92,12 @@ export default function Home() {
       const seasonResponse = await fetch('/api/seasons/current');
       if (seasonResponse.ok) {
         const seasonData = await seasonResponse.json();
-        if (seasonData.success && seasonData.season) {
-          setCurrentSeason(seasonData.season);
-          setSelectedSeason(seasonData.season);
+        if (seasonData.success) {
+          const responseData = seasonData.data || seasonData;
+          if (responseData.season) {
+            setCurrentSeason(responseData.season);
+            setSelectedSeason(responseData.season);
+          }
         }
       }
     } catch (err) {

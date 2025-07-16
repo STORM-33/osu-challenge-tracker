@@ -22,10 +22,11 @@ export default function SeasonLeaderboardPage() {
         const data = await response.json();
         
         if (data.success) {
-          setSeasons(data.seasons);
+          const seasonsData = data.data?.seasons || data.seasons || [];
+          setSeasons(seasonsData);
           
           // Set current season as default
-          const currentSeason = data.seasons.find(season => season.is_current);
+          const currentSeason = seasonsData.find(season => season.is_current);
           if (currentSeason) {
             setSelectedSeason(currentSeason);
           } else if (data.seasons.length > 0) {

@@ -1,4 +1,5 @@
 import { withOptionalAuth } from '../../../lib/auth-middleware';
+import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -20,14 +21,14 @@ async function handler(req, res) {
     });
 
     if (!req.user) {
-      return res.status(200).json({ 
+      return handleAPIResponse(res, { 
         authenticated: false, 
         user: null,
         timestamp
-      });
+      }, { cache: false });
     }
 
-    return res.status(200).json({
+    return handleAPIResponse(res, {
       authenticated: true,
       user: {
         id: req.user.id,
@@ -38,8 +39,7 @@ async function handler(req, res) {
         osu_id: req.user.osu_id
       },
       timestamp
-    });
-
+    }, { cache: false });
   } catch (error) {
     console.error('🚨 Auth status error:', error);
     return res.status(500).json({ 

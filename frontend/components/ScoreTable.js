@@ -58,7 +58,8 @@ export default function ScoreTable({ scores = [], loading = false, challenge = n
       
       if (response.ok) {
         const data = await response.json();
-        setWinnerInfo(data.winner);
+        const responseData = data.data || data;
+        setWinnerInfo(responseData.winner);
       }
     } catch (error) {
       console.warn('Failed to load winner info:', error);

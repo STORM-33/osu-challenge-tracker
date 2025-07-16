@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { withOptionalAuth } from '../../lib/auth-middleware';
+import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -113,10 +114,7 @@ async function handler(req, res) {
       };
     }
 
-    res.status(200).json({
-      success: true,
-      data: basicStats
-    });
+    return handleAPIResponse(res, basicStats);
 
   } catch (error) {
     console.error('Stats API error:', error);

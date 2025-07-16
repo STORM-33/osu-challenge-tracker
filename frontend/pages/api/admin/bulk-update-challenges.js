@@ -1,7 +1,7 @@
-// pages/api/admin/bulk-update-challenges.js
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { trackedOsuAPI } from '../../../lib/osu-api';
 import apiTracker from '../../../lib/api-tracker';
+import { validateRequest, handleAPIError } from '../../../lib/api-utils';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -142,8 +142,7 @@ export default async function handler(req, res) {
 
     const finalUsage = apiTracker.getUsageStats();
     
-    res.status(200).json({
-      success: true,
+    return handleAPIResponse(res, {
       summary: {
         totalChallenges: challenges.length,
         totalUpdated,
@@ -157,7 +156,7 @@ export default async function handler(req, res) {
         percentage: finalUsage.usage?.functions?.percentage || '0'
       },
       results
-    });
+    }, { cache: false });
 
   } catch (error) {
     console.error('Bulk update error:', error);

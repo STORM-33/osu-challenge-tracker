@@ -68,10 +68,14 @@ export function AuthProvider({ children }) {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.authenticated && data.user) {
-          console.log('✅ AuthContext: User found:', data.user.username);
-          setUser(data.user);
-          setIsAdmin(data.user.admin || false);
+        
+        // Handle both old and new API response formats
+        const responseData = data.data || data;
+        
+        if (responseData.authenticated && responseData.user) {
+          console.log('✅ AuthContext: User found:', responseData.user.username);
+          setUser(responseData.user);
+          setIsAdmin(responseData.user.admin || false);
           
           // Notify other tabs
           if (typeof window !== 'undefined') {
@@ -83,10 +87,6 @@ export function AuthProvider({ children }) {
           setUser(null);
           setIsAdmin(false);
         }
-      } else {
-        console.error('❌ AuthContext: Auth status failed:', response.status);
-        setUser(null);
-        setIsAdmin(false);
       }
     } catch (error) {
       console.error('🚨 AuthContext: Auth check error:', error);

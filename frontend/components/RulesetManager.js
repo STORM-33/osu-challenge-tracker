@@ -64,8 +64,9 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
         throw new Error(data.error || 'Failed to load challenge data');
       }
 
-      setChallenge(data.challenge);
-      setWinner(data.winner);
+      const responseData = data.data || data;
+      setChallenge(responseData.challenge);
+      setWinner(responseData.winner);
 
       // Initialize form with existing data (removed name and description)
       if (data.challenge.has_ruleset) {

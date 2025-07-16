@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { handleAPIResponse, handleAPIError } from '../../lib/api-utils';
 
 async function handler(req, res) {
   const checks = {
@@ -21,10 +22,13 @@ async function handler(req, res) {
     // Overall health status
     const isHealthy = checks.api === 'ok' && checks.database === 'ok';
 
-    res.status(isHealthy ? 200 : 503).json({
+    return handleAPIResponse(res, {
       status: isHealthy ? 'healthy' : 'unhealthy',
       checks,
       uptime: process.uptime(),
+    }, { 
+      status: isHealthy ? 200 : 503,
+      cache: false // Health checks should not be cached
     });
 
   } catch (error) {

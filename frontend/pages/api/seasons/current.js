@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { seasonUtils } from '../../../lib/seasons';
+import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -76,8 +77,7 @@ async function handler(req, res) {
         }
         
         console.log(`✅ Reactivated existing season: ${seasonName}`);
-        return res.status(200).json({
-          success: true,
+        return handleAPIResponse(res, {
           season: updatedSeason,
           rotated: true,
           message: `Season rotated to existing ${seasonName}`
@@ -109,12 +109,11 @@ async function handler(req, res) {
         const seasonNumber = seasonUtils.getSeasonNumber(seasonName);
         console.log(`✅ Created new season: ${seasonName} (${dateRange.start_date} to ${dateRange.end_date})`);
         
-        return res.status(200).json({
-          success: true,
+        return handleAPIResponse(res, {
           season: newSeason,
           rotated: true,
+          season_number: seasonNumber,
           message: `Season rotated to new ${seasonName}`,
-          season_number: seasonNumber
         });
       }
     }
@@ -128,8 +127,7 @@ async function handler(req, res) {
     
     console.log(`✅ Current season ${currentSeason.name} is valid (${daysUntilExpiry} days remaining)`);
     
-    return res.status(200).json({
-      success: true,
+    return handleAPIResponse(res, {
       season: currentSeason,
       rotated: false,
       daysUntilExpiry,
@@ -139,10 +137,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Current season API error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Internal server error' 
-    });
+    return handleAPIError(res, error);
   }
 }
 

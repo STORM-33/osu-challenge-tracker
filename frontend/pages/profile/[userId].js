@@ -59,11 +59,13 @@ export default function UserProfile() {
         return;
       }
 
-      setProfileUser(profileData.user);
-      setAllScores(profileData.scores || []);
-      setAllBestPerformances(profileData.bestPerformances || []);
-      setStats(profileData.stats || null);
-      setStreaks(profileData.streaks || null);
+      // Handle both old and new API formats
+      const responseData = profileData.data || profileData;
+      setProfileUser(responseData.user);
+      setAllScores(responseData.scores || []);
+      setAllBestPerformances(responseData.bestPerformances || []);
+      setStats(responseData.stats || null);
+      setStreaks(responseData.streaks || null);
 
     } catch (error) {
       console.error('Error loading user data:', error);

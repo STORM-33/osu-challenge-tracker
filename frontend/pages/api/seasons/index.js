@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
+import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
 
 async function handleGetSeasons(req, res) {
   try {
@@ -16,8 +17,7 @@ async function handleGetSeasons(req, res) {
       });
     }
 
-    res.status(200).json({
-      success: true,
+    return handleAPIResponse(res, {
       seasons: seasons || []
     });
   } catch (error) {
@@ -73,11 +73,10 @@ async function handleCreateSeason(req, res) {
       });
     }
 
-    res.status(201).json({
-      success: true,
+    return handleAPIResponse(res, {
       season,
       message: 'Season created successfully'
-    });
+    }, { status: 201 });
   } catch (error) {
     console.error('Season creation error:', error);
     res.status(500).json({ 

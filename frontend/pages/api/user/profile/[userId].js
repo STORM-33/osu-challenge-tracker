@@ -1,5 +1,6 @@
 import { withOptionalAuth } from '../../../../lib/auth-middleware';
 import { challengeQueries, supabase } from '../../../../lib/supabase';
+import { handleAPIResponse, handleAPIError } from '../../../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -187,12 +188,11 @@ async function handler(req, res) {
     }
 
     // Return successful response with enhanced stats
-    res.status(200).json({
-      success: true,
+    return handleAPIResponse(res, {
       user: profileUser,
       scores: finalScores,
       totalScores: scoresWithCalculatedRanks.length,
-      bestPerformances: bestPerformances, // Separate field for best performances
+      bestPerformances: bestPerformances,
       stats: enhancedUserStats,
       streaks: userStreaks,
       isPublicProfile: true,
@@ -213,13 +213,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Error loading user profile:', error);
-    res.status(500).json({ 
-      success: false,
-      error: { 
-        message: 'Internal server error while loading profile',
-        code: 'INTERNAL_ERROR'
-      } 
-    });
+    return handleAPIError(res, error);
   }
 }
 

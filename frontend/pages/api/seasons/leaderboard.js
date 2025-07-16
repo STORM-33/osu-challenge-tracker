@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -98,12 +99,11 @@ async function handler(req, res) {
     // Determine if there are more records available
     const hasMore = data && data.length === parseInt(limit);
 
-    res.status(200).json({
-      success: true,
+    return handleAPIResponse(res, {
       leaderboard: data || [],
       userPosition,
       currentSeason,
-      hasMore, // Indicate if more records are available
+      hasMore,
       meta: {
         seasonId: seasonId || currentSeason?.id,
         limit: parseInt(limit),
@@ -115,11 +115,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Season leaderboard API error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return handleAPIError(res, error);
   }
 }
 

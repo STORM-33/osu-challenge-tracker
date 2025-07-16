@@ -1,4 +1,5 @@
 import { withAdminAuth } from '../../../lib/auth-middleware';
+import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -35,8 +36,7 @@ async function handler(req, res) {
       return sum + errorCount;
     }, 0);
 
-    res.status(200).json({
-      success: true,
+    return handleAPIResponse(res, {
       data: {
         summary: {
           totalApiCalls,
