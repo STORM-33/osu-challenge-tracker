@@ -100,10 +100,10 @@ export default function AdminChallenges() {
 
   const loadChallenges = async () => {
     console.log('🔄 Loading challenges with filters:', filters);
-    
+
     try {
       setLoading(true);
-      
+
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== '' && value !== null && value !== undefined) {
@@ -113,26 +113,30 @@ export default function AdminChallenges() {
 
       console.log('📡 Making API request to:', `/api/admin/challenges?${params}`);
       const response = await fetch(`/api/admin/challenges?${params}`);
-      
+
       console.log('📥 API response status:', response.status);
-      
+
       if (!response.ok) {
         console.error('❌ API response not ok:', response.status, response.statusText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
+
+      // Handle both old and new format
+      const responseData = data.data || data;
+
       console.log('📊 API response data:', {
         success: data.success,
-        challengeCount: data.challenges?.length || 0,
-        summary: data.summary,
-        pagination: data.pagination
+        challengeCount: responseData.challenges?.length || 0,
+        summary: responseData.summary,
+        pagination: responseData.pagination
       });
-      
+
       if (data.success) {
-        setChallenges(data.challenges || []);
-        setPagination(data.pagination || {});
-        setSummary(data.summary || {});
+        setChallenges(responseData.challenges || []);
+        setPagination(responseData.pagination || {});
+        setSummary(responseData.summary || {});
         console.log('✅ Challenges loaded successfully');
       } else {
         console.error('❌ API returned error:', data.error);

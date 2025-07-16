@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useAuth } from '../lib/AuthContext'; // Replace the supabase import
+import { useAuth } from '../lib/AuthContext';
 import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu } from 'lucide-react';
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
-  const { user, loading, isAdmin, signOut } = useAuth(); // Replace useState calls
+  const { user, loading, isAdmin, signOut } = useAuth(); 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
