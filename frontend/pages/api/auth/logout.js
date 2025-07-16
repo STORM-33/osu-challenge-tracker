@@ -37,10 +37,8 @@ function handler(req, res) {
 
     console.log('🍪 Session cookie cleared');
 
-    return res.status(200).json({ 
-      success: true, 
+    return handleAPIResponse(res, {
       message: 'Logged out successfully',
-      timestamp: new Date().toISOString(),
       cookiesCleared: clearCookies.length
     });
 
