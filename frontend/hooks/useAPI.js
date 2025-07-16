@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 
 const challengeUpdateCache = {};
@@ -99,7 +99,6 @@ export function usePaginatedAPI(baseEndpoint, options = {}) {
   };
 }
 
-// Enhanced hook for challenge data with background sync capabilities
 export function useChallengeWithSync(roomId, options = {}) {
   const { 
     autoRefresh = true, 
@@ -116,6 +115,18 @@ export function useChallengeWithSync(roomId, options = {}) {
 
   const pollTimeoutRef = useRef(null);
   const lastJobIdRef = useRef(null);
+  const mountedRef = useRef(true); // Track if component is mounted
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Main data fetching
   const { data, error, mutate, isValidating } = useSWR(
@@ -123,8 +134,9 @@ export function useChallengeWithSync(roomId, options = {}) {
     smartFetcher,
     {
       revalidateOnFocus: false,
+      // Remove aggressive success callbacks that could cause loops
       onSuccess: (newData) => {
-        if (newData?.sync_metadata) {
+        if (mountedRef.current && newData?.sync_metadata) {
           handleSyncMetadata(newData.sync_metadata);
         }
       }
@@ -133,6 +145,8 @@ export function useChallengeWithSync(roomId, options = {}) {
 
   // Handle sync metadata from API responses
   const handleSyncMetadata = useCallback((syncMetadata) => {
+    if (!mountedRef.current) return;
+
     setSyncState(prev => ({
       ...prev,
       isBackgroundSyncing: syncMetadata.sync_in_progress,
@@ -144,7 +158,7 @@ export function useChallengeWithSync(roomId, options = {}) {
     if (lastJobIdRef.current && !syncMetadata.job_id && lastJobIdRef.current !== syncMetadata.job_id) {
       console.log('🔄 Background sync completed, refreshing data');
       mutate();
-      if (onSyncComplete) {
+      if (onSyncComplete && mountedRef.current) {
         onSyncComplete();
       }
     }
@@ -152,44 +166,81 @@ export function useChallengeWithSync(roomId, options = {}) {
     lastJobIdRef.current = syncMetadata.job_id;
   }, [mutate, onSyncComplete]);
 
-  // Poll for sync status updates when background sync is active
   useEffect(() => {
-    if (!syncState.isBackgroundSyncing || !syncState.jobId || !autoRefresh) {
-      if (pollTimeoutRef.current) {
-        clearTimeout(pollTimeoutRef.current);
-        pollTimeoutRef.current = null;
-      }
+    // Clear any existing timeout
+    if (pollTimeoutRef.current) {
+      clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
+    }
+
+    // Only poll if syncing is active and auto-refresh is enabled
+    if (!syncState.isBackgroundSyncing || !syncState.jobId || !autoRefresh || !mountedRef.current) {
       return;
     }
 
+    let pollAttempts = 0;
+    const maxPollAttempts = 15; // Maximum 15 attempts (30 minutes)
+
     const pollSyncStatus = async () => {
+      if (!mountedRef.current) {
+        return;
+      }
+
+      pollAttempts++;
+      
+      if (pollAttempts > maxPollAttempts) {
+        console.warn(`⚠️ Stopping sync polling after ${maxPollAttempts} attempts for challenge ${roomId}`);
+        setSyncState(prev => ({
+          ...prev,
+          isBackgroundSyncing: false,
+          jobId: null
+        }));
+        return;
+      }
+
       try {
         const response = await fetch(`/api/sync/status?type=challenge&id=${roomId}`);
-        if (response.ok) {
-          const statusData = await response.json();
-          const syncStatus = statusData.data?.sync_status;
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
 
-          if (syncStatus && !syncStatus.inProgress && syncState.isBackgroundSyncing) {
-            // Sync completed, refresh main data
-            console.log('🔄 Background sync detected as complete via polling, refreshing data');
-            setSyncState(prev => ({
-              ...prev,
-              isBackgroundSyncing: false,
-              jobId: null
-            }));
-            mutate();
-            if (onSyncComplete) {
-              onSyncComplete();
-            }
-          } else if (syncStatus?.inProgress) {
-            // Schedule next poll
-            pollTimeoutRef.current = setTimeout(pollSyncStatus, pollInterval);
+        const statusData = await response.json();
+        const syncStatus = statusData.data?.sync_status;
+
+        if (!mountedRef.current) {
+          return;
+        }
+
+        if (syncStatus && !syncStatus.inProgress && syncState.isBackgroundSyncing) {
+          // Sync completed, refresh main data
+          console.log('🔄 Background sync detected as complete via polling, refreshing data');
+          setSyncState(prev => ({
+            ...prev,
+            isBackgroundSyncing: false,
+            jobId: null
+          }));
+          mutate();
+          if (onSyncComplete) {
+            onSyncComplete();
           }
+        } else if (syncStatus?.inProgress) {
+          // Schedule next poll with exponential backoff
+          const backoffDelay = Math.min(pollInterval * Math.pow(1.2, pollAttempts - 1), pollInterval * 3);
+          pollTimeoutRef.current = setTimeout(pollSyncStatus, backoffDelay);
         }
       } catch (error) {
-        console.warn('Failed to poll sync status:', error);
-        // Continue polling despite error
-        pollTimeoutRef.current = setTimeout(pollSyncStatus, pollInterval * 2);
+        console.warn(`Failed to poll sync status (attempt ${pollAttempts}):`, error);
+        
+        // ✅ Check mounted state before scheduling retry
+        if (!mountedRef.current) {
+          return;
+        }
+
+        // Continue polling with exponential backoff, but limit retries
+        if (pollAttempts < maxPollAttempts) {
+          const retryDelay = Math.min(pollInterval * 2, 300000); // Max 5 minutes
+          pollTimeoutRef.current = setTimeout(pollSyncStatus, retryDelay);
+        }
       }
     };
 
@@ -206,7 +257,7 @@ export function useChallengeWithSync(roomId, options = {}) {
 
   // Manual sync trigger
   const triggerSync = useCallback(async (force = false) => {
-    if (!roomId) return { success: false, error: 'No room ID' };
+    if (!roomId || !mountedRef.current) return { success: false, error: 'No room ID or component unmounted' };
 
     setSyncState(prev => ({
       ...prev,
@@ -226,6 +277,10 @@ export function useChallengeWithSync(roomId, options = {}) {
       });
 
       const result = await response.json();
+
+      if (!mountedRef.current) {
+        return { success: false, error: 'Component unmounted during sync' };
+      }
 
       if (result.success && result.data.queued) {
         setSyncState(prev => ({
@@ -249,10 +304,12 @@ export function useChallengeWithSync(roomId, options = {}) {
         };
       }
     } catch (error) {
-      setSyncState(prev => ({
-        ...prev,
-        syncError: error.message
-      }));
+      if (mountedRef.current) {
+        setSyncState(prev => ({
+          ...prev,
+          syncError: error.message
+        }));
+      }
 
       return {
         success: false,
@@ -262,7 +319,9 @@ export function useChallengeWithSync(roomId, options = {}) {
   }, [roomId]);
 
   const refresh = useCallback(() => {
-    return mutate();
+    if (mountedRef.current) {
+      return mutate();
+    }
   }, [mutate]);
 
   return {
@@ -290,7 +349,6 @@ export function useChallengeWithSync(roomId, options = {}) {
   };
 }
 
-// Enhanced hook for challenges list with background sync
 export function useChallengesWithSync(options = {}) {
   const {
     active = null,
@@ -300,14 +358,25 @@ export function useChallengesWithSync(options = {}) {
     onSyncProgress = null
   } = options;
 
-  // Build endpoint with parameters
-  const endpoint = useMemo(() => {
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Build endpoint with parameters - use useMemo equivalent
+  const endpointRef = useRef('');
+  const endpoint = React.useMemo(() => {
     const params = new URLSearchParams();
     if (active !== null) params.append('active', active.toString());
     if (seasonId) params.append('season_id', seasonId.toString());
     if (autoSync !== null) params.append('auto_sync', autoSync.toString());
     
-    return `/api/challenges?${params.toString()}`;
+    const newEndpoint = `/api/challenges?${params.toString()}`;
+    endpointRef.current = newEndpoint;
+    return newEndpoint;
   }, [active, seasonId, autoSync]);
 
   const [syncProgress, setSyncProgress] = useState({
@@ -323,6 +392,8 @@ export function useChallengesWithSync(options = {}) {
       refreshInterval: autoSync ? refreshInterval : null,
       revalidateOnFocus: false,
       onSuccess: (newData) => {
+        if (!mountedRef.current) return;
+        
         if (newData?.sync_summary) {
           const progress = {
             totalSyncing: newData.sync_summary.total_syncing || 0,
@@ -332,7 +403,7 @@ export function useChallengesWithSync(options = {}) {
           
           setSyncProgress(progress);
           
-          if (onSyncProgress) {
+          if (onSyncProgress && mountedRef.current) {
             onSyncProgress(progress);
           }
         }
@@ -341,7 +412,9 @@ export function useChallengesWithSync(options = {}) {
   );
 
   const refresh = useCallback(() => {
-    return mutate();
+    if (mountedRef.current) {
+      return mutate();
+    }
   }, [mutate]);
 
   return {
@@ -417,7 +490,6 @@ export function useAPIForm(endpoint, options = {}) {
   };
 }
 
-// Helper to use memo in the hook
 function useMemo(factory, deps) {
   const ref = useRef();
   

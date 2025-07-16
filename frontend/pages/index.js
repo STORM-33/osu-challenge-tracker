@@ -1,18 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import ChallengeCard from '../components/ChallengeCard';
 import SeasonSelector from '../components/SeasonSelector';
+import { SyncStatusIndicator } from '../components/SyncStatusIndicator'; 
 import { 
-  Loader2, Trophy, History, Calendar, Sparkles, RefreshCw, 
-  ChevronDown, ChevronRight, Users, MapPin, Clock, Info, 
-  CheckCircle, AlertCircle, Zap, TrendingUp, Star, Activity,
-  Target, Flame
+  Loader2, Trophy, History, Sparkles, RefreshCw, 
+  Users, MapPin, Clock, Info, AlertCircle
 } from 'lucide-react';
-import { seasonUtils } from '../lib/seasons';
-import { challengeQueries } from '../lib/supabase';
+import { syncConfig } from '../lib/sync-config';
 
 // Enhanced fetcher that handles sync metadata
 const fetcher = async (url) => {
@@ -32,11 +30,11 @@ export default function Home() {
   const [expandedSeasons, setExpandedSeasons] = useState(new Set());
   const [quickStats, setQuickStats] = useState(null);
 
-  // Enhanced API endpoint with auto-sync
+  // Enhanced API endpoint with auto-sync enabled
   const activeChallengesEndpoint = useMemo(() => {
     const params = new URLSearchParams();
     params.append('active', 'true');
-    params.append('auto_sync', 'false');
+    params.append('auto_sync', 'true'); // ✅ ENABLE: Auto-sync for stale challenges
     return `/api/challenges?${params.toString()}`;
   }, []);
 
@@ -47,7 +45,7 @@ export default function Home() {
     mutate: refreshActiveChallenges,
     isValidating
   } = useSWR(activeChallengesEndpoint, fetcher, {
-    refreshInterval: 300000, // Refresh every 5 minutes
+    refreshInterval: syncConfig.thresholds.SWR_REFRESH_INTERVAL, // Use centralized config
     refreshWhenHidden: false,
     refreshWhenOffline: false,
     revalidateOnFocus: false,
@@ -166,57 +164,15 @@ export default function Home() {
 
   const filteredChallenges = getFilteredChallenges(historicalChallenges);
 
-  // State for tracking when to show completion banner
-  const [completionBannerVisible, setCompletionBannerVisible] = useState(false);
-  const [lastBackgroundSyncs, setLastBackgroundSyncs] = useState(0);
-
-  // Track completion of background syncs
-  useEffect(() => {
-    if (syncSummary?.background_syncs_triggered > lastBackgroundSyncs && syncSummary?.total_syncing === 0) {
-      setCompletionBannerVisible(true);
-      
-      const timer = setTimeout(() => {
-        setCompletionBannerVisible(false);
-      }, 4000);
-      
-      return () => clearTimeout(timer);
-    }
-    
-    setLastBackgroundSyncs(syncSummary?.background_syncs_triggered || 0);
-  }, [syncSummary?.background_syncs_triggered, syncSummary?.total_syncing, lastBackgroundSyncs]);
-
-  const SyncStatusIndicator = () => {
-    if (!syncSummary) return null;
-
-    const { total_syncing, background_syncs_triggered } = syncSummary;
-    
-    // Only show if there's active syncing or recent completion
-    if (total_syncing > 0 || (completionBannerVisible && background_syncs_triggered > 0)) {
-      return (
-        <div className="fixed bottom-6 right-6 z-50 animate-slide-up">
-          <div className="flex items-center gap-3 px-4 py-3 glass-1 rounded-xl shadow-lg">
-            {total_syncing > 0 ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-white icon-shadow-adaptive-sm" />
-                <span className="text-sm text-white font-medium text-shadow-adaptive-sm">
-                  Syncing {total_syncing} challenge{total_syncing !== 1 ? 's' : ''}
-                </span>
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4 text-green-400 icon-shadow-adaptive-sm" />
-                <span className="text-sm text-white font-medium text-shadow-adaptive-sm">
-                  Sync complete
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  };
+  const debouncedRefresh = useMemo(() => {
+    let timeoutId;
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        refreshActiveChallenges();
+      }, syncConfig.thresholds.DEBOUNCE_DELAY); // Use centralized config
+    };
+  }, [refreshActiveChallenges]);
 
   if (loading) {
     return (
@@ -229,8 +185,17 @@ export default function Home() {
   return (
     <Layout>
       <div className="min-h-screen py-4 sm:py-6 lg:py-8">
-        {/* Sync Status Indicator - Fixed positioned */}
-        <SyncStatusIndicator />
+        {/* Unified Sync Status Indicator */}
+        <SyncStatusIndicator 
+          syncMetadata={{
+            sync_in_progress: (syncSummary?.total_syncing || 0) > 0,
+            job_id: syncSummary?.total_syncing > 0 ? 'bulk_sync_active' : null, // ✅ STABLE
+            background_sync_triggered: (syncSummary?.background_syncs_triggered || 0) > 0,
+            is_stale: false
+          }}
+          isValidating={isValidating}
+          showDebug={true} // process.env.NODE_ENV === 'development'
+        />
         
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
@@ -299,10 +264,11 @@ export default function Home() {
                   </div>
                   <p className="text-red-300 mb-6 font-medium text-shadow-adaptive text-sm sm:text-base">Failed to load challenges: {error.message}</p>
                   <button 
-                    onClick={refreshActiveChallenges}
-                    className="px-4 py-2 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-all hover:shadow-lg transform hover:scale-105 text-sm sm:text-base"
+                    onClick={debouncedRefresh}
+                    disabled={isValidating}
+                    className="px-4 py-2 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-all hover:shadow-lg transform hover:scale-105 text-sm sm:text-base"
                   >
-                    Try Again
+                    {isValidating ? 'Retrying...' : 'Try Again'}
                   </button>
                 </div>
               ) : activeChallenges.length === 0 && !loading ? (
@@ -509,7 +475,7 @@ export default function Home() {
             {/* Manual refresh button */}
             <div className="mt-4">
               <button
-                onClick={refreshActiveChallenges}
+                onClick={debouncedRefresh}
                 disabled={isValidating}
                 className="text-xs text-white/70 hover:text-white/90 transition-colors flex items-center gap-1 mx-auto disabled:opacity-50 hover:bg-white/10 px-3 py-1 rounded-full text-shadow-adaptive-sm"
               >

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
 import SeasonSelector from '../../components/SeasonSelector';
@@ -8,7 +8,7 @@ import {
   CheckCircle, AlertCircle, Users, Calendar, Clock, MapPin,
   ChevronLeft, ChevronRight, X, Eye, EyeOff, Crown, Target, Trash2
 } from 'lucide-react';
-import { auth } from '../../lib/supabase';
+import { useAuth } from '../../lib/AuthContext';
 import { useRouter } from 'next/router';
 
 // Import the name generator directly
@@ -37,10 +37,9 @@ const generateRulesetDisplayName = (challenge) => {
 };
 
 export default function AdminChallenges() {
-  const [user, setUser] = useState(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const { user, loading, isAdmin } = useAuth();
   const [challenges, setChallenges] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [summary, setSummary] = useState({});
   const [pagination, setPagination] = useState({});
   const [result, setResult] = useState(null);
@@ -59,50 +58,25 @@ export default function AdminChallenges() {
   const [showRulesetManager, setShowRulesetManager] = useState(false);
   const [selectedChallengeForRuleset, setSelectedChallengeForRuleset] = useState(null);
   
-  // Filters and search (removed sorting options)
+  // Filters and search
   const [filters, setFilters] = useState({
     search: '',
-    status: '', // 'active', 'inactive', ''
+    status: '',
     season_id: '',
-    hasCustomName: '', // 'true', 'false', ''
-    hasRuleset: '', // 'true', 'false', ''
+    hasCustomName: '',
+    hasRuleset: '',
     limit: 25,
     offset: 0
   });
 
   const router = useRouter();
 
-  useEffect(() => {
-    checkAdminAccess();
-  }, []);
-
-  useEffect(() => {
-    if (user?.admin) {
-      loadChallenges();
-    }
-  }, [user, filters]);
-
-  const checkAdminAccess = async () => {
-    try {
-      const userData = await auth.getCurrentUser();
-      if (!userData?.admin) {
-        router.push('/admin');
-        return;
-      }
-      setUser(userData);
-    } catch (error) {
-      console.error('Auth check error:', error);
-      router.push('/admin');
-    } finally {
-      setCheckingAuth(false);
-    }
-  };
-
-  const loadChallenges = async () => {
+  // Stabilize loadChallenges with useCallback to prevent dependency issues
+  const loadChallenges = useCallback(async () => {
     console.log('🔄 Loading challenges with filters:', filters);
 
     try {
-      setLoading(true);
+      setLoadingChallenges(true);
 
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
@@ -122,8 +96,6 @@ export default function AdminChallenges() {
       }
 
       const data = await response.json();
-
-      // Handle both old and new format
       const responseData = data.data || data;
 
       console.log('📊 API response data:', {
@@ -152,42 +124,67 @@ export default function AdminChallenges() {
         error: `Network error: ${error.message}`
       });
     } finally {
-      setLoading(false);
+      setLoadingChallenges(false);
     }
-  };
+  }, [filters]); // Only depend on filters
 
-  const updateFilters = (newFilters) => {
+  // Auth check - NO API calls here, just redirect logic
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/');
+        return;
+      }
+      
+      if (!isAdmin) {
+        router.push('/admin');
+        return;
+      }
+      
+      // Don't call loadChallenges here - let the filters useEffect handle it
+    }
+  }, [user, loading, isAdmin, router]);
+
+  // Load challenges when filters change OR when auth is ready
+  useEffect(() => {
+    // Only load if user is authenticated and admin
+    if (user && isAdmin && !loading) {
+      loadChallenges();
+    }
+  }, [user, isAdmin, loading, loadChallenges]); // Include loadChallenges in deps since it's now stable
+
+  const updateFilters = useCallback((newFilters) => {
     setFilters(prev => ({
       ...prev,
       ...newFilters,
       offset: 0 // Reset to first page when filters change
     }));
-  };
+  }, []);
 
-  const changePage = (newOffset) => {
+  const changePage = useCallback((newOffset) => {
     setFilters(prev => ({ ...prev, offset: newOffset }));
-  };
+  }, []);
 
-  const startEditing = (challenge) => {
+  const startEditing = useCallback((challenge) => {
     setEditingChallenge(challenge.room_id);
     setEditingName(challenge.custom_name || challenge.name);
-  };
+  }, []);
 
-  const cancelEditing = () => {
+  const cancelEditing = useCallback(() => {
     setEditingChallenge(null);
     setEditingName('');
-  };
+  }, []);
 
   // Delete functions
-  const startDelete = (challenge) => {
+  const startDelete = useCallback((challenge) => {
     setChallengeToDelete(challenge);
     setDeleteConfirmText('');
-  };
+  }, []);
 
-  const cancelDelete = () => {
+  const cancelDelete = useCallback(() => {
     setChallengeToDelete(null);
     setDeleteConfirmText('');
-  };
+  }, []);
 
   const confirmDelete = async () => {
     if (!challengeToDelete) return;
@@ -254,12 +251,12 @@ export default function AdminChallenges() {
   };
 
   // Ruleset management functions
-  const handleManageRuleset = (challenge) => {
+  const handleManageRuleset = useCallback((challenge) => {
     setSelectedChallengeForRuleset(challenge);
     setShowRulesetManager(true);
-  };
+  }, []);
 
-  const handleRulesetSuccess = (message) => {
+  const handleRulesetSuccess = useCallback((message) => {
     setResult({
       success: true,
       message: message
@@ -271,7 +268,7 @@ export default function AdminChallenges() {
     setTimeout(() => {
       loadChallenges();
     }, 1000);
-  };
+  }, [loadChallenges]);
 
   const saveChallengeName = async (roomId) => {
     if (!editingName.trim()) {
@@ -405,14 +402,23 @@ export default function AdminChallenges() {
     return challenge.custom_name || challenge.name;
   };
 
-  if (checkingAuth) {
+  // Show loading while checking auth
+  if (loading) {
     return (
       <Layout>
         <div className="max-w-2xl mx-auto px-4 py-8 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+          <div className="glass-card-enhanced rounded-2xl p-8">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" />
+            <p className="text-neutral-600 mt-4 text-center">Checking admin access...</p>
+          </div>
         </div>
       </Layout>
     );
+  }
+
+  // Don't render anything if user is not admin (redirect will happen)
+  if (!user || !isAdmin) {
+    return null;
   }
 
   return (
@@ -457,70 +463,70 @@ export default function AdminChallenges() {
         </div>
 
         {/* Enhanced Filters */}
-<div className="bg-white rounded-xl border border-neutral-200 p-6 mb-6">
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-    
-    {/* Status Filter */}
-    <div>
-      <label className="block text-sm font-medium text-neutral-700 mb-2">
-        Status
-      </label>
-      <select
-        value={filters.status}
-        onChange={(e) => updateFilters({ status: e.target.value })}
-        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
-      >
-        <option value="">All Challenges</option>
-        <option value="active">Active Only</option>
-        <option value="inactive">Inactive Only</option>
-      </select>
-    </div>
-    
-    {/* Custom Name Filter */}
-    <div>
-      <label className="block text-sm font-medium text-neutral-700 mb-2">
-        Name Type
-      </label>
-      <select
-        value={filters.hasCustomName}
-        onChange={(e) => updateFilters({ hasCustomName: e.target.value })}
-        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
-      >
-        <option value="">All Names</option>
-        <option value="true">Custom Names Only</option>
-        <option value="false">Original Names Only</option>
-      </select>
-    </div>
-    
-    {/* Ruleset Filter */}
-    <div>
-      <label className="block text-sm font-medium text-neutral-700 mb-2">
-        Ruleset
-      </label>
-      <select
-        value={filters.hasRuleset}
-        onChange={(e) => updateFilters({ hasRuleset: e.target.value })}
-        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
-      >
-        <option value="">All Challenges</option>
-        <option value="true">With Rulesets</option>
-        <option value="false">No Rulesets</option>
-      </select>
-    </div>
-    
-    {/* Season Filter - Now on the right */}
-    <div>
-      <label className="block text-sm font-medium text-neutral-700 mb-2">
-        Season
-      </label>
-      <SeasonSelector 
-        onSeasonChange={(season) => updateFilters({ season_id: season?.id || '' })}
-        currentSeasonId={filters.season_id}
-        showAllOption={true}
-      />
-    </div>
-  </div>
-</div>
+        <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            {/* Status Filter */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Status
+              </label>
+              <select
+                value={filters.status}
+                onChange={(e) => updateFilters({ status: e.target.value })}
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+              >
+                <option value="">All Challenges</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
+              </select>
+            </div>
+            
+            {/* Custom Name Filter */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Name Type
+              </label>
+              <select
+                value={filters.hasCustomName}
+                onChange={(e) => updateFilters({ hasCustomName: e.target.value })}
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+              >
+                <option value="">All Names</option>
+                <option value="true">Custom Names Only</option>
+                <option value="false">Original Names Only</option>
+              </select>
+            </div>
+            
+            {/* Ruleset Filter */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Ruleset
+              </label>
+              <select
+                value={filters.hasRuleset}
+                onChange={(e) => updateFilters({ hasRuleset: e.target.value })}
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+              >
+                <option value="">All Challenges</option>
+                <option value="true">With Rulesets</option>
+                <option value="false">No Rulesets</option>
+              </select>
+            </div>
+            
+            {/* Season Filter */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Season
+              </label>
+              <SeasonSelector 
+                onSeasonChange={(season) => updateFilters({ season_id: season?.id || '' })}
+                currentSeasonId={filters.season_id}
+                showAllOption={true}
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Results */}
         {result && (
@@ -550,7 +556,7 @@ export default function AdminChallenges() {
 
         {/* Table */}
         <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-          {loading ? (
+          {loadingChallenges ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
             </div>

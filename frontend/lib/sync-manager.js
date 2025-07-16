@@ -2,13 +2,25 @@
 import { supabaseAdmin } from './supabase-admin';
 import apiTracker from './api-tracker';
 import syncLogger from './sync-logger';
+import { syncConfig } from './sync-config';
 
 class SyncManager {
   constructor() {
     this.activeJobs = new Map();
     this.globalCooldowns = new Map();
-    this.SYNC_THRESHOLD = 15 * 60 * 1000;
-    this.GLOBAL_COOLDOWN = 5 * 60 * 1000;
+    
+    // Use centralized configuration
+    this.SYNC_THRESHOLD = syncConfig.thresholds.SYNC_THRESHOLD;
+    this.GLOBAL_COOLDOWN = syncConfig.thresholds.GLOBAL_COOLDOWN;
+    this.ESTIMATED_SYNC_DURATION = syncConfig.thresholds.ESTIMATED_SYNC_DURATION;
+    this.LOCK_TIMEOUT = syncConfig.thresholds.LOCK_TIMEOUT;
+    this.MAX_RETRIES = syncConfig.thresholds.MAX_RETRIES;
+    
+    console.log('🔧 SyncManager initialized with thresholds:', {
+      SYNC_THRESHOLD: `${this.SYNC_THRESHOLD / 60000}min`,
+      GLOBAL_COOLDOWN: `${this.GLOBAL_COOLDOWN / 60000}min`,
+      ESTIMATED_SYNC_DURATION: `${this.ESTIMATED_SYNC_DURATION / 1000}s`
+    });
   }
 
   /**
@@ -21,10 +33,13 @@ class SyncManager {
     // Check global cooldown first
     const lastGlobalSync = this.globalCooldowns.get(key);
     if (lastGlobalSync && (now - lastGlobalSync) < this.GLOBAL_COOLDOWN) {
+      const timeRemaining = this.GLOBAL_COOLDOWN - (now - lastGlobalSync);
+      console.log(`⏱️ Global cooldown active for ${key}: ${Math.ceil(timeRemaining / 1000)}s remaining`);
+      
       return {
         canSync: false,
         reason: 'global_cooldown',
-        nextSyncIn: this.GLOBAL_COOLDOWN - (now - lastGlobalSync),
+        nextSyncIn: timeRemaining,
         lastSynced: lastGlobalSync
       };
     }
@@ -33,6 +48,8 @@ class SyncManager {
     if (!forceCheck) {
       const staleness = await this.checkStaleness(resourceType, resourceId);
       if (!staleness.isStale) {
+        console.log(`✅ Data is fresh for ${key}: ${Math.ceil(staleness.timeSinceUpdate / 60000)}min ago`);
+        
         return {
           canSync: false,
           reason: 'not_stale',
@@ -40,11 +57,15 @@ class SyncManager {
           timeSinceUpdate: staleness.timeSinceUpdate
         };
       }
+      
+      console.log(`📊 Data is stale for ${key}: ${Math.ceil(staleness.timeSinceUpdate / 60000)}min ago (threshold: ${this.SYNC_THRESHOLD / 60000}min)`);
     }
 
     // Check API limits
     const limitStatus = apiTracker.checkLimits();
     if (limitStatus === 'critical') {
+      console.warn(`🚨 API limits critical, cannot sync ${key}`);
+      
       return {
         canSync: false,
         reason: 'api_limit_critical',
@@ -52,6 +73,7 @@ class SyncManager {
       };
     }
 
+    console.log(`🟢 Sync allowed for ${key} (limit status: ${limitStatus})`);
     return {
       canSync: true,
       reason: 'ready',
@@ -74,18 +96,28 @@ class SyncManager {
           .single();
 
         if (error || !challenge) {
+          console.warn(`⚠️ Challenge ${resourceId} not found or error:`, error?.message);
           return { isStale: true, lastUpdated: null, timeSinceUpdate: Infinity };
         }
 
         if (!challenge.is_active) {
+          console.log(`📴 Challenge ${resourceId} is inactive, not stale`);
           return { isStale: false, lastUpdated: challenge.updated_at, timeSinceUpdate: 0 };
         }
 
         const lastUpdated = new Date(challenge.updated_at + (challenge.updated_at.endsWith('Z') ? '' : 'Z')).getTime();
         const timeSinceUpdate = now - lastUpdated;
+        const isStale = timeSinceUpdate > this.SYNC_THRESHOLD;
+        
+        console.log(`🔍 Challenge ${resourceId} staleness check:`, {
+          lastUpdated: new Date(lastUpdated).toISOString(),
+          timeSinceUpdate: `${Math.ceil(timeSinceUpdate / 60000)}min`,
+          threshold: `${this.SYNC_THRESHOLD / 60000}min`,
+          isStale
+        });
       
         return {
-          isStale: timeSinceUpdate > this.SYNC_THRESHOLD,
+          isStale,
           lastUpdated,
           timeSinceUpdate
         };
@@ -107,10 +139,14 @@ class SyncManager {
     const jobId = `${resourceType}_${resourceId}_${Date.now()}`;
     const startTime = Date.now();
 
+    console.log(`🔄 Queue sync request: ${jobId} (priority: ${priority}, force: ${force})`);
+
     try {
       // Check if sync is allowed
       const syncCheck = await this.canSync(resourceType, resourceId, force);
       if (!syncCheck.canSync && !force) {
+        console.log(`❌ Sync rejected for ${jobId}: ${syncCheck.reason}`);
+        
         syncLogger.log('sync-manager', 'sync-rejected', `Sync rejected for ${resourceType}:${resourceId} - ${syncCheck.reason}`, startTime, {
           resourceType,
           resourceId,
@@ -141,16 +177,19 @@ class SyncManager {
 
       this.activeJobs.set(jobId, job);
 
+      console.log(`✅ Sync queued: ${jobId}`);
+      
       syncLogger.log('sync-manager', 'sync-queued', `Sync queued: ${jobId}`, startTime, {
         jobId,
         resourceType,
         resourceId,
-        estimatedDuration: 30000,
+        estimatedDuration: this.ESTIMATED_SYNC_DURATION,
         parentLogId: logId
       });
 
       // Start processing immediately (non-blocking)
       this.processJob(job).catch(error => {
+        console.error(`❌ Job ${jobId} failed:`, error);
         syncLogger.syncError('sync-manager', resourceId, error, startTime, {
           jobId,
           resourceType,
@@ -163,10 +202,11 @@ class SyncManager {
         success: true,
         queued: true,
         jobId,
-        estimatedDuration: 30000
+        estimatedDuration: this.ESTIMATED_SYNC_DURATION
       };
 
     } catch (error) {
+      console.error(`❌ Queue sync error for ${jobId}:`, error);
       syncLogger.syncError('sync-manager', resourceId, error, startTime, {
         resourceType,
         options,
@@ -179,6 +219,8 @@ class SyncManager {
   async processJob(job) {
     const { jobId, resourceType, resourceId, logId } = job;
     const startTime = Date.now();
+    
+    console.log(`🚀 Processing job: ${jobId}`);
     
     syncLogger.log('sync-manager', 'job-processing', `Processing job ${jobId}`, null, {
       jobId,
@@ -210,7 +252,10 @@ class SyncManager {
 
       // Mark global cooldown
       const key = `${resourceType}:${resourceId}`;
-      this.globalCooldowns.set(key, Date.now());
+      const cooldownTime = Date.now();
+      this.globalCooldowns.set(key, cooldownTime);
+      
+      console.log(`✅ Job ${jobId} completed, cooldown set until ${new Date(cooldownTime + this.GLOBAL_COOLDOWN).toLocaleTimeString()}`);
 
       // Clean up old cooldowns (keep last 100)
       if (this.globalCooldowns.size > 100) {
@@ -231,6 +276,7 @@ class SyncManager {
       return result;
 
     } catch (error) {
+      console.error(`❌ Job ${jobId} processing error:`, error);
       syncLogger.syncError('sync-manager', resourceId, error, startTime, {
         jobId,
         resourceType,
@@ -240,6 +286,7 @@ class SyncManager {
     } finally {
       // Always clean up job
       this.activeJobs.delete(jobId);
+      console.log(`🧹 Job ${jobId} cleaned up`);
     }
   }
 
@@ -253,11 +300,14 @@ class SyncManager {
     // Check if there's an active job
     for (const [jobId, job] of this.activeJobs.entries()) {
       if (job.resourceType === resourceType && job.resourceId === resourceId) {
+        const elapsed = now - job.startedAt;
+        const estimated = Math.max(0, this.ESTIMATED_SYNC_DURATION - elapsed);
+        
         return {
           inProgress: true,
           jobId,
           startedAt: job.startedAt,
-          estimatedTimeRemaining: Math.max(0, 30000 - (now - job.startedAt)), // Estimate 30s max
+          estimatedTimeRemaining: estimated,
           stage: job.stage || 'processing'
         };
       }
@@ -289,6 +339,8 @@ class SyncManager {
    * Sync a specific challenge
    */
   async syncChallenge(roomId, job) {
+    console.log(`📡 Syncing challenge ${roomId}...`);
+    
     // Call the existing update-challenge logic
     const { default: updateChallengeHandler } = await import('../pages/api/update-challenge');
     
@@ -331,6 +383,8 @@ class SyncManager {
       throw new Error(responseData?.error || 'Sync failed');
     }
 
+    console.log(`✅ Challenge ${roomId} sync completed`);
+    
     return {
       success: true,
       data: responseData,
@@ -346,12 +400,18 @@ class SyncManager {
     return {
       activeJobs: this.activeJobs.size,
       globalCooldowns: this.globalCooldowns.size,
+      thresholds: {
+        sync_threshold_minutes: this.SYNC_THRESHOLD / 60000,
+        global_cooldown_minutes: this.GLOBAL_COOLDOWN / 60000,
+        estimated_sync_seconds: this.ESTIMATED_SYNC_DURATION / 1000
+      },
       jobs: Array.from(this.activeJobs.values()).map(job => ({
         jobId: job.jobId,
         resourceType: job.resourceType,
         resourceId: job.resourceId,
         stage: job.stage,
-        duration: now - job.startedAt
+        duration: now - job.startedAt,
+        priority: job.priority
       })),
       recentSyncs: Array.from(this.globalCooldowns.entries()).map(([key, timestamp]) => ({
         resource: key,
@@ -366,8 +426,8 @@ class SyncManager {
    */
   cleanup() {
     const now = Date.now();
-    const OLD_JOB_THRESHOLD = 5 * 60 * 1000; // 5 minutes
-    const OLD_COOLDOWN_THRESHOLD = 60 * 60 * 1000; // 1 hour
+    const OLD_JOB_THRESHOLD = this.LOCK_TIMEOUT; // Use lock timeout for job cleanup
+    const OLD_COOLDOWN_THRESHOLD = syncConfig.cache.CLEANUP_THRESHOLD;
 
     // Clean up old jobs (shouldn't normally happen, but safety net)
     let removedJobs = 0;
@@ -375,6 +435,7 @@ class SyncManager {
       if (now - job.startedAt > OLD_JOB_THRESHOLD) {
         this.activeJobs.delete(jobId);
         removedJobs++;
+        console.warn(`🧹 Removed stale job: ${jobId}`);
       }
     }
 
@@ -396,11 +457,11 @@ class SyncManager {
 // Create singleton instance
 const syncManager = new SyncManager();
 
-// Periodic cleanup
+// Periodic cleanup using centralized config
 if (typeof window === 'undefined') {
   setInterval(() => {
     syncManager.cleanup();
-  }, 10 * 60 * 1000); // Every 10 minutes
+  }, syncConfig.thresholds.CACHE_CLEANUP_INTERVAL);
 }
 
 export default syncManager;

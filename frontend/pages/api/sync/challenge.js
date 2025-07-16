@@ -1,4 +1,3 @@
-// Background sync endpoint
 import { handleAPIResponse, handleAPIError, validateRequest } from '../../../lib/api-utils';
 import syncManager from '../../../lib/sync-manager';
 
@@ -26,15 +25,19 @@ async function handler(req, res) {
     const canSyncResult = await syncManager.canSync('challenge', roomId.toString(), force);
     
     if (!canSyncResult.canSync && !force) {
+      console.log(`❌ Sync blocked for challenge ${roomId}: ${canSyncResult.reason}`);
+      
       return res.status(200).json({
-        success: true,
-        queued: false,
+        success: false,
+        sync_queued: false,
         reason: canSyncResult.reason,
         message: getSyncMessage(canSyncResult.reason),
-        details: {
-          canSyncIn: canSyncResult.nextSyncIn,
-          lastSynced: canSyncResult.lastSynced,
-          timeSinceUpdate: canSyncResult.timeSinceUpdate
+        sync_metadata: {
+          can_sync: false,
+          sync_reason: canSyncResult.reason,
+          next_sync_available_in: canSyncResult.nextSyncIn || 0,
+          last_synced: canSyncResult.lastSynced,
+          time_since_update: canSyncResult.timeSinceUpdate
         },
         timestamp: new Date().toISOString()
       });
@@ -47,23 +50,37 @@ async function handler(req, res) {
     });
 
     if (!queueResult.success) {
+      console.log(`❌ Queue failed for challenge ${roomId}: ${queueResult.reason}`);
+      
       return res.status(200).json({
-        success: true,
-        queued: false,
+        success: false,
+        sync_queued: false,
         reason: queueResult.reason,
         message: getSyncMessage(queueResult.reason),
-        details: queueResult.details,
+        sync_metadata: {
+          can_sync: false,
+          sync_reason: queueResult.reason,
+          job_id: null,
+          sync_in_progress: false
+        },
         timestamp: new Date().toISOString()
       });
     }
 
-    // Return immediate response
+    console.log(`✅ Sync queued successfully for challenge ${roomId}: ${queueResult.jobId}`);
+    
     return handleAPIResponse(res, {
-      queued: true,
+      sync_queued: true,
       jobId: queueResult.jobId,
       estimatedDuration: queueResult.estimatedDuration,
       message: 'Background sync started - data will update automatically',
-      sync_status: syncManager.getSyncStatus('challenge', roomId.toString())
+      sync_metadata: {
+        job_id: queueResult.jobId,
+        sync_in_progress: true,
+        estimated_duration: queueResult.estimatedDuration,
+        can_sync: true,
+        sync_reason: 'queued'
+      }
     });
 
   } catch (error) {
@@ -75,7 +92,7 @@ async function handler(req, res) {
 function getSyncMessage(reason) {
   switch (reason) {
     case 'global_cooldown':
-      return 'Challenge was recently synced by another user';
+      return 'Challenge was recently synced - please wait';
     case 'not_stale':
       return 'Challenge data is already up to date';
     case 'api_limit_critical':
