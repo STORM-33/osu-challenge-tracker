@@ -2,48 +2,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import DonationForm from '../components/DonationForm';
-import { Heart, Sparkles, Shield, Zap, Star, Coffee, Pizza, Rocket } from 'lucide-react';
+import { Heart, Sparkles, Shield, Zap, Trophy, Users, TrendingUp, Info } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function DonatePage() {
   const { user, loading, isAdmin } = useAuth();
-  const [selectedTier, setSelectedTier] = useState(null);
-
-  const donationTiers = [
-    {
-      id: 'coffee',
-      name: 'Coffee',
-      amount: 5,
-      icon: Coffee,
-      description: 'Buy me a coffee to keep me coding!',
-      color: 'from-amber-400 to-orange-500'
-    },
-    {
-      id: 'pizza',
-      name: 'Pizza',
-      amount: 20,
-      icon: Pizza,
-      description: 'Fuel a late night coding session',
-      color: 'from-red-400 to-pink-500'
-    },
-    {
-      id: 'supporter',
-      name: 'Supporter',
-      amount: 50,
-      icon: Star,
-      description: 'Become a champion supporter',
-      color: 'from-purple-400 to-indigo-500'
-    },
-    {
-      id: 'hero',
-      name: 'Hero',
-      amount: 100,
-      icon: Rocket,
-      description: 'Help us reach new heights',
-      color: 'from-blue-400 to-cyan-500'
-    }
-  ];
+  const router = useRouter();
 
   const handleDonationComplete = (paymentIntent) => {
     // Redirect to thank you page with payment details
@@ -51,172 +16,181 @@ export default function DonatePage() {
   };
 
   const handleDonationError = (error) => {
-    toast.error(error.message || 'Something went wrong. Please try again.');
+    toast.error(error.message || 'Something went wrong. Please try again.', {
+      style: {
+        background: 'rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(10px)',
+        color: '#fff',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+      },
+    });
   };
 
   return (
     <Layout>
       <Toaster position="top-center" />
       
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        {/* Header Section */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <Heart className="w-10 h-10 text-primary-500 animate-pulse" />
-            <h1 className="text-4xl font-bold text-neutral-800">
-              Support osu!Challengers
-            </h1>
-            <Sparkles className="w-6 h-6 text-yellow-500" />
-          </div>
-          
-          <p className="text-lg text-neutral-600 max-w-2xl mx-auto mb-4">
-            Help us keep the challenges running and improve the platform for everyone!
-          </p>
-          
-          <div className="flex items-center justify-center gap-6 text-sm text-neutral-500">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-green-500" />
-              <span>Secure payments via Stripe</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary-500" />
-              <span>Instant processing</span>
+      <div className="min-h-screen py-4 sm:py-6 lg:py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+          {/* Header Section */}
+          <div className="mb-8 sm:mb-12">
+            <div className="text-center">
+              {/* Icon and Title */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-4">
+                <div className="relative">
+                  <Heart className="w-8 h-8 sm:w-10 sm:h-10 text-white icon-shadow-adaptive-lg" />
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 absolute -top-1 -right-1 icon-shadow-adaptive-sm" />
+                </div>
+                
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white text-shadow-adaptive-lg">
+                  Support osu!Challengers
+                </h1>
+              </div>
+              
+              {/* Description */}
+              <p className="text-white/85 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto text-shadow-adaptive px-4 sm:px-0">
+                Your support helps us maintain and improve the challenge tracking platform for thousands of players worldwide
+              </p>
             </div>
           </div>
-        </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Donation Tiers */}
-          <div>
-            <h2 className="text-2xl font-bold text-neutral-800 mb-6">Choose an Amount</h2>
-            
-            <div className="grid gap-4 mb-6">
-              {donationTiers.map((tier) => {
-                const Icon = tier.icon;
-                return (
-                  <button
-                    key={tier.id}
-                    onClick={() => setSelectedTier(tier)}
-                    className={`
-                      relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300
-                      ${selectedTier?.id === tier.id 
-                        ? 'glass-card-enhanced scale-105 ring-2 ring-primary-500' 
-                        : 'glass-card hover:glass-card-enhanced hover:scale-105'
-                      }
-                    `}
-                  >
-                    {/* Background gradient */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${tier.color} opacity-10`} />
-                    
-                    <div className="relative flex items-center gap-4">
-                      <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${tier.color} 
-                        flex items-center justify-center text-white shadow-lg`}>
-                        <Icon className="w-7 h-7" />
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 lg:items-stretch">
+            {/* Left Column - Impact */}
+            <div className="flex flex-col space-y-6 sm:space-y-8">
+              {/* What Your Support Enables */}
+              <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8">
+                <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                  <div className="p-2 sm:p-3 icon-gradient-purple rounded-lg sm:rounded-xl icon-container-purple">
+                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white icon-shadow-adaptive" />
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white text-shadow-adaptive">
+                    Your Impact
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Active Challenges */}
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-1.5 icon-gradient-blue rounded icon-container-blue">
+                        <Zap className="w-3 h-3 text-white icon-shadow-adaptive-sm" />
                       </div>
-                      
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-neutral-800">{tier.name}</h3>
-                        <p className="text-sm text-neutral-600">{tier.description}</p>
-                      </div>
-                      
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-neutral-800">${tier.amount}</div>
-                        <div className="text-xs text-neutral-500">USD</div>
-                      </div>
+                      <span className="font-semibold text-white text-shadow-adaptive-sm text-sm">24/7 Uptime</span>
                     </div>
-                    
-                    {selectedTier?.id === tier.id && (
-                      <div className="absolute top-2 right-2">
-                        <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
+                    <p className="text-xs text-white/80 text-shadow-adaptive-sm">
+                      Keep challenges running smoothly for all players
+                    </p>
+                  </div>
+
+                  {/* Score Tracking */}
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-1.5 icon-gradient-green rounded icon-container-green">
+                        <TrendingUp className="w-3 h-3 text-white icon-shadow-adaptive-sm" />
                       </div>
-                    )}
-                  </button>
-                );
-              })}
+                      <span className="font-semibold text-white text-shadow-adaptive-sm text-sm">Live Updates</span>
+                    </div>
+                    <p className="text-xs text-white/80 text-shadow-adaptive-sm">
+                      Real-time score tracking and leaderboards
+                    </p>
+                  </div>
+
+                  {/* New Features */}
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-1.5 icon-gradient-orange rounded icon-container-orange">
+                        <Sparkles className="w-3 h-3 text-white icon-shadow-adaptive-sm" />
+                      </div>
+                      <span className="font-semibold text-white text-shadow-adaptive-sm text-sm">New Features</span>
+                    </div>
+                    <p className="text-xs text-white/80 text-shadow-adaptive-sm">
+                      Develop exciting updates and improvements
+                    </p>
+                  </div>
+
+                  {/* Community */}
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-1.5 icon-gradient-red rounded icon-container-red">
+                        <Users className="w-3 h-3 text-white icon-shadow-adaptive-sm" />
+                      </div>
+                      <span className="font-semibold text-white text-shadow-adaptive-sm text-sm">Free Access</span>
+                    </div>
+                    <p className="text-xs text-white/80 text-shadow-adaptive-sm">
+                      Keep the platform free for everyone
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* FAQ Section - Moved here and made smaller */}
+              <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex-1">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-1.5 icon-gradient-orange rounded icon-container-orange">
+                    <Info className="w-4 h-4 text-white icon-shadow-adaptive-sm" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-semibold text-white text-shadow-adaptive">
+                    Frequently Asked Questions
+                  </h3>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="glass-1 rounded-lg p-3">
+                    <h4 className="font-medium text-white mb-1 text-sm text-shadow-adaptive-sm">
+                      Question placeholder 1
+                    </h4>
+                    <p className="text-xs text-white/70 text-shadow-adaptive-sm">
+                      Content to be added later
+                    </p>
+                  </div>
+                  
+                  <div className="glass-1 rounded-lg p-3">
+                    <h4 className="font-medium text-white mb-1 text-sm text-shadow-adaptive-sm">
+                      Question placeholder 2
+                    </h4>
+                    <p className="text-xs text-white/70 text-shadow-adaptive-sm">
+                      Content to be added later
+                    </p>
+                  </div>
+
+                  <div className="glass-1 rounded-lg p-3">
+                    <h4 className="font-medium text-white mb-1 text-sm text-shadow-adaptive-sm">
+                      Question placeholder 3
+                    </h4>
+                    <p className="text-xs text-white/70 text-shadow-adaptive-sm">
+                      Content to be added later
+                    </p>
+                  </div>
+
+                  <div className="glass-1 rounded-lg p-3">
+                    <h4 className="font-medium text-white mb-1 text-sm text-shadow-adaptive-sm">
+                      Question placeholder 4
+                    </h4>
+                    <p className="text-xs text-white/70 text-shadow-adaptive-sm">
+                      Content to be added later
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* What your donation supports */}
-            <div className="glass-card rounded-2xl p-6">
-              <h3 className="font-bold text-neutral-800 mb-4">Your donation helps us:</h3>
-              <ul className="space-y-3 text-sm text-neutral-600">
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
-                  </div>
-                  <span>Keep the servers running 24/7 for uninterrupted challenge tracking</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                  </div>
-                  <span>Develop new features and improve the platform</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full" />
-                  </div>
-                  <span>Create more exciting challenges and events</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <div className="w-2 h-2 bg-primary-500 rounded-full" />
-                  </div>
-                  <span>Maintain our commitment to keeping the platform free for everyone</span>
-                </li>
-              </ul>
-            </div>
-          </div>
+            {/* Right Column - Payment Form */}
+            <div className="flex-1 space-y-6 sm:space-y-8">
+              <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8">
+                <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                  <Shield className="w-5 h-5 text-green-400 icon-shadow-adaptive-sm" />
+                  <h3 className="text-lg sm:text-xl font-bold text-white text-shadow-adaptive">
+                    Secure Donation
+                  </h3>
+                </div>
 
-          {/* Payment Form */}
-          <div>
-            <h2 className="text-2xl font-bold text-neutral-800 mb-6">Payment Details</h2>
-            
-            {(
-              <DonationForm
-                user={user}
-                selectedAmount={selectedTier?.amount}
-                onSuccess={handleDonationComplete}
-                onError={handleDonationError}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* FAQ Section */}
-        <div className="mt-16 glass-card rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-neutral-800 mb-6">Frequently Asked Questions</h2>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold text-neutral-800 mb-2">Is my donation secure?</h3>
-              <p className="text-sm text-neutral-600">
-                Yes! We use Stripe for payment processing, which is PCI compliant and uses industry-standard encryption.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-neutral-800 mb-2">Can I donate anonymously?</h3>
-              <p className="text-sm text-neutral-600">
-                Absolutely! You can choose to make your donation anonymous during the checkout process.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-neutral-800 mb-2">Are donations refundable?</h3>
-              <p className="text-sm text-neutral-600">
-                Please contact us at support@osuchallengers.com within 30 days if you need assistance with your donation.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-neutral-800 mb-2">Do I need an account to donate?</h3>
-              <p className="text-sm text-neutral-600">
-                No, you can donate as a guest. However, having an account lets you view your donation history.
-              </p>
+                {/* Let DonationForm handle all the form logic */}
+                <DonationForm
+                  user={user}
+                  onSuccess={handleDonationComplete}
+                  onError={handleDonationError}
+                />
+              </div>
             </div>
           </div>
         </div>
