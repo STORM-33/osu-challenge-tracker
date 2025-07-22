@@ -244,11 +244,6 @@ export default function ChallengeDetail() {
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white text-shadow-adaptive">
                       {challenge.custom_name || challenge.name}
                     </h1>
-                    {challenge.custom_name && (
-                      <span className="px-2 py-1 sm:px-3 sm:py-1 glass-2 text-white/90 font-medium rounded-full text-xs sm:text-sm text-shadow-adaptive-sm">
-                        Custom
-                      </span>
-                    )}
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 text-white/80 mb-3 sm:mb-4 text-xs sm:text-sm">

@@ -8,7 +8,7 @@ import SeasonSelector from '../components/SeasonSelector';
 import { SyncStatusIndicator } from '../components/SyncStatusIndicator'; 
 import { 
   Loader2, Trophy, History, Sparkles, RefreshCw, 
-  Users, MapPin, Clock, Info, AlertCircle
+  Users, Music, Clock, Info, AlertCircle
 } from 'lucide-react';
 import { syncConfig } from '../lib/sync-config';
 
@@ -215,12 +215,6 @@ export default function Home() {
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white text-shadow-adaptive-lg">
                       Active Challenges
                     </h1>
-                    
-                    {activeChallenges.length > 0 && (
-                      <span className="px-3 py-1 sm:px-4 sm:py-2 glass-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 text-xs sm:text-sm font-semibold rounded-full border border-green-400/30 shadow-sm">
-                        {activeChallenges.length} Live
-                      </span>
-                    )}
                   </div>
                   
                   {/* Description - Mobile optimized */}
@@ -282,27 +276,25 @@ export default function Home() {
                 </div>
               ) : (
                 <div className={`grid gap-4 sm:gap-6 lg:gap-8 transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
-                  {activeChallenges.map(challenge => {
-                    const isUpdating = challenge.sync_metadata?.sync_in_progress;
-                    const isStale = challenge.sync_metadata?.is_stale;
-                    
-                    return (
-                      <Link key={challenge.id} href={`/challenges/${challenge.room_id}`}>
-                        <div className={`transform transition-all duration-300 ${
-                          isUpdating ? 'opacity-75' : ''
-                        } ${false ? 'ring-2 ring-yellow-200' : ''}`}>
-                          <ChallengeCard 
-                            challenge={challenge} 
-                            size="large"
-                            challengeType={getChallengeType(challenge)}
-                            showBackground={true}
-                            isUpdating={isUpdating}
-                          />
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
+                {activeChallenges.map(challenge => {
+                  const isUpdating = challenge.sync_metadata?.sync_in_progress;
+                  const isStale = challenge.sync_metadata?.is_stale;
+                  
+                  return (
+                    <Link key={challenge.id} href={`/challenges/${challenge.room_id}`}>
+                      <div className="transform transition-all duration-300">
+                        <ChallengeCard 
+                          challenge={challenge} 
+                          size="large"
+                          challengeType={getChallengeType(challenge)}
+                          showBackground={true}
+                          isUpdating={isUpdating}
+                        />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
               )}
             </div>
           </div>
@@ -336,11 +328,11 @@ export default function Home() {
                     </div>
                     <div className="flex items-center gap-3">
                       {selectedSeason.is_current && (
-                        <span className="px-3 py-1 sm:px-4 sm:py-2 glass-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 text-xs sm:text-sm font-semibold rounded-full border border-green-400/30 shadow-sm">
+                        <span className="px-3 py-1 sm:px-4 sm:py-2 badge-icon-green text-xs sm:text-sm font-semibold rounded-full">
                           Current Season
                         </span>
                       )}
-                      <span className="px-3 py-1 sm:px-4 sm:py-2 glass-2 text-white/80 text-xs sm:text-sm font-medium rounded-full shadow-sm">
+                      <span className="px-3 py-1 sm:px-4 sm:py-2 badge-icon-orange text-xs sm:text-sm font-medium rounded-full">
                         {filteredChallenges.length} challenges
                       </span>
                     </div>
@@ -359,80 +351,104 @@ export default function Home() {
 
               {filteredChallenges.length > 0 ? (
                 <div className="glass-1 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="glass-2 border-b border-white/10">
-                        <tr>
-                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
-                            Challenge
-                          </th>
-                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
-                            Type
-                          </th>
-                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
-                            Maps
-                          </th>
-                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
-                            Participants
-                          </th>
-                          <th className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
-                            Ended
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/10">
-                        {filteredChallenges.map((challenge) => {
-                          const challengeType = getChallengeType(challenge);
-                          const displayName = challenge.custom_name || challenge.name;
-                          
-                          return (
-                            <tr key={challenge.id} className="hover:bg-white/5 transition-all group">
-                              <td className="px-4 py-3 sm:px-6 sm:py-4">
-                                <Link href={`/challenges/${challenge.room_id}`}>
-                                  <div className="cursor-pointer">
-                                    <div className="font-semibold text-white group-hover:text-purple-300 transition-colors text-shadow-adaptive text-sm sm:text-base">
-                                      {displayName || `Challenge #${challenge.id}`}
-                                    </div>
-                                    {challenge.description && (
-                                      <div className="text-xs sm:text-sm text-white/60 truncate max-w-xs mt-1 text-shadow-adaptive-sm">
-                                        {challenge.description}
-                                      </div>
-                                    )}
+                  {/* Header section with responsive grid */}
+                  <div className="p-2">
+                    <div className="streak-card-current rounded-xl sm:rounded-2xl overflow-hidden">
+                      <div className="grid grid-cols-[3fr_1fr] sm:grid-cols-[3fr_1fr_1fr] lg:grid-cols-[4fr_1fr_1fr_1fr_1fr] gap-0 items-center">
+                        <div className="px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
+                          Challenge
+                        </div>
+                        <div className="px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-center text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
+                          Type
+                        </div>
+                        <div className="hidden sm:block px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 ml-3 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
+                          Maps
+                        </div>
+                        <div className="hidden lg:block px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
+                          Participants
+                        </div>
+                        <div className="hidden lg:block px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-xs font-bold text-white/90 uppercase tracking-wider text-shadow-adaptive-sm">
+                          Ended
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Separator line */}
+                  <div className="border-t border-white/10"></div>
+                  
+                  {/* Table body using matching responsive grid */}
+                  <div className="divide-y divide-white/10">
+                    {filteredChallenges.map((challenge) => {
+                      const challengeType = getChallengeType(challenge);
+                      const displayName = challenge.custom_name || challenge.name;
+                      
+                      return (
+                        <div key={challenge.id} className="grid grid-cols-[3fr_1fr] sm:grid-cols-[3fr_1fr_1fr] lg:grid-cols-[4fr_1fr_1fr_1fr_1fr] gap-0 hover:bg-white/5 transition-all group items-center">
+                          <div className="px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left">
+                            <Link href={`/challenges/${challenge.room_id}`}>
+                              <div className="cursor-pointer">
+                                <div className="font-semibold text-white group-hover:text-purple-300 transition-colors text-shadow-adaptive text-sm sm:text-base">
+                                  {displayName || `Challenge #${challenge.id}`}
+                                </div>
+                                {challenge.description && (
+                                  <div className="text-xs sm:text-sm text-white/60 mt-1 text-shadow-adaptive-sm line-clamp-2">
+                                    {challenge.description}
                                   </div>
-                                </Link>
-                              </td>
-                              <td className="px-4 py-3 sm:px-6 sm:py-4">
-                                <span className={`inline-flex items-center px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold ${
-                                  challengeType === 'weekly' 
-                                    ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' 
-                                    : 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
-                                }`}>
-                                  {challengeType}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 sm:px-6 sm:py-4 text-sm text-white/80 text-shadow-adaptive-sm">
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400 icon-shadow-adaptive-sm" />
-                                  <span className="font-medium">{challenge.playlists?.length || 0}</span>
+                                )}
+                                {/* Show additional info on mobile */}
+                                <div className="sm:hidden mt-2 flex flex-wrap gap-2 text-xs">
+                                  <span className="inline-flex items-center gap-1 text-white/60">
+                                    <Music className="w-3 h-3 text-purple-400" />
+                                    {challenge.playlists?.length || 0} maps
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 text-white/60">
+                                    <Users className="w-3 h-3 text-blue-400" />
+                                    {challenge.participant_count || 0}
+                                  </span>
                                 </div>
-                              </td>
-                              <td className="px-4 py-3 sm:px-6 sm:py-4 text-sm text-white/80 text-shadow-adaptive-sm">
-                                <div className="flex items-center gap-2">
-                                  <Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 icon-shadow-adaptive-sm" />
-                                  <span className="font-medium">{challenge.participant_count || 0}</span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 sm:px-6 sm:py-4 text-sm text-white/70 text-shadow-adaptive-sm">
-                                <div className="flex items-center gap-2">
-                                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 icon-shadow-adaptive-sm" />
-                                  {challenge.end_date ? formatDate(challenge.end_date) : 'N/A'}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                              </div>
+                            </Link>
+                          </div>
+                          <div className="px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 flex justify-center items-center">
+                            <div className="flex flex-col items-center gap-1">
+                              <span className={`inline-flex items-center text-s ${
+                                challengeType === 'weekly' 
+                                  ? 'challenge-badge-weekly' 
+                                  : challengeType === 'monthly'
+                                  ? 'challenge-badge-monthly'
+                                  : 'challenge-badge-custom'
+                              }`}>
+                                {challengeType}
+                              </span>
+                              {/* Show end date on mobile */}
+                              <div className="sm:hidden flex items-center gap-1 text-xs text-white/60">
+                                <Clock className="w-3 h-3 text-gray-400" />
+                                {challenge.end_date ? formatDate(challenge.end_date) : 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="hidden sm:block px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 ml-3 text-xl text-white/90 text-shadow-adaptive-sm">
+                            <div className="flex items-center gap-2">
+                              <Music className="w-4 h-4 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm flex-shrink-0" />
+                              <span className="font-medium">{challenge.playlists?.length || 0}</span>
+                            </div>
+                          </div>
+                          <div className="hidden lg:block px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-xl text-white/90 text-shadow-adaptive-sm">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm flex-shrink-0" />
+                              <span className="font-medium">{challenge.participant_count || 0}</span>
+                            </div>
+                          </div>
+                          <div className="hidden lg:block px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-sm text-white/90 text-shadow-adaptive-sm">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-white/90 icon-shadow-adaptive-sm flex-shrink-0" />
+                              <span>{challenge.end_date ? formatDate(challenge.end_date) : 'N/A'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : !loadingHistorical && (

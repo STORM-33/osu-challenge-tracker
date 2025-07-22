@@ -145,6 +145,14 @@
   .icon-gradient-purple {
     background: linear-gradient(to bottom, #b666d2, #9d6bb3);
   }
+  
+  .icon-gradient-red {
+    background: linear-gradient(to bottom, #ef4444, #dc2626);
+  }
+  
+  .icon-gradient-dark-purple {
+    background: linear-gradient(to bottom, #9f5dbf, #6d3f87);
+  }
 
   /* Podium Cards for Top 3 */
   .podium-card {
@@ -211,9 +219,66 @@
   .skeleton-box {
     @apply skeleton rounded-xl;
   }
+
+  /* Challenge Type Badge Styles */
+  .challenge-badge-weekly {
+    @apply px-3 py-1.5 rounded-full font-semibold text-xs sm:text-sm;
+    background: linear-gradient(to bottom, #16adda, #2f89ef);
+    color: white;
+    border: 3px solid #4dd4f0;
+    box-shadow: 
+      0 0 10px rgba(77, 212, 240, 0.5),
+      0 0 20px rgba(77, 212, 240, 0.3),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .challenge-badge-monthly {
+    @apply px-3 py-1.5 rounded-full font-semibold text-xs sm:text-sm;
+    background: linear-gradient(to bottom, #b666d2, #9d6bb3);
+    color: white;
+    border: 3px solid #ea82d5;
+    box-shadow: 
+      0 0 10px rgba(234, 130, 213, 0.5),
+      0 0 20px rgba(234, 130, 213, 0.3),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .challenge-badge-custom {
+    @apply px-3 py-1.5 rounded-full font-semibold text-xs sm:text-sm;
+    background: linear-gradient(to bottom, #f6b026, #d9703f);
+    color: white;
+    border: 3px solid #ffd75a;
+    box-shadow: 
+      0 0 10px rgba(255, 215, 90, 0.5),
+      0 0 20px rgba(255, 215, 90, 0.3),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
 }
 
 @layer utilities {
+
+  /* Icon-style badge classes that match the gradient and border pattern */
+  .badge-icon-green {
+    background: linear-gradient(to bottom, #22c065, #16a66d); /* matches icon-gradient-green */
+    border: 3px solid rgba(134, 239, 172, 1); /* matches green-outline and icon-container-green */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* matches icon-container-green */
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    font-weight: 600;
+  }
+  
+  .badge-icon-orange {
+    background: linear-gradient(to bottom, #f6b026, #d9703f); /* matches icon-gradient-orange */
+    border: 3px solid #ffd75a; /* matches icon-container-orange */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* matches icon-container-orange */
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    font-weight: 600;
+  }
+
   /* Adaptive Text Shadows for Readability on Any Background */
   .text-shadow-adaptive-sm {
     text-shadow: 
@@ -360,6 +425,16 @@
     border: 3px solid #ea82d5;  
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
+  
+  .icon-container-red {
+    border: 3px solid #f87171;  
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .icon-container-dark-purple {
+    border: 3px solid #a77bc3;  
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
 
   /* Podium card borders */
   .podium-border-blue {
@@ -420,6 +495,67 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
+  /* Difficulty star rating badges */
+  .difficulty-star-easy {
+    background: linear-gradient(to bottom, #3b82f6, #2563eb);
+    border: 3px solid #60a5fa;
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .difficulty-star-easy-normal {
+    background: linear-gradient(to bottom, #06b6d4, #0891b2);
+    border: 3px solid #67e8f9;
+    box-shadow: 0 0 8px rgba(103, 232, 249, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .difficulty-star-normal {
+    background: linear-gradient(to bottom, #10b981, #059669);
+    border: 3px solid #6ee7b7;
+    box-shadow: 0 0 8px rgba(110, 231, 183, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .difficulty-star-normal-hard {
+    background: linear-gradient(to bottom, #84cc16, #65a30d);
+    border: 3px solid #bef264;
+    box-shadow: 0 0 8px rgba(190, 242, 100, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .difficulty-star-hard {
+    background: linear-gradient(to bottom, #eab308, #ca8a04);
+    border: 3px solid #fde047;
+    box-shadow: 0 0 8px rgba(253, 224, 71, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .difficulty-star-hard-insane {
+    background: linear-gradient(to bottom, #f97316, #ea580c);
+    border: 3px solid #fb923c;
+    box-shadow: 0 0 8px rgba(251, 146, 60, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .difficulty-star-insane {
+    background: linear-gradient(to bottom, #ef4444, #dc2626);
+    border: 3px solid #f87171;
+    box-shadow: 0 0 8px rgba(248, 113, 113, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .difficulty-star-insane-expert {
+    background: linear-gradient(to bottom, #ec4899, #be185d);
+    border: 3px solid #f9a8d4;
+    box-shadow: 0 0 8px rgba(249, 168, 212, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .difficulty-star-expert {
+    background: linear-gradient(to bottom, #a855f7, #9333ea);
+    border: 3px solid #c084fc;
+    box-shadow: 0 0 8px rgba(192, 132, 252, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .difficulty-star-expert-plus {
+    background: linear-gradient(to bottom, #6366f1, #4f46e5);
+    border: 3px solid #a5b4fc;
+    box-shadow: 0 0 8px rgba(165, 180, 252, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+
   /* Avatar border with glow */
   .avatar-border {
     border: 3px solid rgba(255, 255, 255, 0.7);
@@ -442,6 +578,134 @@
   .season-selector-btn:hover {
     border: 3px solid rgba(255, 255, 255, 0.6);
     box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+  }
+
+  /* View Mode Slider Toggle */
+  .view-mode-slider {
+    position: relative;
+  }
+
+  .slider-track {
+    @apply glass-2 rounded-full p-1 flex relative;
+    min-width: 220px;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .slider-thumb {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    right: 50%;
+    background: linear-gradient(to bottom, #e19d2c, #d1653a); /* Match icon gradient */
+    border: 3px solid rgba(252, 211, 77, 1); /* Match icon-container-orange border */
+    border-radius: 9999px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+      0 0 8px rgba(252, 211, 77, 0.5), /* Match icon-container-orange glow */
+      0 4px 8px rgba(0, 0, 0, 0.2),
+      0 2px 4px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .slider-thumb-right {
+    left: 50%;
+    right: 4px;
+  }
+
+  .slider-option {
+    @apply relative z-10 px-4 py-2 rounded-full font-medium transition-all duration-300;
+    flex: 1;
+    text-align: center;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .slider-option:hover {
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.5),
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .slider-option-active {
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.6),
+      0 2px 4px rgba(0, 0, 0, 0.5),
+      0 4px 8px rgba(0, 0, 0, 0.4),
+      0 0 8px rgba(255, 255, 255, 0.3);
+  }
+
+  .staff-badge {
+    padding: 0.5rem 1rem !important;
+    border-radius: 9999px !important;
+    color: white !important;
+    font-weight: 800 !important;
+    font-size: 0.875rem !important;
+    font-family: 'Inter', sans-serif !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(8px) !important;
+    margin: 0.5rem 0 !important;
+    display: inline-block !important;
+    /* Override any inherited backgrounds */
+    background: none !important;
+    background-image: none !important;
+    background-color: transparent !important;
+  }
+
+  /* Use higher specificity selectors */
+  div.staff-badge.staff-badge-designer,
+  .staff-badge-designer.staff-badge {
+    background: linear-gradient(to bottom, #15abdc, #2d86dd) !important;
+    background-color: #15abdc !important;
+    background-image: linear-gradient(to bottom, #15abdc, #2d86dd) !important;
+    border: 3px solid #7ad6ff !important;
+    box-shadow: 0 0 15px rgba(122, 214, 255, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  div.staff-badge.staff-badge-developer,
+  .staff-badge-developer.staff-badge {
+    background: linear-gradient(to bottom, #1ebc65, #15a86c) !important;
+    background-color: #1ebc65 !important;
+    background-image: linear-gradient(to bottom, #1ebc65, #15a86c) !important;
+    border: 3px solid #5efa97 !important;
+    box-shadow: 0 0 15px rgba(94, 250, 151, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  div.staff-badge.staff-badge-lead,
+  .staff-badge-lead.staff-badge {
+    background: linear-gradient(to bottom, #eeb345, #c35e2e) !important;
+    background-color: #eeb345 !important;
+    background-image: linear-gradient(to bottom, #eeb345, #c35e2e) !important;
+    border: 3px solid #ffd782 !important;
+    box-shadow: 0 0 15px rgba(255, 215, 130, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .profile-picture {
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  }
+
+  .streak-card-current {
+    background: linear-gradient(to bottom, #e87114, #823314);
+    border: 3px solid #ffa650;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .streak-card-best {
+    background: linear-gradient(to bottom, #9cbada, #5d6979);
+    border: 3px solid #dcf1ff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   /* Animations */
@@ -607,133 +871,5 @@
       drop-shadow(0 0 4px rgba(147, 197, 253, 0.4))
       drop-shadow(0 0 8px rgba(147, 197, 253, 0.2))
       drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  }
-
-  /* View Mode Slider Toggle */
-  .view-mode-slider {
-    position: relative;
-  }
-
-  .slider-track {
-    @apply glass-2 rounded-full p-1 flex relative;
-    min-width: 220px;
-    box-shadow: 
-      0 4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 2px 4px -1px rgba(0, 0, 0, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-  }
-
-  .slider-thumb {
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 4px;
-    right: 50%;
-    background: linear-gradient(to bottom, #e19d2c, #d1653a); /* Match icon gradient */
-    border: 3px solid rgba(252, 211, 77, 1); /* Match icon-container-orange border */
-    border-radius: 9999px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 
-      0 0 8px rgba(252, 211, 77, 0.5), /* Match icon-container-orange glow */
-      0 4px 8px rgba(0, 0, 0, 0.2),
-      0 2px 4px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-
-  .slider-thumb-right {
-    left: 50%;
-    right: 4px;
-  }
-
-  .slider-option {
-    @apply relative z-10 px-4 py-2 rounded-full font-medium transition-all duration-300;
-    flex: 1;
-    text-align: center;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: rgba(255, 255, 255, 1);
-    text-shadow: 
-      0 1px 2px rgba(0, 0, 0, 0.4),
-      0 2px 4px rgba(0, 0, 0, 0.3),
-      0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  .slider-option:hover {
-    color: rgba(255, 255, 255, 1);
-    text-shadow: 
-      0 1px 2px rgba(0, 0, 0, 0.5),
-      0 2px 4px rgba(0, 0, 0, 0.4),
-      0 4px 8px rgba(0, 0, 0, 0.3);
-  }
-
-  .slider-option-active {
-    color: rgba(255, 255, 255, 1);
-    text-shadow: 
-      0 1px 2px rgba(0, 0, 0, 0.6),
-      0 2px 4px rgba(0, 0, 0, 0.5),
-      0 4px 8px rgba(0, 0, 0, 0.4),
-      0 0 8px rgba(255, 255, 255, 0.3);
-  }
-
-  .staff-badge {
-    padding: 0.5rem 1rem !important;
-    border-radius: 9999px !important;
-    color: white !important;
-    font-weight: 800 !important;
-    font-size: 0.875rem !important;
-    font-family: 'Inter', sans-serif !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-    backdrop-filter: blur(8px) !important;
-    margin: 0.5rem 0 !important;
-    display: inline-block !important;
-    /* Override any inherited backgrounds */
-    background: none !important;
-    background-image: none !important;
-    background-color: transparent !important;
-  }
-
-  /* Use higher specificity selectors */
-  div.staff-badge.staff-badge-designer,
-  .staff-badge-designer.staff-badge {
-    background: linear-gradient(to bottom, #15abdc, #2d86dd) !important;
-    background-color: #15abdc !important;
-    background-image: linear-gradient(to bottom, #15abdc, #2d86dd) !important;
-    border: 3px solid #7ad6ff !important;
-    box-shadow: 0 0 15px rgba(122, 214, 255, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-  }
-
-  div.staff-badge.staff-badge-developer,
-  .staff-badge-developer.staff-badge {
-    background: linear-gradient(to bottom, #1ebc65, #15a86c) !important;
-    background-color: #1ebc65 !important;
-    background-image: linear-gradient(to bottom, #1ebc65, #15a86c) !important;
-    border: 3px solid #5efa97 !important;
-    box-shadow: 0 0 15px rgba(94, 250, 151, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-  }
-
-  div.staff-badge.staff-badge-lead,
-  .staff-badge-lead.staff-badge {
-    background: linear-gradient(to bottom, #eeb345, #c35e2e) !important;
-    background-color: #eeb345 !important;
-    background-image: linear-gradient(to bottom, #eeb345, #c35e2e) !important;
-    border: 3px solid #ffd782 !important;
-    box-shadow: 0 0 15px rgba(255, 215, 130, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-  }
-
-  .profile-picture {
-    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  }
-
-  .streak-card-current {
-    background: linear-gradient(to bottom, #e87114, #823314);
-    border: 3px solid #ffa650;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  .streak-card-best {
-    background: linear-gradient(to bottom, #9cbada, #5d6979);
-    border: 3px solid #dcf1ff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 }

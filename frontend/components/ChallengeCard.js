@@ -1,9 +1,9 @@
-import { Calendar, Users, Music, ChevronRight, Star, Zap } from 'lucide-react';
+import { Calendar, Users, Music, Star } from 'lucide-react';
 
 export default function ChallengeCard({ 
   challenge, 
   size = 'medium', 
-  challengeType = 'monthly', // 'weekly' or 'monthly'
+  challengeType = 'monthly', // 'weekly', 'monthly', or 'custom'
   showSeasonBadge = false 
 }) {
   const formatDate = (dateString) => {
@@ -45,258 +45,213 @@ export default function ChallengeCard({
     }
   };
 
-  const getDifficultyColor = (difficulty) => {
-    // Use osu!'s difficulty ranges but map to Tailwind classes
-    if (difficulty < 1.25) return 'text-blue-700 bg-blue-100 border-blue-200'; // Easy (Blue)
-    if (difficulty < 2.0) return 'text-cyan-700 bg-cyan-100 border-cyan-200'; // Easy-Normal (Cyan)
-    if (difficulty < 2.5) return 'text-green-700 bg-green-100 border-green-200'; // Normal (Green)
-    if (difficulty < 3.3) return 'text-lime-700 bg-lime-100 border-lime-200'; // Normal-Hard (Lime)
-    if (difficulty < 4.2) return 'text-yellow-700 bg-yellow-100 border-yellow-200'; // Hard (Yellow)
-    if (difficulty < 4.9) return 'text-orange-700 bg-orange-100 border-orange-200'; // Hard-Insane (Orange)
-    if (difficulty < 5.8) return 'text-red-700 bg-red-100 border-red-200'; // Insane (Red)
-    if (difficulty < 6.7) return 'text-pink-700 bg-pink-100 border-pink-200'; // Insane-Expert (Pink/Purple)
-    if (difficulty < 7.7) return 'text-purple-700 bg-purple-100 border-purple-200'; // Expert (Purple)
-    return 'text-indigo-700 bg-indigo-100 border-indigo-200'; // Expert+ (Dark Blue)
-  };
+  const getDifficultyClass = (difficulty) => {
+  // Use osu!'s difficulty ranges with glassmorphism styling
+  if (difficulty < 1.25) return 'difficulty-star-easy';
+  if (difficulty < 2.0) return 'difficulty-star-easy-normal';
+  if (difficulty < 2.5) return 'difficulty-star-normal';
+  if (difficulty < 3.3) return 'difficulty-star-normal-hard';
+  if (difficulty < 4.2) return 'difficulty-star-hard';
+  if (difficulty < 4.9) return 'difficulty-star-hard-insane';
+  if (difficulty < 5.8) return 'difficulty-star-insane';
+  if (difficulty < 6.7) return 'difficulty-star-insane-expert';
+  if (difficulty < 7.7) return 'difficulty-star-expert';
+  return 'difficulty-star-expert-plus';
+};
 
   const timeRemaining = getTimeRemaining(challenge.end_date);
   
   // Display name: custom_name takes priority over name
   const displayName = challenge.custom_name || challenge.name;
 
-  // Get background image and map info for weekly challenges
-  const weeklyBackgroundImage = challengeType === 'weekly' && challenge.playlists?.[0]?.beatmap_cover_url;
-  const weeklyMapInfo = challengeType === 'weekly' && challenge.playlists?.[0];
+  // Get background image and map info
+  const backgroundImage = challenge.playlists?.[0]?.beatmap_cover_url;
+  const mapInfo = challenge.playlists?.[0];
+
+  // Get badge class based on challenge type
+  const getBadgeClass = () => {
+    switch(challengeType) {
+      case 'weekly':
+        return 'challenge-badge-weekly';
+      case 'monthly':
+        return 'challenge-badge-monthly';
+      case 'custom':
+        return 'challenge-badge-custom';
+      default:
+        return 'challenge-badge-monthly';
+    }
+  };
 
   // Size configurations
   const sizeConfig = {
     small: {
-      cardClass: 'h-64',
-      titleClass: 'text-base',
-      titleHeight: 'min-h-[48px]',
-      statsGrid: 'grid-cols-2',
-      iconSize: 'w-4 h-4',
-      numberSize: 'text-lg',
-      showHost: false,
-      showDays: false,
-      padding: 'p-4'
+      cardClass: 'h-48',
+      padding: 'p-2 sm:p-3',
+      textSize: 'text-xs',
+      titleSize: 'text-sm',
+      iconSize: 'w-2.5 h-2.5 sm:w-3 sm:h-3',
+      numberSize: 'text-sm sm:text-base',
+      badgeScale: 'scale-90',
+      iconPadding: 'p-1 sm:p-1.5'
     },
     medium: {
-      cardClass: 'h-80',
-      titleClass: 'text-lg',
-      titleHeight: 'min-h-[56px]',
-      statsGrid: 'grid-cols-3',
-      iconSize: 'w-5 h-5',
-      numberSize: 'text-xl',
-      showHost: false,
-      showDays: true,
-      padding: 'p-5'
+      cardClass: 'h-56 sm:h-64',
+      padding: 'p-3 sm:p-4',
+      textSize: 'text-xs sm:text-sm',
+      titleSize: 'text-base sm:text-lg',
+      iconSize: 'w-3 h-3 sm:w-4 sm:h-4',
+      numberSize: 'text-base sm:text-lg md:text-xl',
+      badgeScale: '',
+      iconPadding: 'p-1 sm:p-1.5 md:p-2'
     },
     large: {
-      cardClass: 'h-80 w-full',
-      titleClass: 'text-2xl',
-      titleHeight: 'min-h-[64px]',
-      statsGrid: 'grid-cols-3',
-      iconSize: 'w-6 h-6',
-      numberSize: 'text-2xl',
-      showHost: false,
-      showDays: true,
-      padding: 'p-6'
+      cardClass: 'h-72 sm:h-80',
+      padding: 'p-4 sm:p-5 md:p-6',
+      textSize: 'text-sm sm:text-base',
+      titleSize: 'text-lg sm:text-xl',
+      iconSize: 'w-4 h-4 sm:w-5 sm:h-5',
+      numberSize: 'text-lg sm:text-xl md:text-2xl',
+      badgeScale: 'sm:scale-110',
+      iconPadding: 'p-1.5 sm:p-2 md:p-2.5'
     }
   };
 
   const config = sizeConfig[size];
 
   return (
-    <div 
-      className={`group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl ${config.cardClass}`}
-      style={{
-        // Force hardware acceleration and proper clipping
-        transform: 'translateZ(0)',
-        willChange: 'transform',
-        // CSS mask to ensure perfect rounded corner clipping
-        WebkitMask: 'radial-gradient(circle at center, white 100%, transparent 100%)',
-        mask: 'radial-gradient(circle at center, white 100%, transparent 100%)',
-        WebkitMaskComposite: 'intersect',
-        maskComposite: 'intersect'
-      }}
-    >
+    <div className={`group relative overflow-hidden glass-3 rounded-xl sm:rounded-2xl ${config.cardClass} transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer`}>
       
-      {/* Background Layer */}
-      <div 
-        className="absolute inset-0 rounded-2xl"
-        style={{
-          clipPath: 'inset(0 round 1rem)',
-          contain: 'layout style paint'
-        }}
-      >
-        {/* Use your CSS glass card class instead of multiple layers */}
-        <div className="glass-card absolute inset-0 rounded-2xl" />
-        
-        {/* Weekly challenge background with gradual image reveal */}
-        {size === 'large' && challengeType === 'weekly' && weeklyBackgroundImage && (
-          <>
-            {/* Background image with gradient mask */}
-            <div 
-              className="absolute inset-0 opacity-80 group-hover:opacity-90 transition-opacity duration-300 ease-out rounded-2xl"
-              style={{ 
-                backgroundImage: `url(${weeklyBackgroundImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center center',
-                backgroundRepeat: 'no-repeat',
-                // Smooth gradient mask that gradually reveals image
-                maskImage: 'linear-gradient(90deg, transparent 0%, transparent 25%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,1) 90%)',
-                WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, transparent 25%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,1) 90%)',
-              }}
-            />
-            
-            {/* Additional gradient overlay for better text contrast on the left */}
-            <div 
-              className="absolute inset-0 rounded-2xl pointer-events-none"
-              style={{
-                background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 40%, rgba(255, 255, 255, 0.1) 60%, transparent 80%)',
-              }}
-            />
-          </>
-        )}
-        
-        {/* Decorative elements */}
-        <div className="absolute bottom-4 left-4 w-12 h-12 rounded-full bg-gradient-to-tr from-white/5 to-transparent transition-all duration-300 ease-out group-hover:scale-110 group-hover:from-white/10" />
-      </div>
+      {/* Top 80% - Background Image Section */}
+      <div className="relative h-[80%] overflow-hidden">
+        {backgroundImage ? (
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.8)'
+          }}
+        >
+          {/* Enhanced gradient overlay with side shadows */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          {/* Left shadow */}
+          <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-black/50 to-transparent" />
+          {/* Right shadow */}
+          <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-black/50 to-transparent" />
+          {/* Bottom shadow (enhanced) */}
+          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/80 to-transparent" />
+        </div>
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/30 to-pink-600/30" />
+      )}
 
-      {/* Content */}
-      <div className={`relative z-10 ${config.padding} flex flex-col h-full`}>
-        
-        {/* Header */}
-        <div className="flex justify-between items-start mb-0">
-          <div className="flex-1 pr-3">
-            <div className={`${config.titleHeight} flex items-start mb-0`}>
-              <h3 className={`${config.titleClass} font-bold text-neutral-800 line-clamp-2 group-hover:text-primary-600 transition-colors duration-300 leading-tight`}>
-                {displayName}
-              </h3>
-            </div>
-            
-            {/* Integrated map info for large weekly challenges */}
-            {size === 'large' && challengeType === 'weekly' && weeklyMapInfo && (
-              <div className="space-y-1 -mt-8">
-                <p className="text-base font-semibold text-neutral-700 transition-colors duration-300 group-hover:text-neutral-800">
-                  <Music className="w-4 h-4 inline-block mr-1 text-blue-500" />
-                  {weeklyMapInfo.beatmap_title}
-                </p>
-                <div className="flex items-center gap-3 text-sm text-neutral-600 transition-colors duration-300 group-hover:text-neutral-700">
-                  <span>by {weeklyMapInfo.beatmap_artist}</span>
-                  <span className="text-neutral-400">•</span>
-                  <span>[{weeklyMapInfo.beatmap_version}]</span>
-                  {weeklyMapInfo.beatmap_difficulty && (
-                    <>
-                      <span className="text-neutral-400">•</span>
-                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-all duration-300 ${getDifficultyColor(weeklyMapInfo.beatmap_difficulty)}`}>
-                        <Star className="w-3 h-3 fill-current" />
-                        <span>{weeklyMapInfo.beatmap_difficulty.toFixed(2)}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            {/* Challenge type badge - more transparent */}
-            <span className={`text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm transition-all duration-300 group-hover:shadow-md backdrop-blur-sm ${
-              challengeType === 'weekly' 
-                ? 'text-blue-700 bg-blue-200/80 border border-blue-300/60 group-hover:bg-blue-300/80'
-                : 'text-purple-700 bg-purple-200/80 border border-purple-300/60 group-hover:bg-purple-300/80'
-            }`}>
-              {challengeType === 'weekly' ? 'Weekly' : 'Monthly'}
-            </span>
-            
-            {/* Season badge - more transparent */}
-            {showSeasonBadge && challenge.seasons && size !== 'small' && (
-              <span className="text-xs text-neutral-600 bg-neutral-200/80 px-2 py-1 rounded-full font-medium border border-neutral-300/60 transition-all duration-300 group-hover:bg-neutral-300/80 backdrop-blur-sm">
-                {challenge.seasons.name}
-              </span>
-            )}
-          </div>
+        {/* Challenge Type Badge - Top Right */}
+        <div className={`absolute top-3 right-3 z-20 ${config.badgeScale}`}>
+          <span className={getBadgeClass()}>
+            {challengeType.charAt(0).toUpperCase() + challengeType.slice(1)}
+          </span>
         </div>
 
-        {/* Weekly Map Info Card for medium size - more transparent */}
-        {challengeType === 'weekly' && weeklyMapInfo && size === 'medium' && (
-          <div className="mb-4 flex-shrink-0">
-            <div className="bg-white/40 backdrop-blur-sm rounded-xl p-4 border border-blue-200/40 shadow-sm transition-all duration-300 group-hover:bg-white/50 group-hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-neutral-800 truncate mb-1">
-                    {weeklyMapInfo.beatmap_title}
-                  </p>
-                  <p className="text-xs text-neutral-600 truncate">
-                    by {weeklyMapInfo.beatmap_artist}
-                  </p>
-                  <p className="text-xs text-neutral-500 truncate mt-1">
-                    [{weeklyMapInfo.beatmap_version}]
-                  </p>
-                </div>
-                {weeklyMapInfo.beatmap_difficulty && (
-                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${getDifficultyColor(weeklyMapInfo.beatmap_difficulty)}`}>
-                      <Star className="w-3 h-3 fill-current" />
-                      <span>{weeklyMapInfo.beatmap_difficulty.toFixed(2)}</span>
-                    </div>
-                  </div>
+        {/* Challenge Name on Image */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+          {/* Difficulty Star Rating - Above challenge name */}
+          {mapInfo?.beatmap_difficulty && (
+            <div className="mb-2">
+              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${config.textSize} font-bold text-white text-shadow-adaptive-sm ${getDifficultyClass(mapInfo.beatmap_difficulty)}`}>
+                <Star className="w-3 h-3 fill-current" />
+                <span>{mapInfo.beatmap_difficulty.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+          
+          <h3 className={`${config.titleSize} font-bold text-white mb-1 line-clamp-2 text-shadow-adaptive-lg`}>
+            {displayName}
+          </h3>
+          
+          {/* Map Info */}
+          {mapInfo && (
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-3 sm:gap-5 md:gap-8 text-white/80 flex-wrap">
+                <span className={`${config.textSize} font-semibold text-white text-shadow-adaptive truncate`}>
+                  {mapInfo.beatmap_title}
+                </span>
+                <span className={`${config.textSize} text-shadow-adaptive-sm truncate`}>
+                  by {mapInfo.beatmap_artist}
+                </span>
+                {mapInfo.beatmap_version && (
+                  <span className={`${config.textSize} text-white/70 text-shadow-adaptive-sm truncate`}>
+                    [{mapInfo.beatmap_version}]
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom 20% - Stats Bar */}
+      <div className="h-[20%] bg-black/40 backdrop-blur-sm border-t border-white/10">
+        <div className={`h-full flex items-center ${config.padding}`}>
+          <div className="flex gap-6 lg:gap-20">
+            {/* Players - Red */}
+            <div className="flex items-center gap-3">
+              <div className={`${config.iconPadding} icon-gradient-red rounded-lg icon-container-red`}>
+                <Users className={`${config.iconSize} text-white icon-shadow-adaptive-sm`} />
+              </div>
+              <div className="lg:flex lg:items-center lg:gap-1.5">
+                <p className={`${config.numberSize} font-bold text-white leading-tight text-shadow-adaptive`}>
+                  {challenge.participant_count || 0}
+                </p>
+                <p className={`${config.textSize} lg:text-2xl text-white/70 font-bold leading-tight text-shadow-adaptive-sm`}>
+                  Players
+                </p>
+              </div>
+            </div>
+
+            {/* Maps - Dark Purple */}
+            <div className="flex items-center gap-3">
+              <div className={`${config.iconPadding} icon-gradient-dark-purple rounded-lg icon-container-dark-purple`}>
+                <Music className={`${config.iconSize} text-white icon-shadow-adaptive-sm`} />
+              </div>
+              <div className="lg:flex lg:items-center lg:gap-1.5">
+                <p className={`${config.numberSize} font-bold text-white leading-tight text-shadow-adaptive`}>
+                  {challenge.playlists?.length || 0}
+                </p>
+                <p className={`${config.textSize} lg:text-2xl text-white/70 font-bold leading-tight text-shadow-adaptive-sm`}>
+                  {challenge.playlists?.length === 1 ? 'Map' : 'Maps'}
+                </p>
+              </div>
+            </div>
+
+            {/* Time - Green */}
+            <div className="flex items-center gap-3">
+              <div className={`${config.iconPadding} icon-gradient-green rounded-lg icon-container-green`}>
+                <Calendar className={`${config.iconSize} text-white icon-shadow-adaptive-sm`} />
+              </div>
+              <div className="lg:flex lg:items-center lg:gap-1.5">
+                {timeRemaining && !timeRemaining.expired ? (
+                  <>
+                    <p className={`${config.numberSize} font-bold text-white leading-tight text-shadow-adaptive`}>
+                      {timeRemaining.days || timeRemaining.hours || timeRemaining.minutes}
+                    </p>
+                    <p className={`${config.textSize} lg:text-2xl text-white/70 font-bold leading-tight text-shadow-adaptive-sm`}>
+                      {timeRemaining.label}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className={`${config.numberSize} font-bold ${timeRemaining?.expired ? 'text-red-400' : 'text-green-400'} leading-tight text-shadow-adaptive`}>
+                      {timeRemaining?.expired ? 'Ended' : 'Active'}
+                    </p>
+                    <p className={`${config.textSize} lg:text-2xl text-white/70 font-bold leading-tight text-shadow-adaptive-sm`}>
+                      Status
+                    </p>
+                  </>
                 )}
               </div>
             </div>
           </div>
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1"></div>
-
-        {/* Stats Grid */}
-        <div className={`grid ${config.statsGrid} gap-3 mb-4 flex-shrink-0`}>
-          <div className="text-center">
-            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-primary-100/80 to-primary-200/80 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 backdrop-blur-sm ${size === 'large' ? 'w-12 h-12' : ''}`}>
-              <Users className={`${config.iconSize} text-primary-600`} />
-            </div>
-            <p className={`${config.numberSize} font-bold text-neutral-800`}>
-              {challenge.participant_count || 0}
-            </p>
-            <p className="text-xs text-neutral-600 font-medium">Players</p>
-          </div>
-          
-          <div className="text-center">
-            <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-purple-100/80 to-purple-200/80 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 backdrop-blur-sm ${size === 'large' ? 'w-12 h-12' : ''}`}>
-              <Music className={`${config.iconSize} text-purple-600`} />
-            </div>
-            <p className={`${config.numberSize} font-bold text-neutral-800`}>
-              {challenge.playlists?.length || 0}
-            </p>
-            <p className="text-xs text-neutral-600 font-medium">Maps</p>
-          </div>
-          
-          {/* Time remaining with new precise display */}
-          {config.showDays && (
-            <div className="text-center">
-              <div className={`w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-green-100/80 to-green-200/80 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110 backdrop-blur-sm ${size === 'large' ? 'w-12 h-12' : ''}`}>
-                <Calendar className={`${config.iconSize} text-green-600`} />
-              </div>
-              {timeRemaining && !timeRemaining.expired ? (
-                <>
-                  <p className={`${config.numberSize} font-bold text-neutral-800`}>
-                    {timeRemaining.days || timeRemaining.hours || timeRemaining.minutes}
-                  </p>
-                  <p className="text-xs text-neutral-600 font-medium">{timeRemaining.label}</p>
-                </>
-              ) : (
-                <>
-                  <p className={`${size === 'large' ? 'text-base' : 'text-sm'} font-bold ${timeRemaining?.expired ? 'text-red-600' : 'text-green-600'}`}>
-                    {timeRemaining?.expired ? 'Ended' : 'Active'}
-                  </p>
-                  <p className="text-xs text-neutral-600 font-medium">Status</p>
-                </>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
