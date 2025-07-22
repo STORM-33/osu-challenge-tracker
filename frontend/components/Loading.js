@@ -46,7 +46,7 @@ const LoadingSpinner = ({
   );
 };
 
-// Full page loading component with glass morphism
+// Full page loading component - glass card removed, only background animation
 const FullPageLoading = ({ message = "Loading...", showLogo = false }) => {
   return (
     <div className="min-h-screen flex items-center justify-center relative">
@@ -56,7 +56,7 @@ const FullPageLoading = ({ message = "Loading...", showLogo = false }) => {
         <div className="absolute -bottom-8 -left-8 w-80 h-80 bg-white rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }}></div>
       </div>
       
-      <div className="glass-1 rounded-3xl p-8 sm:p-12 shadow-2xl max-w-md w-full mx-4">
+      <div className="max-w-md w-full mx-4">
         {showLogo && (
           <div className="flex items-center justify-center gap-3 mb-6">
             <Sparkles className="w-8 h-8 text-purple-400 icon-shadow-adaptive animate-pulse" />
@@ -69,7 +69,7 @@ const FullPageLoading = ({ message = "Loading...", showLogo = false }) => {
   );
 };
 
-// Section loading component for parts of a page
+// Section loading component - glass card removed
 const SectionLoading = ({ 
   message = "Loading...", 
   className = "",
@@ -78,18 +78,16 @@ const SectionLoading = ({
 }) => {
   return (
     <div className={`flex items-center justify-center ${compact ? 'py-8' : 'py-12'} ${className}`}>
-      <div className="glass-1 rounded-2xl p-6 sm:p-8 shadow-lg">
-        <LoadingSpinner 
-          message={message} 
-          size="medium" 
-          variant={variant}
-        />
-      </div>
+      <LoadingSpinner 
+        message={message} 
+        size="medium" 
+        variant={variant}
+      />
     </div>
   );
 };
 
-// Inline loading component for buttons, small areas
+// Inline loading component - glass cards removed
 const InlineLoading = ({ 
   message = "", 
   size = "small", 
@@ -112,19 +110,17 @@ const InlineLoading = ({
 
   return (
     <div className={`flex items-center justify-center ${className}`}>
-      <div className="glass-2 rounded-xl px-4 py-3">
-        <LoadingSpinner 
-          message={message} 
-          size={size} 
-          showMessage={!!message}
-          variant={variant}
-        />
-      </div>
+      <LoadingSpinner 
+        message={message} 
+        size={size} 
+        showMessage={!!message}
+        variant={variant}
+      />
     </div>
   );
 };
 
-// Skeleton loading for content areas
+// Skeleton loading - keeping glass card as it's content placeholder
 const SkeletonLoading = ({ 
   lines = 3, 
   className = "",
@@ -154,7 +150,7 @@ const SkeletonLoading = ({
   );
 };
 
-// Card grid skeleton
+// Card grid skeleton - keeping glass cards as they represent content placeholders
 const CardGridSkeleton = ({ 
   cards = 6, 
   columns = 3,
@@ -182,7 +178,7 @@ const CardGridSkeleton = ({
   );
 };
 
-// Table skeleton for leaderboards/lists
+// Table skeleton - keeping glass card as it represents content placeholder
 const TableSkeleton = ({ 
   rows = 8, 
   columns = 4,
