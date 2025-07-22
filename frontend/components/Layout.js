@@ -39,6 +39,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
     { href: '/', label: 'challenges', icon: Trophy },
     { href: '/leaderboard', label: 'leaderboard', icon: BarChart3 },
     { href: '/partners', label: 'partners', icon: Link2 },
+    { href: '/donate', label: 'donate', icon: Heart },
   ];
 
   return (
