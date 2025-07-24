@@ -6,6 +6,7 @@ import Loading from '../components/Loading';
 import ChallengeCard from '../components/ChallengeCard';
 import SeasonSelector from '../components/SeasonSelector';
 import { SyncStatusIndicator } from '../components/SyncStatusIndicator'; 
+import { useSmartSync } from '../hooks/useSmartSync';
 import { 
   Loader2, Trophy, History, Sparkles, RefreshCw, 
   Users, Music, Clock, Info, AlertCircle
@@ -29,14 +30,15 @@ export default function Home() {
   const [loadingHistorical, setLoadingHistorical] = useState(false);
   const [expandedSeasons, setExpandedSeasons] = useState(new Set());
   const [quickStats, setQuickStats] = useState(null);
+  const { shouldSync, markSyncComplete, timeSinceLastSync } = useSmartSync('challenges');
 
-  // Enhanced API endpoint with auto-sync enabled
+  // Smart API endpoint with conditional auto-sync
   const activeChallengesEndpoint = useMemo(() => {
     const params = new URLSearchParams();
     params.append('active', 'true');
-    params.append('auto_sync', 'true'); // ✅ ENABLE: Auto-sync for stale challenges
+    params.append('auto_sync', shouldSync ? 'true' : 'false');
     return `/api/challenges?${params.toString()}`;
-  }, []);
+  }, [shouldSync]);
 
   // Use SWR for active challenges with background sync
   const {
@@ -45,15 +47,20 @@ export default function Home() {
     mutate: refreshActiveChallenges,
     isValidating
   } = useSWR(activeChallengesEndpoint, fetcher, {
-    refreshInterval: syncConfig.thresholds.SWR_REFRESH_INTERVAL, // Use centralized config
+    refreshInterval: 0, // Disable automatic refresh - use smart sync instead
     refreshWhenHidden: false,
     refreshWhenOffline: false,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
-    dedupingInterval: 5000, // Dedupe requests within 5 seconds
+    dedupingInterval: 10000, 
     onSuccess: (data) => {
       if (data?.sync_summary) {
         console.log('Sync summary:', data.sync_summary);
+        
+        // Mark sync as complete if background syncs were triggered
+        if (shouldSync && data.sync_summary.background_syncs_triggered > 0) {
+          markSyncComplete();
+        }
       }
     }
   });
@@ -164,16 +171,6 @@ export default function Home() {
 
   const filteredChallenges = getFilteredChallenges(historicalChallenges);
 
-  const debouncedRefresh = useMemo(() => {
-    let timeoutId;
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        refreshActiveChallenges();
-      }, syncConfig.thresholds.DEBOUNCE_DELAY); // Use centralized config
-    };
-  }, [refreshActiveChallenges]);
-
   if (loading) {
     return (
       <Layout>
@@ -258,7 +255,7 @@ export default function Home() {
                   </div>
                   <p className="text-red-300 mb-6 font-medium text-shadow-adaptive text-sm sm:text-base">Failed to load challenges: {error.message}</p>
                   <button 
-                    onClick={debouncedRefresh}
+                    onClick={refreshActiveChallenges}
                     disabled={isValidating}
                     className="px-4 py-2 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-all hover:shadow-lg transform hover:scale-105 text-sm sm:text-base"
                   >
@@ -491,7 +488,7 @@ export default function Home() {
             {/* Manual refresh button */}
             <div className="mt-4">
               <button
-                onClick={debouncedRefresh}
+                onClick={refreshActiveChallenges}
                 disabled={isValidating}
                 className="text-xs text-white/70 hover:text-white/90 transition-colors flex items-center gap-1 mx-auto disabled:opacity-50 hover:bg-white/10 px-3 py-1 rounded-full text-shadow-adaptive-sm"
               >

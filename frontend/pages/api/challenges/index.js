@@ -36,7 +36,7 @@ async function handleGetChallenges(req, res) {
       search = '',
       sortBy = 'created_at',
       sortOrder = 'desc',
-      auto_sync = 'true' // Enable auto-sync by default
+      auto_sync = 'false' 
     } = req.query;
 
     const { limit, offset, page } = getPaginationParams(req, 100, 50);

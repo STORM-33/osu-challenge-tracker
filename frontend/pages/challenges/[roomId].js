@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -10,6 +10,7 @@ import { ArrowLeft, Loader2, Users, Calendar, Music, Star, Trophy, CheckCircle, 
 import { generateRulesetName, generateRulesetDescription } from '../../lib/ruleset-name-generator';
 import { syncConfig } from '../../lib/sync-config';
 import { SyncStatusIndicator } from '../../components/SyncStatusIndicator';
+import { useSmartSync } from '../../hooks/useSmartSync';
 
 // Enhanced fetcher that handles sync metadata
 const fetcher = async (url) => {
@@ -58,13 +59,35 @@ export default function ChallengeDetail() {
   const router = useRouter();
   const { roomId } = router.query;
   
+  // Only use smart sync when roomId is available
+  const { shouldSync: shouldSyncChallenge, markSyncComplete: markChallengeComplete } = useSmartSync(
+    roomId ? `challenge_${roomId}` : null
+  );
+
+  // Handle the case when roomId or shouldSyncChallenge is not ready
+  const challengeEndpoint = useMemo(() => {
+    if (!roomId) return null;
+    
+    const params = new URLSearchParams();
+    if (shouldSyncChallenge) {
+      params.append('auto_sync', 'true');
+    }
+    return `/api/challenges/${roomId}${params.toString() ? `?${params.toString()}` : ''}`;
+  }, [roomId, shouldSyncChallenge]);
+  
   const { data: challengeData, error, mutate: refresh, isValidating } = useSWR(
-    roomId ? `/api/challenges/${roomId}` : null,
+    challengeEndpoint, // This will be null initially, which is fine
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      refreshInterval: 0 // No automatic refresh
+      refreshInterval: 0,
+      onSuccess: (data) => {
+        // Mark sync complete if background sync was triggered
+        if (shouldSyncChallenge && data?.sync_metadata?.background_sync_triggered) {
+          markChallengeComplete();
+        }
+      }
     }
   );
 

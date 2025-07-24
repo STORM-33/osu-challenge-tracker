@@ -102,7 +102,7 @@ export function usePaginatedAPI(baseEndpoint, options = {}) {
 export function useChallengeWithSync(roomId, options = {}) {
   const { 
     autoRefresh = true, 
-    pollInterval = 120000, // Poll every 2 minutes for sync updates
+    pollInterval = 600000, // Poll every 10 minutes for sync updates
     onSyncComplete = null 
   } = options;
 
@@ -354,7 +354,7 @@ export function useChallengesWithSync(options = {}) {
     active = null,
     seasonId = null,
     autoSync = true,
-    refreshInterval = 60000, // Refresh every minute for lists
+    refreshInterval = 300000, // Refresh every 5 minutes for lists
     onSyncProgress = null
   } = options;
 
