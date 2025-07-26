@@ -269,7 +269,7 @@ export default function AboutChallengers() {
                 <div className="space-y-6 sm:space-y-8">
                   <div>
                     <p className="text-base sm:text-lg text-white/90 leading-relaxed text-shadow-adaptive">
-                      Three days before the end of each month, a special collage is created containing <span className="font-bold text-white">all Weekly maps</span> 
+                      Three days before the end of each month, a special collage is created containing <span className="font-bold text-white">all Weekly maps </span> 
                       from the current season. This creates massive multi-map challenges that test your consistency across all difficulty levels!
                     </p>
                   </div>
