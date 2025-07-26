@@ -176,13 +176,7 @@ async function handler(req, res) {
     };
 
     console.log(`📋 Challenge ${roomId} loaded with ${challenge.playlists?.length || 0} playlists. Sync: ${syncMetadata.sync_in_progress ? 'in progress' : syncMetadata.is_stale ? 'stale' : 'fresh'}`);
-    res.setHeader('X-Cache-Debug', Date.now());
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    console.log('🔍 Cache debug:', { 
-      isActive: challenge.is_active, 
-      cache: !challenge.is_active, 
-      cacheTime: challenge.is_active ? 0 : 300 
-    });
+
     // 7. Return immediate response with current data + sync metadata
     return handleAPIResponse(res, {
       challenge,
