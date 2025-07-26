@@ -3,6 +3,8 @@ import { handleAPIResponse, handleAPIError, validateRequest } from '../../../lib
 import syncManager from '../../../lib/sync-manager';
 
 async function handler(req, res) {
+  res.setHeader('X-Cache-Debug', Date.now());
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   try {
     validateRequest(req, {
       method: 'GET',
