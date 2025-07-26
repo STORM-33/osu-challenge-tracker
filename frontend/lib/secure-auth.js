@@ -4,10 +4,22 @@ import { supabaseAdmin } from './supabase-admin';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-change-this';
 const SESSION_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+// Get real user IP, accounting for Cloudflare proxy
+function getRealIP(req) {
+  // Cloudflare provides the real user IP in CF-Connecting-IP header
+  return req.headers['cf-connecting-ip'] ||           // Cloudflare real IP
+         req.headers['x-real-ip'] ||                  // Other proxies  
+         req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+         req.connection.remoteAddress;
+}
+
 // Generate cryptographically secure session token
-export function generateSessionToken(userId, userAgent = '', ipAddress = '') {
+export function generateSessionToken(userId, userAgent = '', req = null) {
   const timestamp = Date.now();
   const random = crypto.randomBytes(32).toString('hex');
+  
+  // Get real IP address
+  const ipAddress = req ? getRealIP(req) : '';
   
   // Create payload with user info and metadata
   const payload = {
@@ -15,7 +27,7 @@ export function generateSessionToken(userId, userAgent = '', ipAddress = '') {
     timestamp,
     random,
     userAgent: userAgent.substring(0, 100), // Limit length
-    ipAddress: ipAddress.split(',')[0].trim(), // First IP if proxied
+    ipAddress: ipAddress,
     expiresAt: timestamp + SESSION_EXPIRY
   };
   
@@ -33,7 +45,7 @@ export function generateSessionToken(userId, userAgent = '', ipAddress = '') {
 }
 
 // Verify and decode session token
-export function verifySessionToken(token, userAgent = '', ipAddress = '') {
+export function verifySessionToken(token, userAgent = '', req = null) {
   try {
     if (!token) return null;
     
@@ -60,7 +72,9 @@ export function verifySessionToken(token, userAgent = '', ipAddress = '') {
       return null;
     }
     
-    const currentIP = ipAddress.split(',')[0].trim();
+    // Get real IP for comparison
+    const currentIP = req ? getRealIP(req) : '';
+    
     if (payload.ipAddress && currentIP && payload.ipAddress !== currentIP) {
       const oldIPParts = payload.ipAddress.split('.');
       const newIPParts = currentIP.split('.');
@@ -69,7 +83,9 @@ export function verifySessionToken(token, userAgent = '', ipAddress = '') {
       if (oldIPParts.slice(0, 3).join('.') !== newIPParts.slice(0, 3).join('.')) {
         console.warn('🔒 IP address mismatch - possible session hijacking', {
           old: payload.ipAddress,
-          new: currentIP
+          new: currentIP,
+          cloudflareIP: req?.headers['x-forwarded-for']?.split(',')[0]?.trim(),
+          userAgent: userAgent.substring(0, 50)
         });
       }
     }
@@ -109,11 +125,11 @@ export function withSecureAuth(handler, options = {}) {
         });
       }
       
-      // Verify session token
+      // Verify session token with full request object
       const session = verifySessionToken(
         sessionToken, 
         req.headers['user-agent'], 
-        req.headers['x-forwarded-for'] || req.connection.remoteAddress
+        req  // Pass full request object for proper IP extraction
       );
       
       if (!session) {
@@ -192,7 +208,7 @@ export function withSecureAuth(handler, options = {}) {
         const { token: newToken, expiresAt } = generateSessionToken(
           user.id,
           req.headers['user-agent'],
-          req.headers['x-forwarded-for'] || req.connection.remoteAddress
+          req  // Pass full request object
         );
         
         // Set new session cookie
@@ -237,6 +253,7 @@ export async function handleSecureAuthCallback(req, res) {
   console.log('📍 URL:', req.url);
   console.log('🔑 Code present:', !!code);
   console.log('🎲 State received:', state);
+  console.log('🌐 Real IP:', getRealIP(req));
   
   // Verify state parameter
   const cookieHeader = req.headers.cookie || '';
@@ -352,11 +369,11 @@ export async function handleSecureAuthCallback(req, res) {
       admin: dbUser.admin 
     });
     
-    // Generate secure session token
+    // Generate secure session token with real IP
     const { token: sessionToken } = generateSessionToken(
       dbUser.id,
       req.headers['user-agent'],
-      req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      req  // Pass full request object for proper IP extraction
     );
     
     // Set secure session cookie
@@ -411,8 +428,12 @@ export function logSecurityEvent(type, details, req) {
     timestamp: new Date().toISOString(),
     type,
     details,
-    ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    ip: getRealIP(req),
+    cloudflareIP: req.headers['x-forwarded-for']?.split(',')[0]?.trim(),
     userAgent: req.headers['user-agent']?.substring(0, 100),
     url: req.url
   });
 }
+
+// Export the IP utility for use in other files
+export { getRealIP };
