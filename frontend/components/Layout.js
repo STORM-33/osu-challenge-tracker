@@ -99,6 +99,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
           <div className="flex items-center justify-between">
             <Link 
               href="/"
+              prefetch={false}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
               {/* Replace with your PNG logo */}
@@ -126,6 +127,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                 <Link 
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   className={
                     router.pathname === item.href 
                       ? 'nav-pill-active text-shadow-adaptive-sm'
@@ -143,6 +145,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
               {user && (
                 <Link 
                   href={`/profile/${user.id}`}
+                  prefetch={false}
                   className={
                     router.pathname === `/profile/${user.id}` || router.pathname.startsWith('/profile/')
                       ? 'nav-pill-active text-shadow-adaptive-sm'
@@ -160,6 +163,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
               {user && isAdmin && (
                 <Link 
                   href="/admin"
+                  prefetch={false}
                   className={
                     router.pathname === '/admin'
                       ? 'nav-pill-active text-shadow-adaptive-sm'
@@ -179,6 +183,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
               ) : !user ? (
                 <Link 
                   href="/api/auth/login"
+                  prefetch={false}
                   className="btn-primary ml-4 text-shadow-adaptive-sm flex items-center gap-2"
                 >
                   <LogIn className="w-4 h-4 icon-shadow-adaptive-sm" />
@@ -292,6 +297,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                   <Link 
                     key={item.href}
                     href={item.href}
+                    prefetch={false}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-base
                       ${router.pathname === item.href 
@@ -309,6 +315,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                 {user && (
                   <Link 
                     href={`/profile/${user.id}`}
+                    prefetch={false}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-base
                       ${router.pathname === `/profile/${user.id}` || router.pathname.startsWith('/profile/')
@@ -326,6 +333,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                 {user && isAdmin && (
                   <Link 
                     href="/admin"
+                    prefetch={false}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-base
                       ${router.pathname === '/admin'
@@ -348,6 +356,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                 ) : !user ? (
                   <Link 
                     href="/api/auth/login"
+                    prefetch={false}
                     className="flex items-center gap-3 px-4 py-3 bg-gradient-primary rounded-lg text-white font-medium transition-all duration-200 hover:opacity-90"
                   >
                     <LogIn className="w-5 h-5" />
