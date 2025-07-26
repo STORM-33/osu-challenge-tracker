@@ -19,6 +19,10 @@ const nextConfig = {
   images: {
     domains: ['a.ppy.sh', 'assets.ppy.sh'],
   },
+  experimental: {
+    optimizePackageImports: ['@/components'],
+    scrollRestoration: true
+  },
   async headers() {
     return [
       {
