@@ -60,18 +60,18 @@ export function verifySessionToken(token, userAgent = '', ipAddress = '') {
       return null;
     }
     
-    // Optional: Verify user agent consistency (helps detect session hijacking)
-    const currentUA = userAgent.substring(0, 100);
-    if (payload.userAgent && currentUA && payload.userAgent !== currentUA) {
-      console.warn('🔒 User agent mismatch - possible session hijacking');
-      // Don't fail completely, but log for monitoring
-    }
-    
-    // Optional: Verify IP consistency (be careful with proxies/mobile networks)
     const currentIP = ipAddress.split(',')[0].trim();
     if (payload.ipAddress && currentIP && payload.ipAddress !== currentIP) {
-      console.warn('🔒 IP address mismatch - possible session hijacking');
-      // Don't fail completely for IP changes (mobile users, etc.)
+      const oldIPParts = payload.ipAddress.split('.');
+      const newIPParts = currentIP.split('.');
+      
+      // Only warn if it's a significant change (different /24 subnet)
+      if (oldIPParts.slice(0, 3).join('.') !== newIPParts.slice(0, 3).join('.')) {
+        console.warn('🔒 IP address mismatch - possible session hijacking', {
+          old: payload.ipAddress,
+          new: currentIP
+        });
+      }
     }
     
     return {
