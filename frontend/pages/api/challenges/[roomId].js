@@ -3,8 +3,6 @@ import { handleAPIResponse, handleAPIError, validateRequest } from '../../../lib
 import syncManager from '../../../lib/sync-manager';
 
 async function handler(req, res) {
-  res.setHeader('X-Cache-Debug', Date.now());
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   try {
     validateRequest(req, {
       method: 'GET',
@@ -178,7 +176,8 @@ async function handler(req, res) {
     };
 
     console.log(`📋 Challenge ${roomId} loaded with ${challenge.playlists?.length || 0} playlists. Sync: ${syncMetadata.sync_in_progress ? 'in progress' : syncMetadata.is_stale ? 'stale' : 'fresh'}`);
-
+    res.setHeader('X-Cache-Debug', Date.now());
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     // 7. Return immediate response with current data + sync metadata
     return handleAPIResponse(res, {
       challenge,
