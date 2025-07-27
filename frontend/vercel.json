@@ -30,6 +30,10 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, s-maxage=31536000, immutable"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=31536000"
         }
       ]
     },
@@ -38,7 +42,11 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=900, s-maxage=1800, stale-while-revalidate=1800"
+          "value": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=1800"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=3600"
         }
       ]
     },
@@ -46,8 +54,12 @@
       "source": "/api/partners/(.*)",
       "headers": [
         {
-          "key": "Cache-Control", 
-          "value": "public, max-age=600, s-maxage=900, stale-while-revalidate=900"
+          "key": "Cache-Control",
+          "value": "public, max-age=900, s-maxage=1800, stale-while-revalidate=900"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=1800"
         }
       ]
     },
@@ -56,7 +68,11 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=60, s-maxage=180, stale-while-revalidate=180"
+          "value": "public, max-age=150, s-maxage=300, stale-while-revalidate=150"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=300"
         }
       ]
     },
@@ -65,7 +81,11 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=180, s-maxage=600, stale-while-revalidate=300"
+          "value": "public, max-age=300, s-maxage=600, stale-while-revalidate=300"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=600"
         }
       ]
     },
@@ -74,7 +94,11 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=30, s-maxage=60, stale-while-revalidate=60"
+          "value": "public, max-age=30, s-maxage=60, stale-while-revalidate=30"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=60"
         }
       ]
     },
@@ -83,25 +107,11 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=120, s-maxage=300, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/api/seasons/current",
-      "headers": [
+          "value": "public, max-age=300, s-maxage=600, stale-while-revalidate=300"
+        },
         {
-          "key": "Cache-Control",
-          "value": "public, max-age=600, s-maxage=1200, stale-while-revalidate=1200"
-        }
-      ]
-    },
-    {
-      "source": "/api/seasons/leaderboard",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=300, s-maxage=600, stale-while-revalidate=600"
+          "key": "CDN-Cache-Control",
+          "value": "max-age=600"
         }
       ]
     },
@@ -116,33 +126,6 @@
     },
     {
       "source": "/api/admin/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/api/sync/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/api/webhook/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/api/emergency/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
