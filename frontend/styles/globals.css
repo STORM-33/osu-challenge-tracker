@@ -587,7 +587,7 @@
 
   .slider-track {
     @apply glass-2 rounded-full p-1 flex relative;
-    min-width: 220px;
+    min-width: 300px; /* Increased from 220px to accommodate 4 tabs */
     box-shadow: 
       0 4px 6px -1px rgba(0, 0, 0, 0.1),
       0 2px 4px -1px rgba(0, 0, 0, 0.06),
@@ -600,28 +600,36 @@
     top: 4px;
     bottom: 4px;
     left: 4px;
-    right: 50%;
-    background: linear-gradient(to bottom, #e19d2c, #d1653a); /* Match icon gradient */
-    border: 3px solid rgba(252, 211, 77, 1); /* Match icon-container-orange border */
+    width: calc(25% - 4px); /* Changed from 50% to 25% for 4 tabs */
+    background: linear-gradient(to bottom, #e19d2c, #d1653a);
+    border: 3px solid rgba(252, 211, 77, 1);
     border-radius: 9999px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 
-      0 0 8px rgba(252, 211, 77, 0.5), /* Match icon-container-orange glow */
+      0 0 8px rgba(252, 211, 77, 0.5),
       0 4px 8px rgba(0, 0, 0, 0.2),
       0 2px 4px rgba(0, 0, 0, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
-  .slider-thumb-right {
-    left: 50%;
-    right: 4px;
+  /* Remove the old slider-thumb-right class and add new positioning classes */
+  .slider-thumb-second {
+    left: calc(25% + 4px);
+  }
+
+  .slider-thumb-third {
+    left: calc(50% + 4px);
+  }
+
+  .slider-thumb-fourth {
+    left: calc(75% + 4px);
   }
 
   .slider-option {
-    @apply relative z-10 px-4 py-2 rounded-full font-medium transition-all duration-300;
+    @apply relative z-10 px-3 py-2 rounded-full font-medium transition-all duration-300; /* Reduced px-4 to px-3 */
     flex: 1;
     text-align: center;
-    font-size: 0.875rem;
+    font-size: 0.75rem; /* Slightly smaller text to fit */
     line-height: 1.25rem;
     color: rgba(255, 255, 255, 1);
     text-shadow: 
@@ -645,6 +653,18 @@
       0 2px 4px rgba(0, 0, 0, 0.5),
       0 4px 8px rgba(0, 0, 0, 0.4),
       0 0 8px rgba(255, 255, 255, 0.3);
+  }
+
+  /* Add responsive styles for smaller screens */
+  @media (max-width: 640px) {
+    .slider-track {
+      min-width: 280px;
+    }
+    
+    .slider-option {
+      font-size: 0.7rem;
+      padding: 0.375rem 0.5rem;
+    }
   }
 
   .staff-badge {

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Layout from '../../components/Layout';
 import Loading from '../../components/Loading'; 
 import { useAuth } from '../../lib/AuthContext';
+import MedalsDisplay from '../../components/MedalsDisplay';
 import { 
   Trophy, Target, Calendar, User, Award, BarChart3, 
   Sparkles, Flame, Zap, ArrowLeft, ExternalLink, TrendingUp,
@@ -439,16 +440,10 @@ export default function UserProfile() {
             <div className="view-mode-slider text-sm sm:text-base">
               <div className="slider-track">
                 <div className={`slider-thumb ${
-                  activeTab === 'best' ? 'slider-thumb-right' : 
-                  activeTab === 'stats' ? 'slider-thumb-right' : ''
-                }`} style={{
-                  left: activeTab === 'recent' ? '4px' : 
-                        activeTab === 'best' ? '33.33%' :
-                        '66.66%',
-                  right: activeTab === 'recent' ? '66.66%' : 
-                         activeTab === 'best' ? '33.33%' :
-                         '4px'
-                }} />
+                  activeTab === 'best' ? 'slider-thumb-second' : 
+                  activeTab === 'stats' ? 'slider-thumb-third' :
+                  activeTab === 'achievements' ? 'slider-thumb-fourth' : ''
+                }`} />
                 <button
                   onClick={() => handleTabChange('recent')}
                   className={`slider-option ${activeTab === 'recent' ? 'slider-option-active' : ''}`}
@@ -468,6 +463,12 @@ export default function UserProfile() {
                   className={`slider-option ${activeTab === 'stats' ? 'slider-option-active' : ''}`}
                 >
                   Statistics
+                </button>
+                <button
+                  onClick={() => handleTabChange('achievements')}
+                  className={`slider-option ${activeTab === 'achievements' ? 'slider-option-active' : ''}`}
+                >
+                  Medals
                 </button>
               </div>
             </div>
@@ -733,6 +734,16 @@ export default function UserProfile() {
                   </div>
                 </div>
               </div>
+            )}
+            {activeTab === 'achievements' && (
+              <MedalsDisplay 
+                stats={stats}
+                streaks={streaks} 
+                scores={allScores}
+                userAchievements={[]} // This would come from existing user data if you store it
+                seasonRank={null} // Can be calculated from existing season data
+                seasonPercentile={null} // Can be calculated from existing season data
+              />
             )}
             </>
           )}
