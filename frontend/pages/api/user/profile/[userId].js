@@ -1,6 +1,8 @@
 import { withOptionalAuth } from '../../../../lib/auth-middleware';
 import { challengeQueries, supabase } from '../../../../lib/supabase';
 import { handleAPIResponse, handleAPIError } from '../../../../lib/api-utils';
+import { memoryCache, createCacheKey, CACHE_DURATIONS } from '../../../../lib/memory-cache';
+import { generateETag, checkETag } from '../../../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -32,20 +34,45 @@ async function handler(req, res) {
   } else {
     switch (tab) {
       case 'recent':
-        scoreLimit = 5; // Only need 5 most recent
+        scoreLimit = 5;
         break;
       case 'best':
-        scoreLimit = null; // No limit - need all scores to find top performances
+        scoreLimit = null;
         break;
       case 'stats':
-        scoreLimit = null; // No limit - need all for statistics
+        scoreLimit = null;
         break;
       default:
-        scoreLimit = 5; // Default for main profile view
+        scoreLimit = 5;
     }
   }
 
   try {
+    // CREATE CACHE KEY - Different cache for different tabs and limits
+    const cacheKey = createCacheKey('user_profile', targetUserId, {
+      tab: tab || 'recent',
+      limit: scoreLimit || 'all'
+    });
+
+    // TRY MEMORY CACHE FIRST
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      console.log(`👤 Serving user profile from memory cache: ${cacheKey}`);
+      const etag = generateETag(cached);
+      if (checkETag(req, etag)) {
+        return res.status(304).end();
+      }
+      
+      return handleAPIResponse(res, cached, { 
+        cache: true, 
+        cacheTime: 600, // 10 minute cache for profiles
+        enableETag: true,
+        req 
+      });
+    }
+
+    console.log(`👤 Loading user profile for ${targetUserId} (tab: ${tab}, limit: ${scoreLimit})`);
+
     // Get the target user's basic info
     const { data: profileUser, error: userError } = await supabase
       .from('users')
@@ -128,7 +155,6 @@ async function handler(req, res) {
     
     if (tab === 'best') {
       // For best tab, we need ALL scores first, then filter for top 10 finishes
-      // The current scoresWithCalculatedRanks might be limited, so we need to reload all scores
       console.log('🏆 Processing best tab - loading ALL user scores for filtering...');
       
       // Get ALL user scores for best tab processing
@@ -187,8 +213,8 @@ async function handler(req, res) {
       finalScores = scoreLimit ? scoresWithCalculatedRanks.slice(0, scoreLimit) : scoresWithCalculatedRanks;
     }
 
-    // Return successful response with enhanced stats
-    return handleAPIResponse(res, {
+    // PREPARE RESPONSE DATA
+    const responseData = {
       user: profileUser,
       scores: finalScores,
       totalScores: scoresWithCalculatedRanks.length,
@@ -209,6 +235,20 @@ async function handler(req, res) {
         bestPerformancesCount: bestPerformances?.length || 0,
         enhancedStatsTop10: enhancedUserStats?.top10Count || 0
       }
+    };
+
+    // CACHE THE RESULT
+    // Cache for 10 minutes - user profiles don't change that frequently
+    memoryCache.set(cacheKey, responseData, CACHE_DURATIONS.USER_PROFILE);
+
+    console.log(`👤 User profile loaded for ${targetUserId} and cached`);
+
+    // Return successful response with enhanced stats
+    return handleAPIResponse(res, responseData, { 
+      cache: true, 
+      cacheTime: 600, // 10 minute cache
+      enableETag: true,
+      req 
     });
 
   } catch (error) {
@@ -216,9 +256,6 @@ async function handler(req, res) {
     return handleAPIError(res, error);
   }
 }
-
-// Enhanced user statistics function with all missing fields
-// Replace your getEnhancedUserStats function with this fixed version
 
 async function getEnhancedUserStats(userId) {
   try {
