@@ -1,5 +1,7 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
+import { memoryCache, createCacheKey, CACHE_DURATIONS } from '../../../lib/memory-cache';
+import { generateETag, checkETag } from '../../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -17,6 +19,31 @@ async function handler(req, res) {
     } = req.query;
 
     console.log(`Fetching season leaderboard: seasonId=${seasonId}, userId=${userId}, limit=${limit}, offset=${offset}, withUserContext=${withUserContext}`);
+
+    // CREATE CACHE KEY
+    const cacheKey = createCacheKey('leaderboard', seasonId || 'current', {
+      userId: withUserContext === 'true' ? userId : null,
+      limit,
+      offset,
+      withUserContext,
+      contextRange
+    });
+
+    // TRY CACHE FIRST
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      console.log(`🏆 Serving leaderboard from memory cache: ${cacheKey}`);
+      const etag = generateETag(cached);
+      if (checkETag(req, etag)) {
+        return res.status(304).end();
+      }
+      return handleAPIResponse(res, cached, { 
+        cache: true, 
+        cacheTime: 600,
+        enableETag: true,
+        req // Pass req for ETag handling
+      });
+    }
 
     let data, error;
 
@@ -99,7 +126,8 @@ async function handler(req, res) {
     // Determine if there are more records available
     const hasMore = data && data.length === parseInt(limit);
 
-    return handleAPIResponse(res, {
+    // PREPARE RESPONSE DATA
+    const responseData = {
       leaderboard: data || [],
       userPosition,
       currentSeason,
@@ -111,6 +139,16 @@ async function handler(req, res) {
         returned: data?.length || 0,
         withUserContext: withUserContext === 'true'
       }
+    };
+
+    // Cache for 10 minutes
+    memoryCache.set(cacheKey, responseData, CACHE_DURATIONS.LEADERBOARD);
+
+    return handleAPIResponse(res, responseData, { 
+      cache: true, 
+      cacheTime: 600,
+      enableETag: true,
+      req // Pass req for ETag handling
     });
 
   } catch (error) {

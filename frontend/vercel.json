@@ -22,5 +22,85 @@
         }
       ]
     }
+  ],
+  "headers": [
+    {
+      "source": "/api/challenges/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=600, stale-while-revalidate=300"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=600"
+        }
+      ]
+    },
+    {
+      "source": "/api/seasons/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=3600, stale-while-revalidate=1800"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/api/partners/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=1800, stale-while-revalidate=900"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=1800"
+        }
+      ]
+    },
+    {
+      "source": "/api/stats",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=300, stale-while-revalidate=150"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=300"
+        }
+      ]
+    },
+    {
+      "source": "/api/user/profile/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=600, stale-while-revalidate=300"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=600"
+        }
+      ]
+    },
+    {
+      "source": "/api/health",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=60, stale-while-revalidate=30"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=60"
+        }
+      ]
+    }
   ]
 }

@@ -2,6 +2,9 @@ import { supabase } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
 import { handleAPIResponse, handleAPIError, validateRequest } from '../../../lib/api-utils';
+import { memoryCache, createCacheKey, CACHE_DURATIONS } from '../../../lib/memory-cache';
+import { generateETag, checkETag } from '../../../lib/api-utils';
+import { invalidateAfterUpdate } from '../../../lib/cache-invalidation';
 
 async function handler(req, res) {
   if (req.method === 'GET') {
@@ -25,6 +28,23 @@ async function handleGetPartners(req, res) {
     });
 
     const { active_only = 'true' } = req.query;
+    const cacheKey = createCacheKey('partners_list', 'all', { active_only });
+
+    // TRY MEMORY CACHE FIRST
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      console.log('🤝 Serving partners from memory cache');
+      const etag = generateETag(cached);
+      if (checkETag(req, etag)) {
+        return res.status(304).end();
+      }
+      
+      return handleAPIResponse(res, cached, { 
+        cache: true, 
+        cacheTime: 1800,
+        enableETag: true 
+      });
+    }
 
     console.log(`📋 Fetching partners list (active_only: ${active_only})`);
 
@@ -47,11 +67,20 @@ async function handleGetPartners(req, res) {
       throw error;
     }
 
-    console.log(`✅ Fetched ${data?.length || 0} partners`);
-
-    return handleAPIResponse(res, {
+    const responseData = {
       partners: data || [],
       count: data?.length || 0
+    };
+
+    // Cache for 30 minutes
+    memoryCache.set(cacheKey, responseData, CACHE_DURATIONS.PARTNERS);
+
+    console.log(`✅ Fetched ${data?.length || 0} partners`);
+
+    return handleAPIResponse(res, responseData, { 
+      cache: true, 
+      cacheTime: 1800,
+      enableETag: true 
     });
 
   } catch (error) {
@@ -113,6 +142,9 @@ async function handleCreatePartner(req, res) {
     }
 
     console.log(`✅ Created new partner: ${name} (ID: ${partner.id})`);
+
+    // INVALIDATE PARTNERS CACHE AFTER CREATION
+    invalidateAfterUpdate('partner');
 
     return handleAPIResponse(res, {
       partner,

@@ -1,16 +1,28 @@
 import { supabase } from '../../lib/supabase';
 import { handleAPIResponse, handleAPIError } from '../../lib/api-utils';
+import { memoryCache, createCacheKey, CACHE_DURATIONS } from '../../lib/memory-cache';
 
 async function handler(req, res) {
-  const checks = {
-    api: 'ok',
-    database: 'unknown',
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0',
-    environment: process.env.NODE_ENV
-  };
-
   try {
+    const cacheKey = createCacheKey('health', 'check');
+
+    // VERY SHORT CACHE FOR HEALTH CHECKS
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      return handleAPIResponse(res, cached, { 
+        cache: true, 
+        cacheTime: 60 
+      });
+    }
+
+    const checks = {
+      api: 'ok',
+      database: 'unknown',
+      timestamp: new Date().toISOString(),
+      version: process.env.npm_package_version || '1.0.0',
+      environment: process.env.NODE_ENV
+    };
+
     // Test database connection
     const { error } = await supabase
       .from('challenges')
@@ -22,13 +34,19 @@ async function handler(req, res) {
     // Overall health status
     const isHealthy = checks.api === 'ok' && checks.database === 'ok';
 
-    return handleAPIResponse(res, {
+    const responseData = {
       status: isHealthy ? 'healthy' : 'unhealthy',
       checks,
       uptime: process.uptime(),
-    }, { 
+    };
+
+    // Cache for 1 minute
+    memoryCache.set(cacheKey, responseData, CACHE_DURATIONS.HEALTH);
+
+    return handleAPIResponse(res, responseData, { 
       status: isHealthy ? 200 : 503,
-      cache: false // Health checks should not be cached
+      cache: true,
+      cacheTime: 60
     });
 
   } catch (error) {
@@ -37,9 +55,10 @@ async function handler(req, res) {
     res.status(503).json({
       status: 'unhealthy',
       checks: {
-        ...checks,
+        api: 'error',
         database: 'error',
-        error: error.message
+        error: error.message,
+        timestamp: new Date().toISOString()
       }
     });
   }

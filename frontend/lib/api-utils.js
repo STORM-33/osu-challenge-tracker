@@ -1,4 +1,4 @@
-// API error handling utilities
+import crypto from 'crypto';
 
 export class APIError extends Error {
   constructor(message, status, code) {
@@ -9,12 +9,29 @@ export class APIError extends Error {
   }
 }
 
-// Standard API response handler
+// Generate ETag for data (doesn't need req)
+export function generateETag(data) {
+  const hash = crypto
+    .createHash('md5')
+    .update(JSON.stringify(data))
+    .digest('hex');
+  return `"${hash}"`;
+}
+
+// Check if client has cached version
+export function checkETag(req, etag) {
+  const clientETag = req.headers['if-none-match'];
+  return clientETag === etag;
+}
+
+// Enhanced response handler with caching
 export function handleAPIResponse(res, data, options = {}) {
   const { 
     status = 200, 
     cache = false,
-    cacheTime = 60 
+    cacheTime = 60,
+    enableETag = false,
+    req = null // Add req as optional parameter
   } = options;
 
   // Set security headers
@@ -22,12 +39,24 @@ export function handleAPIResponse(res, data, options = {}) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
 
+  // Generate and check ETag if enabled AND req is provided
+  if (enableETag && req) {
+    const etag = generateETag(data);
+    res.setHeader('ETag', etag);
+    
+    // If client has this version, return 304
+    if (checkETag(req, etag)) {
+      return res.status(304).end();
+    }
+  }
+
   // Set cache headers if enabled
   if (cache) {
     res.setHeader(
       'Cache-Control',
-      `s-maxage=${cacheTime}, stale-while-revalidate`
+      `s-maxage=${cacheTime}, stale-while-revalidate=${Math.floor(cacheTime / 2)}`
     );
+    res.setHeader('CDN-Cache-Control', `max-age=${cacheTime}`);
   } else {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   }

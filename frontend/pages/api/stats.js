@@ -1,6 +1,8 @@
 import { supabase } from '../../lib/supabase';
 import { withOptionalAuth } from '../../lib/auth-middleware';
 import { handleAPIResponse, handleAPIError } from '../../lib/api-utils';
+import { memoryCache, createCacheKey, CACHE_DURATIONS } from '../../lib/memory-cache';
+import { generateETag, checkETag } from '../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -11,6 +13,25 @@ async function handler(req, res) {
   }
 
   try {
+    const isAdmin = req.user?.admin || false;
+    const cacheKey = createCacheKey('stats', isAdmin ? 'admin' : 'public');
+
+    // TRY MEMORY CACHE FIRST
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      console.log('📊 Serving stats from memory cache');
+      const etag = generateETag(cached);
+      if (checkETag(req, etag)) {
+        return res.status(304).end();
+      }
+      
+      return handleAPIResponse(res, cached, { 
+        cache: true, 
+        cacheTime: 300,
+        enableETag: true 
+      });
+    }
+
     // Get basic stats (visible to all users)
     const [
       { count: activeChallenges },
@@ -62,7 +83,7 @@ async function handler(req, res) {
     };
 
     // If user is admin, add detailed stats
-    if (req.user?.admin) {
+    if (isAdmin) {
       const [
         { count: totalChallenges },
         { count: totalScores },
@@ -114,7 +135,14 @@ async function handler(req, res) {
       };
     }
 
-    return handleAPIResponse(res, basicStats);
+    // Cache for 5 minutes
+    memoryCache.set(cacheKey, basicStats, CACHE_DURATIONS.STATS);
+
+    return handleAPIResponse(res, basicStats, { 
+      cache: true, 
+      cacheTime: 300,
+      enableETag: true 
+    });
 
   } catch (error) {
     console.error('Stats API error:', error);

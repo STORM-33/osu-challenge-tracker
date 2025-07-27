@@ -26,6 +26,68 @@ const smartFetcher = async (url) => {
   return data.data || data;
 };
 
+// Enhanced fetcher with local storage backup
+const enhancedFetcher = async (url) => {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'Cache-Control': 'max-age=600' // Tell CDN to cache
+      }
+    });
+    
+    if (!res.ok) {
+      const error = new Error('API request failed');
+      error.status = res.status;
+      
+      try {
+        const data = await res.json();
+        error.message = data.error?.message || 'An error occurred';
+        error.code = data.error?.code;
+      } catch (e) {
+        error.message = res.statusText || 'An error occurred';
+      }
+      
+      throw error;
+    }
+    
+    const data = await res.json();
+    const result = data.data || data;
+    
+    // Store in localStorage as backup (with TTL)
+    if (typeof window !== 'undefined') {
+      try {
+        const cacheData = {
+          data: result,
+          timestamp: Date.now(),
+          ttl: 300000 // 5 minutes
+        };
+        localStorage.setItem(`cache_${url}`, JSON.stringify(cacheData));
+      } catch (e) {
+        // Ignore storage errors
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    // Try localStorage backup on network errors
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(`cache_${url}`);
+        if (cached) {
+          const { data, timestamp, ttl } = JSON.parse(cached);
+          if (Date.now() - timestamp < ttl) {
+            console.log('📱 Using localStorage backup for:', url);
+            return data;
+          }
+        }
+      } catch (e) {
+        // Ignore storage errors
+      }
+    }
+    throw error;
+  }
+};
+
 export function useAPI(endpoint, options = {}) {
   const {
     refreshInterval = null,
@@ -36,11 +98,14 @@ export function useAPI(endpoint, options = {}) {
 
   const { data, error, mutate, isValidating } = useSWR(
     enabled ? endpoint : null,
-    smartFetcher,
+    enhancedFetcher, // Use enhanced fetcher
     {
       refreshInterval,
       revalidateOnFocus,
       fallbackData: initialData,
+      dedupingInterval: 60000, // Dedupe requests for 1 minute
+      focusThrottleInterval: 60000, // Throttle focus revalidation
+      errorRetryInterval: 30000, // Retry failed requests every 30s
       onError: (err) => {
         console.error(`API Error (${endpoint}):`, err);
       }

@@ -1,6 +1,8 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { seasonUtils } from '../../../lib/seasons';
 import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
+import { memoryCache, createCacheKey, CACHE_DURATIONS } from '../../../lib/memory-cache';
+import { generateETag, checkETag } from '../../../lib/api-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -8,6 +10,25 @@ async function handler(req, res) {
   }
 
   try {
+    const cacheKey = createCacheKey('current_season', 'current');
+    
+    // TRY MEMORY CACHE FIRST
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      console.log('🎯 Serving current season from memory cache');
+      const etag = generateETag(cached);
+      if (checkETag(req, etag)) {
+        return res.status(304).end();
+      }
+      
+      return handleAPIResponse(res, cached, { 
+        cache: true, 
+        cacheTime: 3600,
+        enableETag: true,
+        req // Pass req for ETag handling
+      });
+    }
+
     const { data: currentSeason, error } = await supabaseAdmin
       .from('seasons')
       .select('*')
@@ -25,6 +46,8 @@ async function handler(req, res) {
     // Check if current season has expired or doesn't exist
     const now = new Date();
     const shouldRotate = !currentSeason || (currentSeason && new Date(currentSeason.end_date) < now);
+
+    let responseData;
 
     if (shouldRotate) {
       console.log(`🔄 Season rotation needed: ${currentSeason ? `${currentSeason.name} expired on ${currentSeason.end_date}` : 'No current season found'}`);
@@ -77,11 +100,11 @@ async function handler(req, res) {
         }
         
         console.log(`✅ Reactivated existing season: ${seasonName}`);
-        return handleAPIResponse(res, {
+        responseData = {
           season: updatedSeason,
           rotated: true,
           message: `Season rotated to existing ${seasonName}`
-        });
+        };
         
       } else {
         // Create brand new season
@@ -109,30 +132,40 @@ async function handler(req, res) {
         const seasonNumber = seasonUtils.getSeasonNumber(seasonName);
         console.log(`✅ Created new season: ${seasonName} (${dateRange.start_date} to ${dateRange.end_date})`);
         
-        return handleAPIResponse(res, {
+        responseData = {
           season: newSeason,
           rotated: true,
           season_number: seasonNumber,
           message: `Season rotated to new ${seasonName}`,
-        });
+        };
       }
+    } else {
+      // Current season is still valid - return it
+      const seasonEnd = new Date(currentSeason.end_date);
+      const daysUntilExpiry = Math.ceil((seasonEnd - now) / (1000 * 60 * 60 * 24));
+      
+      // Extract season number using utility function
+      const seasonNumber = seasonUtils.getSeasonNumber(currentSeason.name);
+      
+      console.log(`✅ Current season ${currentSeason.name} is valid (${daysUntilExpiry} days remaining)`);
+      
+      responseData = {
+        season: currentSeason,
+        rotated: false,
+        daysUntilExpiry,
+        season_number: seasonNumber,
+        message: `Current season ${currentSeason.name} is active`
+      };
     }
 
-    // Current season is still valid - return it
-    const seasonEnd = new Date(currentSeason.end_date);
-    const daysUntilExpiry = Math.ceil((seasonEnd - now) / (1000 * 60 * 60 * 24));
-    
-    // Extract season number using utility function
-    const seasonNumber = seasonUtils.getSeasonNumber(currentSeason.name);
-    
-    console.log(`✅ Current season ${currentSeason.name} is valid (${daysUntilExpiry} days remaining)`);
-    
-    return handleAPIResponse(res, {
-      season: currentSeason,
-      rotated: false,
-      daysUntilExpiry,
-      season_number: seasonNumber,
-      message: `Current season ${currentSeason.name} is active`
+    // Cache for 1 hour
+    memoryCache.set(cacheKey, responseData, CACHE_DURATIONS.SEASONS);
+
+    return handleAPIResponse(res, responseData, { 
+      cache: true, 
+      cacheTime: 3600,
+      enableETag: true,
+      req // Pass req for ETag handling
     });
 
   } catch (error) {
