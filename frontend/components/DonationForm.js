@@ -132,7 +132,7 @@ export default function DonationForm({ user, selectedAmount, onSuccess, onError 
       {/* Donation Type Toggle */}
       <div className="view-mode-slider">
         <div className="slider-track">
-          <div className={`slider-thumb ${isRecurring ? 'slider-thumb-right' : ''}`} />
+          <div className={`slider-thumb-two-option ${isRecurring ? 'slider-thumb-two-option-right' : ''}`} />
           <button
             type="button"
             onClick={() => setIsRecurring(false)}
