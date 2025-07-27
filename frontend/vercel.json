@@ -25,15 +25,15 @@
   ],
   "headers": [
     {
-      "source": "/api/challenges/(.*)",
+      "source": "/(.*\\.(css|js|ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|otf|webp|avif))$",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "s-maxage=600, stale-while-revalidate=300"
+          "value": "public, max-age=31536000, s-maxage=31536000, immutable"
         },
         {
           "key": "CDN-Cache-Control",
-          "value": "max-age=600"
+          "value": "max-age=31536000"
         }
       ]
     },
@@ -42,7 +42,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "s-maxage=3600, stale-while-revalidate=1800"
+          "value": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=1800"
         },
         {
           "key": "CDN-Cache-Control",
@@ -55,7 +55,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "s-maxage=1800, stale-while-revalidate=900"
+          "value": "public, max-age=900, s-maxage=1800, stale-while-revalidate=900"
         },
         {
           "key": "CDN-Cache-Control",
@@ -68,7 +68,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "s-maxage=300, stale-while-revalidate=150"
+          "value": "public, max-age=150, s-maxage=300, stale-while-revalidate=150"
         },
         {
           "key": "CDN-Cache-Control",
@@ -81,7 +81,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "s-maxage=600, stale-while-revalidate=300"
+          "value": "public, max-age=300, s-maxage=600, stale-while-revalidate=300"
         },
         {
           "key": "CDN-Cache-Control",
@@ -94,11 +94,42 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "s-maxage=60, stale-while-revalidate=30"
+          "value": "public, max-age=30, s-maxage=60, stale-while-revalidate=30"
         },
         {
           "key": "CDN-Cache-Control",
           "value": "max-age=60"
+        }
+      ]
+    },
+    {
+      "source": "/api/challenges/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, s-maxage=600, stale-while-revalidate=300"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=600"
+        }
+      ]
+    },
+    {
+      "source": "/api/auth/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/api/admin/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     }
