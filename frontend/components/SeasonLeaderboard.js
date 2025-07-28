@@ -223,7 +223,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
               {currentUser && (
                 <div className="view-mode-slider text-sm sm:text-base">
                   <div className="slider-track">
-                    <div className={`slider-thumb ${viewMode === 'context' ? 'slider-thumb-right' : ''}`} />
+                    <div className={`slider-thumb-two-option ${viewMode === 'context' ? 'slider-thumb-two-option-right' : ''}`} />
                     <button
                       onClick={() => handleViewModeChange('full')}
                       className={`slider-option ${viewMode === 'full' ? 'slider-option-active' : ''}`}
