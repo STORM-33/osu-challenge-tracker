@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/AuthContext';
-import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu } from 'lucide-react';
+import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Home, Settings, ChevronDown } from 'lucide-react';
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
   const { user, loading, isAdmin, signOut } = useAuth(); 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const router = useRouter();
 
   // Close mobile menu when route changes
@@ -14,12 +16,27 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
     setMobileMenuOpen(false);
   }, [router.pathname]);
 
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const handleLogout = async () => {
     try {
       console.log('🚪 Starting logout...');
       await signOut();
       
       console.log('✅ Logout completed');
+      setProfileDropdownOpen(false);
       
       if (router.pathname !== '/') {
         router.push('/');
@@ -27,6 +44,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
       
     } catch (error) {
       console.error('🚨 Logout error:', error);
+      setProfileDropdownOpen(false);
       // Still redirect on error
       if (router.pathname !== '/') {
         router.push('/');
@@ -36,10 +54,11 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
 
   // Navigation items configuration
   const navItems = [
-    { href: '/', label: 'challenges', icon: Trophy },
+    { href: '/', label: 'home', icon: Home },
+    { href: '/challenges', label: 'challenges', icon: Trophy },
     { href: '/leaderboard', label: 'leaderboard', icon: BarChart3 },
-    { href: '/partners', label: 'partners', icon: Link2 },
     { href: '/donate', label: 'donate', icon: Heart },
+    { href: '/partners', label: 'partners', icon: Link2 },
   ];
 
   return (
@@ -54,7 +73,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
       />
       
       {/* Header with only grid pattern that fades */}
-      <header className="relative z-50 overflow-hidden">
+      <header className="relative z-40 overflow-visible">
         {/* Only the grid pattern with fade - no background panels */}
         <div className="absolute inset-0">
           <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -122,7 +141,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-2">
+            <nav className="hidden md:flex items-center gap-2 relative">
               {navItems.map((item) => (
                 <Link 
                   key={item.href}
@@ -141,42 +160,6 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                 </Link>
               ))}
 
-              {/* Profile link - only show if user is logged in */}
-              {user && (
-                <Link 
-                  href={`/profile/${user.id}`}
-                  prefetch={false}
-                  className={
-                    router.pathname === `/profile/${user.id}` || router.pathname.startsWith('/profile/')
-                      ? 'nav-pill-active text-shadow-adaptive-sm'
-                      : 'nav-pill-inactive text-shadow-adaptive-sm'
-                  }
-                >
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 icon-shadow-adaptive-sm" />
-                    profile
-                  </div>
-                </Link>
-              )}
-
-              {/* Admin link - show if user exists and is admin */}
-              {user && isAdmin && (
-                <Link 
-                  href="/admin"
-                  prefetch={false}
-                  className={
-                    router.pathname === '/admin'
-                      ? 'nav-pill-active text-shadow-adaptive-sm'
-                      : 'nav-pill-inactive text-shadow-adaptive-sm'
-                  }
-                >
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4 icon-shadow-adaptive-sm" />
-                    admin
-                  </div>
-                </Link>
-              )}
-
               {/* Auth Section */}
               {loading ? (
                 <div className="px-5 py-2.5 text-white/50 text-shadow-adaptive-sm">Loading...</div>
@@ -190,8 +173,11 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                   log in with osu!
                 </Link>
               ) : (
-                <div className="flex items-center gap-4 ml-4">
-                  <div className="flex items-center gap-2">
+                <div className="relative ml-4" ref={dropdownRef}>
+                  <button
+                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md bg-white/15 hover:bg-white/20 transition-all duration-300 border-2 border-white/20 hover:border-white/30"
+                  >
                     {user.avatar_url ? (
                       <img 
                         src={user.avatar_url} 
@@ -203,7 +189,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                         <User className="w-4 h-4" />
                       </div>
                     )}
-                    <div className="flex flex-col">
+                    <div className="flex flex-col text-left">
                       <span className="text-sm font-medium text-white text-shadow-adaptive-sm leading-tight">
                         {user.username}
                       </span>
@@ -213,14 +199,51 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                         </span>
                       )}
                     </div>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="text-white/70 hover:text-white transition-colors"
-                    title="Logout"
-                  >
-                    <LogOut className="w-4 h-4 icon-shadow-adaptive-sm" />
+                    <ChevronDown className={`w-4 h-4 text-white/70 transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
+
+                  {/* Profile Dropdown */}
+                  {profileDropdownOpen && (
+                    <div className="absolute top-full right-0 w-56 mt-2 season-dropdown rounded-2xl shadow-lg z-[100] backdrop-blur-lg">
+                      <Link
+                        href={`/profile/${user.id}`}
+                        prefetch={false}
+                        className="w-full px-5 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 first:rounded-t-2xl flex items-center gap-3 text-white/90 hover:text-white"
+                        onClick={() => setProfileDropdownOpen(false)}
+                      >
+                        <User className="w-4 h-4" />
+                        <span className="font-medium text-sm text-shadow-adaptive-lg">View Profile</span>
+                      </Link>
+                      
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          prefetch={false}
+                          className="w-full px-5 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 flex items-center gap-3 text-white/90 hover:text-white"
+                          onClick={() => setProfileDropdownOpen(false)}
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span className="font-medium text-sm text-shadow-adaptive-lg">Admin</span>
+                        </Link>
+                      )}
+
+                      <button
+                        className="w-full px-5 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 flex items-center gap-3 text-white/90 hover:text-white"
+                        disabled
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span className="font-medium text-sm text-shadow-adaptive-lg opacity-50">Settings</span>
+                      </button>
+
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-5 py-3 text-left hover:bg-white/10 transition-colors last:rounded-b-2xl flex items-center gap-3 text-white/90 hover:text-white"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span className="font-medium text-sm text-shadow-adaptive-lg">Logout</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </nav>
@@ -311,42 +334,6 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                   </Link>
                 ))}
 
-                {/* Profile Link */}
-                {user && (
-                  <Link 
-                    href={`/profile/${user.id}`}
-                    prefetch={false}
-                    className={`
-                      flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-base
-                      ${router.pathname === `/profile/${user.id}` || router.pathname.startsWith('/profile/')
-                        ? 'bg-white/20 text-white border border-white/20' 
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
-                      }
-                    `}
-                  >
-                    <User className="w-5 h-5 icon-shadow-adaptive-sm" />
-                    profile
-                  </Link>
-                )}
-
-                {/* Admin Link */}
-                {user && isAdmin && (
-                  <Link 
-                    href="/admin"
-                    prefetch={false}
-                    className={`
-                      flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-base
-                      ${router.pathname === '/admin'
-                        ? 'bg-white/20 text-white border border-white/20' 
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
-                      }
-                    `}
-                  >
-                    <Plus className="w-5 h-5 icon-shadow-adaptive-sm" />
-                    admin
-                  </Link>
-                )}
-
                 {/* Divider */}
                 <div className="border-t border-white/10 my-4"></div>
 
@@ -388,6 +375,37 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                         )}
                       </div>
                     </div>
+
+                    {/* Profile Actions */}
+                    <Link 
+                      href={`/profile/${user.id}`}
+                      prefetch={false}
+                      className="flex items-center gap-3 px-4 py-3 w-full text-left text-white/80 hover:bg-white/10 hover:text-white transition-all duration-200 rounded-lg"
+                    >
+                      <User className="w-5 h-5 icon-shadow-adaptive-sm" />
+                      view profile
+                    </Link>
+
+                    {/* Admin Link */}
+                    {isAdmin && (
+                      <Link 
+                        href="/admin"
+                        prefetch={false}
+                        className="flex items-center gap-3 px-4 py-3 w-full text-left text-white/80 hover:bg-white/10 hover:text-white transition-all duration-200 rounded-lg"
+                      >
+                        <Plus className="w-5 h-5 icon-shadow-adaptive-sm" />
+                        admin
+                      </Link>
+                    )}
+
+                    {/* Settings */}
+                    <button
+                      className="flex items-center gap-3 px-4 py-3 w-full text-left text-white/50 rounded-lg cursor-not-allowed"
+                      disabled
+                    >
+                      <Settings className="w-5 h-5 icon-shadow-adaptive-sm" />
+                      settings
+                    </button>
 
                     {/* Logout Button */}
                     <button

@@ -30,6 +30,10 @@ export default function UserProfile() {
   35: { type: 'designer', label: 'o!C Staff - Graphic Designer' },
   268: { type: 'developer', label: 'o!C Staff - Developer' },
   671: { type: 'lead', label: 'o!C Staff - Project Lead' },
+  3: { type: 'qa', label: 'o!C Staff - QA Tester' },
+  20186: { type: 'developer', label: 'o!C Staff - Developer' },
+  20186: { type: 'strategist', label: 'o!C Staff - Strategist' },
+  1: { type: 'developer', label: 'o!C Staff - Developer' },
 };
 
   useEffect(() => {

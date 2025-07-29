@@ -733,6 +733,42 @@
     box-shadow: 0 0 15px rgba(255, 215, 130, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
   }
 
+    div.staff-badge.staff-badge-mapper,
+  .staff-badge-mapper.staff-badge {
+    background: linear-gradient(to bottom, #e63e3e, #be2625) !important;
+    background-color: #e63e3e !important;
+    background-image: linear-gradient(to bottom, #e63e3e, #be2625) !important;
+    border: 3px solid #ff8074 !important;
+    box-shadow: 0 0 15px rgba(255, 128, 116, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  div.staff-badge.staff-badge-strategist,
+  .staff-badge-strategist.staff-badge {
+    background: linear-gradient(to bottom, #3982fa, #2056c3) !important;
+    background-color: #3982fa !important;
+    background-image: linear-gradient(to bottom, #3982fa, #2056c3) !important;
+    border: 3px solid #72aeff !important;
+    box-shadow: 0 0 15px rgba(114, 174, 255, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  div.staff-badge.staff-badge-qa,
+  .staff-badge-qa.staff-badge {
+    background: linear-gradient(to bottom, #ff6d00, #9b3401) !important;
+    background-color: #ff6d00 !important;
+    background-image: linear-gradient(to bottom, #ff6d00, #9b3401) !important;
+    border: 3px solid #ffa453 !important;
+    box-shadow: 0 0 15px rgba(255, 164, 83, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  div.staff-badge.staff-badge-artist,
+  .staff-badge-artist.staff-badge {
+    background: linear-gradient(to bottom, #8a34e3, #682ec1) !important;
+    background-color: #8a34e3 !important;
+    background-image: linear-gradient(to bottom, #8a34e3, #682ec1) !important;
+    border: 3px solid #c086ff !important;
+    box-shadow: 0 0 15px rgba(192, 134, 255, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+
   .profile-picture {
     filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
   }
