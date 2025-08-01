@@ -50,11 +50,6 @@ const LoadingSpinner = ({
 const FullPageLoading = ({ message = "Loading...", showLogo = false }) => {
   return (
     <div className="min-h-screen flex items-center justify-center relative">
-      {/* Background with subtle animation */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute -top-8 -right-8 w-96 h-96 bg-white rounded-full blur-3xl animate-pulse-soft"></div>
-        <div className="absolute -bottom-8 -left-8 w-80 h-80 bg-white rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }}></div>
-      </div>
       
       <div className="max-w-md w-full mx-4">
         {showLogo && (
