@@ -14,7 +14,7 @@ export default function AboutChallengers() {
             <div className="text-center">
               {/* Trophy Animation Container */}
               <div className="relative inline-block mb-6 sm:mb-8">
-                <Trophy className="w-16 h-16 sm:w-24 sm:h-24 text-white relative z-10 icon-shadow-adaptive-lg animate-float" />
+                <Trophy className="w-16 h-16 sm:w-24 sm:h-24 text-white relative z-10 animate-float" />
               </div>
               
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white text-shadow-adaptive-lg mb-4 sm:mb-6">
