@@ -424,18 +424,34 @@ export default function AdminChallenges() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Link href="/admin" className="text-primary-600 hover:text-primary-700 transition-colors">
-              <ChevronLeft className="w-6 h-6" />
-            </Link>
-            <Settings className="w-8 h-8 text-primary-600" />
-            <h1 className="text-3xl font-bold text-neutral-800">Challenge Management</h1>
+        <div className="mb-12">
+          <div className="flex items-start justify-between mb-8">
+            <div>
+              <div className="flex items-center gap-4 mb-4">
+                <Link href="/admin" className="text-primary-600 hover:text-primary-700 transition-colors">
+                  <ChevronLeft className="w-8 h-8 icon-adaptive-shadow" />
+                </Link>
+                
+                <div className="relative">
+                  <Settings className="w-10 h-10 text-primary-600 icon-adaptive-shadow" />
+                </div>
+                
+                {/* Header with adaptive text shadow */}
+                <h1 
+                  className="text-4xl font-bold text-neutral-800 text-white/90 text-adaptive-shadow"
+                  data-text="Challenge Management"
+                >
+                  Challenge Management
+                </h1>
+              </div>
+              
+              {/* Description */}
+              <p className="text-neutral-600 text-lg max-w-3xl text-white/85 text-adaptive-shadow">
+                Edit challenge names, manage rulesets, and configure display settings across all seasons. 
+                Challenges are sorted by date ended (most recent first).
+              </p>
+            </div>
           </div>
-          <p className="text-neutral-600">
-            Edit challenge names, manage rulesets, and configure display settings across all seasons. Challenges are sorted by date ended (most recent first).
-          </p>
         </div>
 
         {/* Enhanced Summary Cards */}
