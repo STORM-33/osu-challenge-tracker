@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/AuthContext';
+import { useSettings } from '../lib/SettingsContext';
 import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Home, Settings, ChevronDown } from 'lucide-react';
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
   const { user, loading, isAdmin, signOut } = useAuth(); 
+  const { settings, getBackgroundStyle, loading: settingsLoading } = useSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -63,14 +65,28 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
 
   return (
     <div className="min-h-screen relative">
-      {/* Background image layer */}
-      <div 
-        className="fixed inset-0 -z-20 bg-cover bg-center"
-        style={{ 
-          backgroundImage: `url(${backgroundImage})`,
-          filter: 'blur(8px) brightness(0.8)'
-        }}
-      />
+      {/* Background image layer - now using settings */}
+      {settings.background_enabled ? (
+        settings.donor_background_id ? (
+          // Donor background
+          <div 
+            className="fixed inset-0 -z-20 bg-cover bg-center"
+            style={getBackgroundStyle()}
+          />
+        ) : (
+          // Color/gradient background
+          <div 
+            className="fixed inset-0 -z-20"
+            style={getBackgroundStyle()}
+          />
+        )
+      ) : (
+        // Disabled background - use solid dark color
+        <div 
+          className="fixed inset-0 -z-20"
+          style={{ backgroundColor: '#0a0a0a' }}
+        />
+      )}
       
       {/* Header with only grid pattern that fades */}
       <header className="relative z-40 overflow-visible">
@@ -215,6 +231,17 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                         <span className="font-medium text-sm text-shadow-adaptive-lg">View Profile</span>
                       </Link>
                       
+                      {/* Settings Link */}
+                      <Link
+                        href="/settings"
+                        prefetch={false}
+                        className="w-full px-5 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 flex items-center gap-3 text-white/90 hover:text-white"
+                        onClick={() => setProfileDropdownOpen(false)}
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span className="font-medium text-sm text-shadow-adaptive-lg">Settings</span>
+                      </Link>
+                      
                       {isAdmin && (
                         <Link
                           href="/admin"
@@ -226,14 +253,6 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                           <span className="font-medium text-sm text-shadow-adaptive-lg">Admin</span>
                         </Link>
                       )}
-
-                      <button
-                        className="w-full px-5 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 flex items-center gap-3 text-white/90 hover:text-white"
-                        disabled
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span className="font-medium text-sm text-shadow-adaptive-lg opacity-50">Settings</span>
-                      </button>
 
                       <button
                         onClick={handleLogout}
@@ -386,6 +405,16 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                       view profile
                     </Link>
 
+                    {/* Settings Link for Mobile */}
+                    <Link 
+                      href="/settings"
+                      prefetch={false}
+                      className="flex items-center gap-3 px-4 py-3 w-full text-left text-white/80 hover:bg-white/10 hover:text-white transition-all duration-200 rounded-lg"
+                    >
+                      <Settings className="w-5 h-5 icon-shadow-adaptive-sm" />
+                      settings
+                    </Link>
+
                     {/* Admin Link */}
                     {isAdmin && (
                       <Link 
@@ -397,15 +426,6 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                         admin
                       </Link>
                     )}
-
-                    {/* Settings */}
-                    <button
-                      className="flex items-center gap-3 px-4 py-3 w-full text-left text-white/50 rounded-lg cursor-not-allowed"
-                      disabled
-                    >
-                      <Settings className="w-5 h-5 icon-shadow-adaptive-sm" />
-                      settings
-                    </button>
 
                     {/* Logout Button */}
                     <button

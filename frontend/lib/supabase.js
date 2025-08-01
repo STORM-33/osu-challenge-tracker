@@ -457,3 +457,100 @@ export const auth = {
     }
   }
 };
+
+// Settings helper functions
+export const settingsQueries = {
+  // Get user settings
+  getUserSettings: async (userId) => {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code === 'PGRST116') {
+      // No settings found, return defaults
+      return {
+        background_enabled: true,
+        background_type: 'gradient',
+        background_color: '#FFA500',
+        background_gradient_end: '#FF6347',
+        background_blur: 50,
+        background_dimming: 50,
+        background_saturation: 0,
+        animations_enabled: true,
+        number_format: 'abbreviated',
+        default_profile_tab: 'recent',
+        profile_visibility: 'public',
+        donor_background_id: null,
+        donor_effects: {}
+      };
+    }
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Update user settings
+  updateUserSettings: async (userId, settings) => {
+    const { data: existing } = await supabase
+      .from('user_settings')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+
+    if (existing) {
+      // Update existing settings
+      const { data, error } = await supabase
+        .from('user_settings')
+        .update({
+          ...settings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } else {
+      // Create new settings
+      const { data, error } = await supabase
+        .from('user_settings')
+        .insert({
+          user_id: userId,
+          ...settings
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+  },
+
+  // Get available donor backgrounds
+  getDonorBackgrounds: async (minDonationAmount = 0) => {
+    const { data, error } = await supabase
+      .from('donor_backgrounds')
+      .select('*')
+      .eq('is_active', true)
+      .lte('min_donation_total', minDonationAmount)
+      .order('sort_order', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Get single donor background
+  getDonorBackground: async (backgroundId) => {
+    const { data, error } = await supabase
+      .from('donor_backgrounds')
+      .select('*')
+      .eq('id', backgroundId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+};

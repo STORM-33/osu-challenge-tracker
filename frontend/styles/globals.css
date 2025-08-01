@@ -949,4 +949,62 @@
       drop-shadow(0 0 8px rgba(147, 197, 253, 0.2))
       drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   }
+
+  /* Custom range slider styles for settings */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    outline: none;
+    opacity: 0.9;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+  }
+
+  .slider:hover {
+    opacity: 1;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: white;
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: white;
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Color picker custom styles */
+  input[type="range"].hue-slider::-webkit-slider-track {
+    height: 100%;
+    border-radius: 8px;
+  }
+
+  input[type="range"].hue-slider::-moz-range-track {
+    height: 100%;
+    border-radius: 8px;
+  }
+
+  /* Settings specific glass effects */
+  .settings-glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .settings-glass-hover:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
 }

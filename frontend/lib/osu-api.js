@@ -6,7 +6,6 @@ class TrackedOsuAPI {
     this.baseURL = 'https://osu.ppy.sh/api/v2';
     this.token = null;
     
-    // CRITICAL FIX: Bind methods to ensure 'this' context is preserved
     this.getToken = this.getToken.bind(this);
     this.getUser = this.getUser.bind(this);
     this.getRoom = this.getRoom.bind(this);
@@ -16,7 +15,7 @@ class TrackedOsuAPI {
     this.getUsers = this.getUsers.bind(this);
   }
 
-  // Get OAuth token (tracked)
+  // Get OAuth token
   async getToken() {
     if (this.token && this.token.expires > Date.now()) {
       return this.token.access_token;
@@ -51,7 +50,7 @@ class TrackedOsuAPI {
     return this.token.access_token;
   }
 
-  // Get user data (tracked)
+  // Get user data 
   async getUser(userId) {
     const token = await this.getToken();
     
@@ -72,7 +71,7 @@ class TrackedOsuAPI {
     return response.json();
   }
 
-  // Get multiplayer room (tracked)
+  // Get multiplayer room 
   async getRoom(roomId) {
     try {
       const token = await this.getToken();
@@ -93,13 +92,13 @@ class TrackedOsuAPI {
       
     } catch (error) {
       console.error(`❌ osu! API failed: GET /rooms/${roomId}`, error.message);
-      // KEEP: Only error logging
+
       syncLogger.syncError('osu-api', roomId, error, null, { roomId });
       throw error;
     }
   }
 
-  // Get room scores (tracked) - FIXED METHOD
+  // Get room scores
   async getRoomScores(roomId, playlistId, limit = 50, cursor = null) {
     const token = await this.getToken();
     
@@ -122,10 +121,14 @@ class TrackedOsuAPI {
     }
 
     console.log(`osu! API request successful: /rooms/${roomId}/playlist/${playlistId}/scores`);
-    return response.json();
+    
+    // Parse the response first
+    const data = await response.json();
+    
+    return data;
   }
 
-  // Get all scores for a playlist (handles pagination) - ENHANCED WITH BETTER ERROR HANDLING
+  // Get all scores for a playlist (handles pagination)
   async getAllRoomScores(roomId, playlistId) {
     const startTime = Date.now();
     
@@ -159,7 +162,6 @@ class TrackedOsuAPI {
 
       console.log(`Finished fetching scores: ${allScores.length} total (${apiCallCount} API calls made)`);
       
-      // KEEP: Only basic success logging
       if (process.env.NODE_ENV === 'development') {
         syncLogger.log('osu-api', 'scores-complete', `Fetched ${allScores.length} scores`, startTime, {
           roomId, playlistId, totalScores: allScores.length
@@ -169,13 +171,12 @@ class TrackedOsuAPI {
       return allScores;
       
     } catch (error) {
-      // KEEP: Error logging
       syncLogger.syncError('osu-api', `${roomId}-${playlistId}`, error, startTime, { roomId, playlistId });
       throw error;
     }
   }
 
-  // Get beatmap data (tracked)
+  // Get beatmap data 
   async getBeatmap(beatmapId) {
     const token = await this.getToken();
     
@@ -196,7 +197,7 @@ class TrackedOsuAPI {
     return response.json();
   }
 
-  // Batch get users (tracked - but counts as multiple calls)
+  // Batch get users
   async getUsers(userIds) {
     const users = [];
     
@@ -239,5 +240,5 @@ class TrackedOsuAPI {
   }
 }
 
-// Export singleton instance - CRITICAL FIX: Ensure proper instantiation
+// Export singleton instance
 export const trackedOsuAPI = new TrackedOsuAPI();

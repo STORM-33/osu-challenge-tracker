@@ -257,8 +257,8 @@ async function handleCreateChallenge(req, res) {
 
       if (seasonResponse.ok) {
         const seasonData = await seasonResponse.json();
-        if (seasonData.success && seasonData.season) {
-          currentSeasonId = seasonData.season.id;
+        if (seasonData.success && seasonData.data?.season) {
+          currentSeasonId = seasonData.data.season.id;
           console.log(`✅ Found current season: ${currentSeasonId}`);
         }
       }

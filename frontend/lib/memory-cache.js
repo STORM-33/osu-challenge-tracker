@@ -80,6 +80,7 @@ export const CACHE_DURATIONS = {
   CHALLENGE_DETAIL: 600000, // 10 minutes
   LEADERBOARD: 600000,     // 10 minutes
   USER_PROFILE: 600000,    // 10 minutes
+  SETTINGS: 300000,        // 5 minutes - Settings cache duration
   STATS: 300000,           // 5 minutes
   HEALTH: 60000,           // 1 minute
   AUTH_STATUS: 30000,      // 30 seconds
@@ -95,4 +96,35 @@ export function createCacheKey(type, id, params = {}) {
         .join('&')
     : '';
   return `${type}_${id}${paramsStr}`;
+}
+
+// Settings-specific cache helpers
+export function createSettingsCacheKey(userId) {
+  return createCacheKey('settings', userId);
+}
+
+export function cacheUserSettings(userId, settings, donorStatus, availableBackgrounds) {
+  const cacheKey = createSettingsCacheKey(userId);
+  const cacheData = {
+    settings,
+    donorStatus,
+    availableBackgrounds,
+    timestamp: Date.now()
+  };
+  
+  memoryCache.set(cacheKey, cacheData, CACHE_DURATIONS.SETTINGS);
+  console.log(`📱 Cached settings for user ${userId}`);
+  return cacheKey;
+}
+
+export function getCachedUserSettings(userId) {
+  const cacheKey = createSettingsCacheKey(userId);
+  const cached = memoryCache.get(cacheKey);
+  
+  if (cached) {
+    console.log(`📱 Retrieved cached settings for user ${userId}`);
+    return cached;
+  }
+  
+  return null;
 }

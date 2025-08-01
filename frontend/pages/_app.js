@@ -1,26 +1,31 @@
-import Head from 'next/head';
 import '../styles/globals.css';
-import { useEffect } from 'react';
 import { AuthProvider } from '../lib/AuthContext';
+import { SettingsProvider } from '../lib/SettingsContext';
+import { Toaster } from 'react-hot-toast';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 function MyApp({ Component, pageProps }) {
-  useEffect(() => {
-    // Ensure light theme is applied
-    document.documentElement.classList.remove('dark');
-  }, []);
-
   return (
-    <AuthProvider> 
-      <Head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
-        <link 
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" 
-          rel="stylesheet" 
-        />
-      </Head>
-      <Component {...pageProps} />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <SettingsProvider>
+          <Component {...pageProps} />
+          <Toaster 
+            position="bottom-right"
+            toastOptions={{
+              className: 'glass-2 text-white font-medium',
+              style: {
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: '#fff',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              },
+              duration: 4000,
+            }}
+          />
+        </SettingsProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

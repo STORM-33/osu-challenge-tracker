@@ -41,6 +41,9 @@ export class CacheInvalidator {
               localStorage.removeItem(storageKey);
             }
           });
+        } else if (key.includes('settings')) {
+          // Clear settings cache from localStorage
+          localStorage.removeItem('user_settings_cache');
         }
       });
     }
@@ -73,6 +76,17 @@ cacheInvalidator.registerPattern('stats', [
   'stats_*'
 ]);
 
+// Settings invalidation pattern
+cacheInvalidator.registerPattern('settings', [
+  'settings_*'
+]);
+
+// User-specific invalidation (for when user data changes)
+cacheInvalidator.registerPattern('user_data', [
+  'settings_*',
+  'user_profile_*'
+]);
+
 // Helper function to invalidate after updates
 export function invalidateAfterUpdate(type, id = null) {
   switch (type) {
@@ -87,7 +101,26 @@ export function invalidateAfterUpdate(type, id = null) {
     case 'season':
       cacheInvalidator.invalidate('seasons');
       break;
+    case 'settings':
+      cacheInvalidator.invalidate('settings');
+      break;
+    case 'user':
+      cacheInvalidator.invalidate('user_data');
+      break;
     default:
       console.log(`No invalidation pattern for type: ${type}`);
+  }
+}
+
+// Helper to invalidate user-specific settings
+export function invalidateUserSettings(userId) {
+  if (userId) {
+    memoryCache.delete(`settings_${userId}`);
+    console.log(`🗑️ Invalidated settings cache for user ${userId}`);
+    
+    // Clear localStorage cache if on client
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_settings_cache');
+    }
   }
 }
