@@ -10,7 +10,7 @@ const DEFAULT_SETTINGS = {
   background_type: 'gradient',
   background_color: '#FF5714',
   background_gradient_end: '#1056F9',
-  background_blur: 50,
+  background_blur: 6,
   background_dimming: 50,
   background_saturation: 0,
   

@@ -215,14 +215,14 @@ export default function AppearanceTab() {
               <input
                 type="range"
                 min="0"
-                max="70"
+                max="12"
                 value={localSettings.background_blur}
                 onChange={(e) => handleChange('background_blur', parseInt(e.target.value))}
                 className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
               />
               <div className="flex justify-between mt-1">
                 <span className="text-xs text-white/50">0%</span>
-                <span className="text-xs text-white/50">70%</span>
+                <span className="text-xs text-white/50">12%</span>
               </div>
             </div>
 
