@@ -9,7 +9,7 @@ import { SyncStatusIndicator } from '../components/SyncStatusIndicator';
 import { useSmartSync } from '../hooks/useSmartSync';
 import { 
   Loader2, Trophy, History, Sparkles, RefreshCw, 
-  Users, Music, Clock, Info, AlertCircle
+  Users, Music, Clock, MessageCircle, AlertCircle
 } from 'lucide-react';
 import { syncConfig } from '../lib/sync-config';
 
@@ -222,14 +222,18 @@ export default function Home() {
                 
                 {/* About Challenges Button - Mobile First */}
                 <div className="flex flex-col items-center lg:items-end lg:flex-shrink-0">
-                  <Link href="/about-challengers">
+                  <a 
+                    href="https://discord.com/invite/FbXx6uZpUg" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
                     <button className="flex items-center gap-2 sm:gap-3 px-4 py-2 sm:px-6 sm:py-3 glass-2 hover:glass-3 text-white font-semibold rounded-xl sm:rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl text-sm sm:text-base">
-                      <Info className="w-4 h-4 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
-                      About Challengers
+                      <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
+                      Join our Discord
                     </button>
-                  </Link>
+                  </a>
                   <p className="text-xs sm:text-sm text-white/70 mt-2 max-w-[200px] text-center lg:text-right text-shadow-adaptive-sm">
-                    New here? Learn how challenges work!
+                    Connect with the community!
                   </p>
                 </div>
               </div>
