@@ -103,12 +103,12 @@ export default function DonorPerksTab() {
             <button
               onClick={() => handleBackgroundSelect(null)}
               className={`rounded-xl p-4 transition-all duration-300 ${
-                selectedBackground === null 
-                  ? getSelectedStyle() 
+                selectedBackground === null
+                  ? getSelectedStyle()
                   : 'glass-1 hover:glass-2 border-2 border-transparent'
               }`}
             >
-              <div className="aspect-video rounded-lg bg-gradient-to-br from-orange-500 to-red-500 mb-3" />
+              <div className="aspect-video rounded-lg bg-gradient-to-br from-[#FF5714] to-[#1056F9] mb-3" />
               <h4 className="font-semibold text-white text-shadow-adaptive">Default Theme</h4>
               <p className="text-sm text-white/70 text-shadow-adaptive-sm">Use color settings</p>
             </button>
