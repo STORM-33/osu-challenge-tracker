@@ -14,15 +14,16 @@ async function handler(req, res) {
       // Get user's total donations for donor perks
       const totalDonations = await donationQueries.getUserDonationTotal(user.id);
       
-      // Get available donor backgrounds based on donation total
-      const availableBackgrounds = await settingsQueries.getDonorBackgrounds(totalDonations);
+      // Get available backgrounds based on donation total (updated function)
+      const availableBackgrounds = await settingsQueries.getAvailableBackgrounds(user.id, totalDonations);
       
       return handleAPIResponse(res, {
         settings,
         donorStatus: {
           totalDonations,
           isDonor: totalDonations > 0,
-          tier: totalDonations >= 25 ? 'premium' : totalDonations >= 10 ? 'supporter' : null
+          // Updated tier calculation: supporter at any amount, premium at $10+
+          tier: totalDonations >= 10 ? 'premium' : totalDonations >= 0.01 ? 'supporter' : null
         },
         availableBackgrounds
       }, {
@@ -48,20 +49,37 @@ async function handler(req, res) {
         });
       }
 
-      // Validate settings - removed display settings validation
+      // Validate settings
       const validatedSettings = validateSettings(settings);
       
-      // Check donor background access if specified
-      if (validatedSettings.donor_background_id) {
+      // Check background access if specified (updated field name)
+      if (validatedSettings.background_id) {
         const totalDonations = await donationQueries.getUserDonationTotal(user.id);
-        const background = await settingsQueries.getDonorBackground(validatedSettings.donor_background_id);
+        const background = await settingsQueries.getBackground(validatedSettings.background_id);
         
-        if (!background || background.min_donation_total > totalDonations) {
+        if (!background) {
+          return res.status(404).json({
+            success: false,
+            error: { message: 'Background not found' }
+          });
+        }
+
+        // Check access based on background category and user donation total
+        if (background.category === 'donor' && totalDonations < background.min_donation_total) {
           return res.status(403).json({
             success: false,
             error: { message: 'Insufficient donations for this background' }
           });
         }
+
+        if (background.category === 'premium' && totalDonations < background.min_donation_total) {
+          return res.status(403).json({
+            success: false,
+            error: { message: 'Premium tier required for this background' }
+          });
+        }
+
+        // Public backgrounds are always accessible
       }
       
       // Update settings
@@ -120,9 +138,14 @@ function validateSettings(settings) {
     validated.profile_visibility = settings.profile_visibility;
   }
   
-  // Donor features
+  // Background selection (updated field name)
+  if (typeof settings.background_id === 'number' || settings.background_id === null) {
+    validated.background_id = settings.background_id;
+  }
+  
+  // Legacy field support (for backward compatibility during transition)
   if (typeof settings.donor_background_id === 'number' || settings.donor_background_id === null) {
-    validated.donor_background_id = settings.donor_background_id;
+    validated.background_id = settings.donor_background_id;
   }
   
   if (settings.donor_effects && typeof settings.donor_effects === 'object') {

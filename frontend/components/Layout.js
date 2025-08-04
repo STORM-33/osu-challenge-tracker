@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/AuthContext';
 import { useSettings } from '../lib/SettingsContext';
-import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Home, Settings, ChevronDown } from 'lucide-react';
+import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Home, Settings, ChevronDown, MessageCircle } from 'lucide-react';
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
   const { user, loading, isAdmin, signOut } = useAuth(); 
@@ -61,14 +61,15 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
     { href: '/leaderboard', label: 'leaderboard', icon: BarChart3 },
     { href: '/donate', label: 'donate', icon: Heart },
     { href: '/partners', label: 'partners', icon: Link2 },
+    { href: 'https://discord.com/invite/FbXx6uZpUg', label: 'discord', icon: MessageCircle, external: true },
   ];
 
   return (
     <div className="min-h-screen relative">
-      {/* Background image layer - now using settings */}
-      {settings.background_enabled ? (
-        settings.donor_background_id ? (
-          // Donor background
+      {/* Background image layer - now using settings with updated field name */}
+      {settings?.background_enabled ? (
+        settings.background_id ? (
+          // Background image (updated field name)
           <div 
             className="fixed inset-0 -z-20 bg-cover bg-center"
             style={getBackgroundStyle()}
@@ -159,23 +160,37 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-2 relative">
               {navItems.map((item) => (
-                <Link 
-                  key={item.href}
-                  href={item.href}
-                  prefetch={false}
-                  className={
-                    router.pathname === item.href 
-                      ? 'nav-pill-active text-shadow-adaptive-sm'
-                      : 'nav-pill-inactive text-shadow-adaptive-sm'
-                  }
-                >
-                  <div className="flex items-center gap-2">
-                    <item.icon className="w-4 h-4 icon-shadow-adaptive-sm" />
-                    {item.label}
-                  </div>
-                </Link>
+                item.external ? (
+                  <a 
+                    key={item.href}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="nav-pill-inactive text-shadow-adaptive-sm hover:nav-pill-active"
+                  >
+                    <div className="flex items-center gap-2">
+                      <item.icon className="w-4 h-4 icon-shadow-adaptive-sm" />
+                      {item.label}
+                    </div>
+                  </a>
+                ) : (
+                  <Link 
+                    key={item.href}
+                    href={item.href}
+                    prefetch={false}
+                    className={
+                      router.pathname === item.href 
+                        ? 'nav-pill-active text-shadow-adaptive-sm'
+                        : 'nav-pill-inactive text-shadow-adaptive-sm'
+                    }
+                  >
+                    <div className="flex items-center gap-2">
+                      <item.icon className="w-4 h-4 icon-shadow-adaptive-sm" />
+                      {item.label}
+                    </div>
+                  </Link>
+                )
               ))}
-
               {/* Auth Section */}
               {loading ? (
                 <div className="px-5 py-2.5 text-white/50 text-shadow-adaptive-sm">Loading...</div>
@@ -336,6 +351,18 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
               <div className="p-4 space-y-2">
                 {/* Navigation Items */}
                 {navItems.map((item) => (
+                item.external ? (
+                  <a 
+                    key={item.href}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-base text-white/80 hover:bg-white/10 hover:text-white"
+                  >
+                    <item.icon className="w-5 h-5 icon-shadow-adaptive-sm" />
+                    {item.label}
+                  </a>
+                ) : (
                   <Link 
                     key={item.href}
                     href={item.href}
@@ -351,6 +378,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                     <item.icon className="w-5 h-5 icon-shadow-adaptive-sm" />
                     {item.label}
                   </Link>
+                )
                 ))}
 
                 {/* Divider */}

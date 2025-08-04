@@ -102,12 +102,94 @@
         }
       ]
     },
-
+    {
+      "source": "/api/settings/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=300, stale-while-revalidate=150"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=300"
+        }
+      ]
+    },
     {
       "source": "/_next/static/(.*)",
       "headers": [
         {
           "key": "Cache-Control", 
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/backgrounds/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=43200"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=86400"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(png|jpg|jpeg|gif|webp|svg|ico))$",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=43200"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=86400"
+        }
+      ]
+    },
+    {
+      "source": "/logo.png",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, s-maxage=604800, stale-while-revalidate=86400"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=604800"
+        }
+      ]
+    },
+    {
+      "source": "/default-bg.png",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, s-maxage=604800, stale-while-revalidate=86400"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "max-age=604800"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(css|js))$",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=43200"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(woff|woff2|ttf|eot))$",
+      "headers": [
+        {
+          "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
         }
       ]

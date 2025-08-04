@@ -32,7 +32,7 @@ export default function AppearanceTab() {
     const newSettings = { ...localSettings, [key]: value };
     setLocalSettings(newSettings);
     updateSettings(newSettings, true); 
-    };
+  };
 
   const handleReset = async () => {
     await resetSettings('appearance');
@@ -50,6 +50,7 @@ export default function AppearanceTab() {
 
   const applyPreset = (preset) => {
     const newSettings = {
+      background_enabled: true, // IMPORTANT: Keep background enabled when applying presets
       background_type: preset.type,
       background_color: preset.color,
       background_gradient_end: preset.gradientEnd || preset.color

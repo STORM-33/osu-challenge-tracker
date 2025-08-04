@@ -482,7 +482,7 @@ export const settingsQueries = {
         number_format: 'abbreviated',
         default_profile_tab: 'recent',
         profile_visibility: 'public',
-        donor_background_id: null,
+        background_id: null, // Updated field name
         donor_effects: {}
       };
     }
@@ -529,10 +529,50 @@ export const settingsQueries = {
     }
   },
 
-  // Get available donor backgrounds
-  getDonorBackgrounds: async (minDonationAmount = 0) => {
+  // Get available backgrounds based on user donation status
+  getAvailableBackgrounds: async (userId, totalDonations = 0) => {
     const { data, error } = await supabase
-      .from('donor_backgrounds')
+      .from('backgrounds')
+      .select('*')
+      .eq('is_active', true)
+      .or(`category.eq.public,and(category.eq.donor,min_donation_total.lte.${totalDonations}),and(category.eq.premium,min_donation_total.lte.${totalDonations})`)
+      .order('category', { ascending: true })
+      .order('sort_order', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Get single background by ID
+  getBackground: async (backgroundId) => {
+    const { data, error } = await supabase
+      .from('backgrounds')
+      .select('*')
+      .eq('id', backgroundId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get all public backgrounds (for non-donors to see in UI)
+  getPublicBackgrounds: async () => {
+    const { data, error } = await supabase
+      .from('backgrounds') // Updated table name
+      .select('*')
+      .eq('is_active', true)
+      .eq('category', 'public')
+      .order('sort_order', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Legacy function for backward compatibility (DEPRECATED)
+  getDonorBackgrounds: async (minDonationAmount = 0) => {
+    console.warn('getDonorBackgrounds is deprecated, use getAvailableBackgrounds instead');
+    const { data, error } = await supabase
+      .from('backgrounds')
       .select('*')
       .eq('is_active', true)
       .lte('min_donation_total', minDonationAmount)
@@ -542,15 +582,9 @@ export const settingsQueries = {
     return data || [];
   },
 
-  // Get single donor background
+  // Legacy function for backward compatibility (DEPRECATED)
   getDonorBackground: async (backgroundId) => {
-    const { data, error } = await supabase
-      .from('donor_backgrounds')
-      .select('*')
-      .eq('id', backgroundId)
-      .single();
-
-    if (error) throw error;
-    return data;
+    console.warn('getDonorBackground is deprecated, use getBackground instead');
+    return await settingsQueries.getBackground(backgroundId);
   }
 };
