@@ -118,7 +118,7 @@ export default function DonorPerksTab() {
               <button
                 key={bg.id}
                 onClick={() => handleBackgroundSelect(bg.id)}
-                className={`rounded-xl p-4 transition-all duration-300 ${
+                className={`rounded-xl p-4 transition-colors duration-300 ${
                   selectedBackground === bg.id 
                     ? getSelectedStyle(bg) 
                     : 'glass-1 hover:glass-2 border-2 border-transparent'
@@ -132,7 +132,7 @@ export default function DonorPerksTab() {
                 {bg.description && (
                   <p className="text-sm text-white/70 text-shadow-adaptive-sm">{bg.description}</p>
                 )}
-                <div className="mt-2 flex items-center gap-1 text-xs text-green-400">
+                <div className="mt-2 flex items-center gap-1 text-xs text-green-400 text-shadow-sm">
                   <Check className="w-3 h-3" />
                   Free for everyone
                 </div>
@@ -231,7 +231,7 @@ export default function DonorPerksTab() {
               <button
                 key={bg.id}
                 onClick={() => handleBackgroundSelect(bg.id)}
-                className={`rounded-xl p-4 transition-all duration-300 ${
+                className={`rounded-xl p-4 transition-colors duration-300 ${
                   selectedBackground === bg.id 
                     ? getSelectedStyle(bg) 
                     : 'glass-1 hover:glass-2 border-2 border-transparent'

@@ -38,7 +38,6 @@ export const SettingsProvider = ({ children }) => {
     if (!user) return;
 
     try {
-      console.log('🔄 [SettingsContext] Fetching settings for user:', user.id);
       setLoading(true);
       
       const response = await fetch('/api/settings', {
@@ -46,62 +45,45 @@ export const SettingsProvider = ({ children }) => {
         credentials: 'include'
       });
 
-      console.log('📡 [SettingsContext] Settings fetch response status:', response.status);
-
       if (!response.ok) {
         throw new Error(`Failed to fetch settings: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('📋 [SettingsContext] Fetched settings data:', data);
       
-      // Fix: Handle the nested data structure
+      // Handle the nested data structure
       const responseData = data.data || data;
       
       setSettings(responseData.settings);
       setDonorStatus(responseData.donorStatus);
       setAvailableBackgrounds(responseData.availableBackgrounds || []);
-      
-      console.log('📋 [SettingsContext] Parsed settings:', responseData.settings);
-      console.log('✅ [SettingsContext] Settings loaded successfully');
     } catch (error) {
-      console.error('❌ [SettingsContext] Error fetching settings:', error);
+      console.error('Error fetching settings:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const updateSettings = async (newSettings, isPreview = false) => {
-    console.log('🔧 [SettingsContext] updateSettings called with:', {
-      newSettings,
-      isPreview,
-      user: user?.id
-    });
-
     if (!user) {
-      console.error('❌ [SettingsContext] No user authenticated');
       return { success: false, error: 'User not authenticated' };
     }
 
     if (isPreview) {
       // For preview mode, just update temporary settings locally
-      console.log('👁️ [SettingsContext] Preview mode - updating temp settings');
       const newTempSettings = {
         ...settings,
         ...tempSettings,
         ...newSettings
       };
-      console.log('📝 [SettingsContext] New temp settings:', newTempSettings);
       setTempSettings(newTempSettings);
       return { success: true };
     }
 
     try {
-      console.log('💾 [SettingsContext] Starting save operation...');
       setSaving(true);
       
       const requestBody = { settings: newSettings };
-      console.log('📤 [SettingsContext] Request body:', JSON.stringify(requestBody, null, 2));
       
       const response = await fetch('/api/settings', {
         method: 'PUT',
@@ -112,48 +94,32 @@ export const SettingsProvider = ({ children }) => {
         body: JSON.stringify(requestBody)
       });
 
-      console.log('📡 [SettingsContext] Save response status:', response.status);
-      console.log('📡 [SettingsContext] Save response headers:', Object.fromEntries(response.headers.entries()));
-
       const data = await response.json();
-      console.log('📋 [SettingsContext] Save response data:', data);
 
       if (!response.ok) {
-        console.error('❌ [SettingsContext] Save failed with status:', response.status);
-        console.error('❌ [SettingsContext] Error data:', data);
         return { success: false, error: data.error?.message || 'Failed to update settings' };
       }
 
       // Update actual settings and clear temp settings
-      console.log('✅ [SettingsContext] Save successful, updating local state');
-      
-      // Fix: Handle the nested data structure
       const responseData = data.data || data;
-      console.log('📋 [SettingsContext] New settings from server:', responseData.settings);
       
       setSettings(responseData.settings);
       setTempSettings(null);
       
-      console.log('🎉 [SettingsContext] Settings saved and state updated');
       return { success: true, settings: responseData.settings };
     } catch (error) {
-      console.error('🚨 [SettingsContext] Save error:', error);
-      console.error('🚨 [SettingsContext] Error stack:', error.stack);
+      console.error('Error saving settings:', error);
       return { success: false, error: error.message };
     } finally {
       setSaving(false);
-      console.log('🏁 [SettingsContext] Save operation completed');
     }
   };
 
   const cancelPreview = () => {
-    console.log('❌ [SettingsContext] Canceling preview, clearing temp settings');
     setTempSettings(null);
   };
 
   const resetSettings = async (category = 'all') => {
-    console.log('🔄 [SettingsContext] Resetting settings, category:', category);
-    
     if (!user) return { success: false, error: 'User not authenticated' };
 
     const defaultSettings = getDefaultSettings();
@@ -169,7 +135,7 @@ export const SettingsProvider = ({ children }) => {
           background_blur: defaultSettings.background_blur,
           background_dimming: defaultSettings.background_dimming,
           background_saturation: defaultSettings.background_saturation,
-          background_id: null // Updated field name
+          background_id: null
         };
         break;
       case 'privacy':
@@ -181,15 +147,14 @@ export const SettingsProvider = ({ children }) => {
         settingsToReset = defaultSettings;
     }
 
-    console.log('🔄 [SettingsContext] Settings to reset:', settingsToReset);
     return await updateSettings(settingsToReset);
   };
 
   const getDefaultSettings = () => ({
     background_enabled: true,
     background_type: 'gradient',
-    background_color: '#FFA500',
-    background_gradient_end: '#FF6347',
+    background_color: '#FF5714',
+    background_gradient_end: '#1056F9',
     background_blur: 50,
     background_dimming: 50,
     background_saturation: 0,
@@ -197,32 +162,24 @@ export const SettingsProvider = ({ children }) => {
     number_format: 'abbreviated',
     default_profile_tab: 'recent',
     profile_visibility: 'public',
-    background_id: null, // Updated field name
+    background_id: null,
     donor_effects: {}
   });
 
   // Get the currently active settings (temp if previewing, otherwise actual)
   const activeSettings = tempSettings || settings || getDefaultSettings();
 
-  // Background style function for Layout component with debug logging
+  // Background style function for Layout component
   const getBackgroundStyle = () => {
-    console.log('🎨 [SettingsContext] getBackgroundStyle called');
-    console.log('🎨 [SettingsContext] activeSettings:', activeSettings);
-    console.log('🎨 [SettingsContext] tempSettings:', tempSettings);
-    console.log('🎨 [SettingsContext] actual settings:', settings);
-
     if (!activeSettings.background_enabled) {
-      console.log('🎨 [SettingsContext] Background disabled, returning dark color');
       return { backgroundColor: '#0a0a0a' };
     }
 
     // If user has selected a background image
     if (activeSettings.background_id) {
-      console.log('🎨 [SettingsContext] User has background_id:', activeSettings.background_id);
       const selectedBackground = availableBackgrounds.find(bg => bg.id === activeSettings.background_id);
-      console.log('🎨 [SettingsContext] Found background:', selectedBackground);
       if (selectedBackground) {
-        const style = {
+        return {
           backgroundImage: `url(${selectedBackground.image_url})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -232,14 +189,12 @@ export const SettingsProvider = ({ children }) => {
             saturate(${100 + (activeSettings.background_saturation || 0)}%)
           `.trim()
         };
-        console.log('🎨 [SettingsContext] Returning image style:', style);
-        return style;
       }
     }
 
     // Fallback to color/gradient background
     if (activeSettings.background_type === 'gradient') {
-      const style = {
+      return {
         background: `linear-gradient(135deg, ${activeSettings.background_color} 0%, ${activeSettings.background_gradient_end} 100%)`,
         filter: `
           blur(${activeSettings.background_blur || 0}px)
@@ -247,14 +202,8 @@ export const SettingsProvider = ({ children }) => {
           saturate(${100 + (activeSettings.background_saturation || 0)}%)
         `.trim()
       };
-      console.log('🎨 [SettingsContext] Returning gradient style:', style);
-      console.log('🎨 [SettingsContext] Colors:', {
-        start: activeSettings.background_color,
-        end: activeSettings.background_gradient_end
-      });
-      return style;
     } else {
-      const style = {
+      return {
         backgroundColor: activeSettings.background_color,
         filter: `
           blur(${activeSettings.background_blur || 0}px)
@@ -262,8 +211,6 @@ export const SettingsProvider = ({ children }) => {
           saturate(${100 + (activeSettings.background_saturation || 0)}%)
         `.trim()
       };
-      console.log('🎨 [SettingsContext] Returning solid style:', style);
-      return style;
     }
   };
 
