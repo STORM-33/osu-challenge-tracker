@@ -91,7 +91,7 @@ export default function SeasonLeaderboardPage() {
           {selectedSeason && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-6 sm:mb-10 lg:mb-12">
               {/* Current Season Card */}
-              <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transform hover:scale-105 transition-all">
+              <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <div className="p-1.5 sm:p-3 icon-gradient-orange rounded-md sm:rounded-xl icon-container-orange">
                     <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
@@ -109,7 +109,7 @@ export default function SeasonLeaderboardPage() {
               </div>
 
               {/* How It Works Card */}
-              <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transform hover:scale-105 transition-all">
+              <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <div className="p-1.5 sm:p-3 icon-gradient-blue rounded-md sm:rounded-xl icon-container-blue">
                     <BookOpen className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
@@ -123,8 +123,8 @@ export default function SeasonLeaderboardPage() {
                 </p>
               </div>
 
-              {/* Scoring System Card - Full width on mobile when in 2-col, normal on 3-col */}
-              <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transform hover:scale-105 transition-all sm:col-span-2 lg:col-span-1">
+              {/* Scoring System Card */}
+              <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 sm:col-span-2 lg:col-span-1">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <div className="p-1.5 sm:p-3 icon-gradient-green rounded-md sm:rounded-xl icon-container-green">
                     <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
@@ -139,6 +139,7 @@ export default function SeasonLeaderboardPage() {
               </div>
             </div>
           )}
+
 
           {/* Leaderboard Component */}
           <SeasonLeaderboard 
@@ -159,7 +160,7 @@ export default function SeasonLeaderboardPage() {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 lg:gap-8">
               {/* Scoring System Info */}
-              <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-6 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all">
+              <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-6 shadow-lg">
                 <h4 className="font-bold text-white mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2 text-shadow-adaptive text-sm sm:text-base">
                   <Zap className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
                   Scoring System
@@ -181,7 +182,7 @@ export default function SeasonLeaderboardPage() {
               </div>
               
               {/* Rankings Update Info */}
-              <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-6 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all">
+              <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-6 shadow-lg">
                 <h4 className="font-bold text-white mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2 text-shadow-adaptive text-sm sm:text-base">
                   <TrendingUp className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
                   Rankings Update

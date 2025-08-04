@@ -228,7 +228,7 @@ const MedalsDisplay = ({ stats, streaks, scores, userAchievements, seasonRank, s
               return (
                 <div
                   key={medal.code}
-                  className="group relative p-4 sm:p-6 glass-2 rounded-xl sm:rounded-2xl transition-all hover:scale-105 hover:shadow-xl"
+                  className="group relative p-4 sm:p-6 glass-2 rounded-xl sm:rounded-2xl"
                 >
                   <div className={`w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-b ${medal.color} rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg`}>
                     <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />

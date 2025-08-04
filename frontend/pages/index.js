@@ -212,19 +212,19 @@ export default function AboutChallengers() {
                       Difficulty Progression
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                      <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
+                      <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="text-xl sm:text-2xl font-black text-white mb-1 text-shadow-adaptive">Week 1</div>
                         <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">5.5★ - 5.9★</div>
                       </div>
-                      <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
+                      <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="text-xl sm:text-2xl font-black text-white mb-1 text-shadow-adaptive">Week 2</div>
                         <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">6.0★ - 6.4★</div>
                       </div>
-                      <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
+                      <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="text-xl sm:text-2xl font-black text-white mb-1 text-shadow-adaptive">Week 3</div>
                         <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">6.5★ - 6.9★</div>
                       </div>
-                      <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
+                      <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="text-xl sm:text-2xl font-black text-white mb-1 text-shadow-adaptive">Week 4</div>
                         <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">7.0★ - 7.4★</div>
                       </div>
@@ -238,7 +238,7 @@ export default function AboutChallengers() {
                       How to Win Supporter
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      <div className="glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:glass-2 hover:scale-[1.02] transition-all">
+                      <div className="glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="p-2 icon-gradient-green rounded-lg icon-container-green">
                             <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
@@ -249,7 +249,7 @@ export default function AboutChallengers() {
                           Win the Playlist by achieving the highest overall score across all difficulties
                         </p>
                       </div>
-                      <div className="glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:glass-2 hover:scale-[1.02] transition-all">
+                      <div className="glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="p-2 icon-gradient-purple rounded-lg icon-container-purple">
                             <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
@@ -332,7 +332,7 @@ export default function AboutChallengers() {
 
               {activeTab === 'custom' && (
                 <div className="space-y-6 sm:space-y-8">
-                  <div className="glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:glass-2 transition-all">
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6 transition-all">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-2 icon-gradient-green rounded-lg icon-container-green">
                         <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white icon-shadow-adaptive" />

@@ -172,25 +172,25 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             Your Performance
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
+            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Your Rank</p>
               <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-purple-300 to-purple-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
                 #{userPosition.user_position}
               </p>
             </div>
-            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
+            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Total Score</p>
               <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
                 {formatNumber(userPosition.total_score)}
               </p>
             </div>
-            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
+            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Challenges</p>
               <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-yellow-300 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
                 {userPosition.challenges_participated}
               </p>
             </div>
-            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
+            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Top</p>
               <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
                 {Math.max(1, Math.round(100 - userPosition.percentile))}%

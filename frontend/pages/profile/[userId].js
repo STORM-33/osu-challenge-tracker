@@ -391,7 +391,7 @@ export default function UserProfile() {
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
-            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
+            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
                 <div className="p-1.5 sm:p-3 icon-gradient-purple rounded-md sm:rounded-xl icon-container-purple">
                   <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
@@ -403,7 +403,7 @@ export default function UserProfile() {
               <p className="text-xs sm:text-sm font-medium text-white text-shadow-adaptive-sm text-center sm:text-left">Avg Accuracy</p>
             </div>
             
-            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
+            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
                 <div className="p-1.5 sm:p-3 icon-gradient-green rounded-md sm:rounded-xl icon-container-green">
                   <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
@@ -415,7 +415,7 @@ export default function UserProfile() {
               <p className="text-xs sm:text-sm font-medium text-white text-shadow-adaptive-sm text-center sm:text-left">Avg Rank</p>
             </div>
             
-            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
+            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
                 <div className="p-1.5 sm:p-3 icon-gradient-blue rounded-md sm:rounded-xl icon-container-blue">
                   <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
@@ -427,7 +427,7 @@ export default function UserProfile() {
               <p className="text-xs sm:text-sm font-medium text-white text-shadow-adaptive-sm text-center sm:text-left">Total Plays</p>
             </div>
             
-            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all group">
+            <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
                 <div className="p-1.5 sm:p-3 icon-gradient-orange rounded-md sm:rounded-xl icon-container-orange">
                   <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
@@ -762,7 +762,7 @@ export default function UserProfile() {
                 </h3>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg" style={{
+                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-lg" style={{
                     background: 'linear-gradient(to bottom, rgba(66, 101, 196, 0.9), rgba(52, 87, 171, 0.9))',
                     border: '3px solid #5f94ec'
                   }}>
@@ -773,7 +773,7 @@ export default function UserProfile() {
                     <p className="text-xs sm:text-sm font-medium text-white/80 text-shadow-adaptive-sm">Podium Finishes</p>
                   </div>
                   
-                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg" style={{
+                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-lg" style={{
                     background: 'linear-gradient(to bottom, rgba(181, 64, 67, 0.9), rgba(163, 48, 49, 0.9))',
                     border: '3px solid #dd615e'
                   }}>
@@ -784,7 +784,7 @@ export default function UserProfile() {
                     <p className="text-xs sm:text-sm font-medium text-white/80 text-shadow-adaptive-sm">Top 10 Finishes</p>
                   </div>
                   
-                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg" style={{
+                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-lg" style={{
                     background: 'linear-gradient(to bottom, rgba(94, 93, 94, 0.9), rgba(76, 75, 76, 0.9))',
                     border: '3px solid #a1a1a1'
                   }}>
@@ -795,7 +795,7 @@ export default function UserProfile() {
                     <p className="text-xs sm:text-sm font-medium text-white/80 text-shadow-adaptive-sm">98%+ Accuracy</p>
                   </div>
                   
-                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center transform hover:scale-105 transition-all shadow-lg" style={{
+                  <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-lg" style={{
                     background: 'linear-gradient(to bottom, rgba(60, 166, 97, 0.9), rgba(45, 141, 99, 0.9))',
                     border: '3px solid #4ed484'
                   }}>
