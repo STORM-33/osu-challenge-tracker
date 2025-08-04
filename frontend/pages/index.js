@@ -112,7 +112,7 @@ export default function AboutChallengers() {
               {/* Custom Card */}
               <div
                 className={`glass-1 flex flex-col rounded-xl sm:rounded-2xl p-4 sm:p-6 cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl relative overflow-hidden ${
-                  activeTab === 'custom' ? 'ring-2 ring-green-400/60 glass-2' : ''
+                  activeTab === 'custom' ? 'ring-2 ring-yellow-400/60 glass-2' : ''
                 }`}
                 onClick={() => setActiveTab('custom')}
               >
@@ -373,7 +373,7 @@ export default function AboutChallengers() {
                   </div>
 
                   <div className="text-center">
-                    <div className="inline-flex items-center gap-3 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-b from-green-500 to-emerald-500 text-white font-bold rounded-full shadow-lg text-base sm:text-lg">
+                    <div className="inline-flex items-center gap-3 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-b from-yellow-500 to-orange-500 text-white font-bold rounded-full shadow-lg text-base sm:text-lg">
                       <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
                       Currently in Production - Stay Tuned!
                     </div>
