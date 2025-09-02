@@ -92,7 +92,7 @@ export default function DonorPerksTab() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-white text-shadow-adaptive flex items-center gap-2">
             <Palette className="w-5 h-5 icon-shadow-adaptive" />
-            Community Artist Backgrounds
+            Artist Backgrounds
           </h3>
           <p className="text-white/80 text-sm text-shadow-adaptive-sm">
             Beautiful backgrounds created by community artists - free for everyone!

@@ -222,7 +222,7 @@ export default function ChallengeDetail() {
           {/* Back button */}
           <div className="mb-4 sm:mb-6">
             <Link 
-              href="/"
+              href="/challenges"
               className="group flex items-center gap-2 text-white/70 hover:text-white/90 font-medium text-shadow-adaptive-sm transition-all text-sm sm:text-base"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform icon-shadow-adaptive-sm" />
@@ -251,7 +251,7 @@ export default function ChallengeDetail() {
                   {isValidating ? 'Retrying...' : 'Try Again'}
                 </button>
                 <Link 
-                  href="/"
+                  href="/challenges"
                   className="px-4 py-2 sm:px-6 sm:py-3 glass-2 hover:glass-3 text-white font-semibold rounded-full transition-all text-sm sm:text-base"
                 >
                   Back to challenges

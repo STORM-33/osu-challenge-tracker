@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Trophy, Crown, Star, Target, Users, TrendingUp, Award, Medal, Zap, Sparkles, ChevronUp, ChevronDown, Flame, User, Loader2 } from 'lucide-react';
+import { Trophy, Crown, Star, Target, Users, TrendingUp, Award, Medal, Zap, Sparkles, ChevronUp, ChevronDown, Flame, User, Loader2, BarChart3, Percent } from 'lucide-react';
 
 const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
   const [leaderboard, setLeaderboard] = useState([]);
@@ -96,6 +96,18 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
     return num?.toLocaleString() || '0';
   };
 
+  const formatWeightedScore = (score) => {
+    return score?.toFixed(1) || '0.0';
+  };
+
+  // Helper function to safely calculate top percentage
+  const getTopPercentage = (percentile) => {
+    if (percentile === null || percentile === undefined || isNaN(percentile)) {
+      return null; // Return null if percentile is not available
+    }
+    return Math.max(1, Math.round(100 - percentile));
+  };
+
   const getAccuracyGradient = (accuracy) => {
     if (accuracy >= 98) return 'from-pink-500 to-purple-500';
     if (accuracy >= 95) return 'from-green-500 to-emerald-500';
@@ -112,6 +124,21 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
     return 'acc-badge-red';
   };
 
+  const getStreakColor = (streak) => {
+    if (streak >= 10) return 'text-purple-400';
+    if (streak >= 5) return 'text-orange-400';
+    if (streak >= 3) return 'text-yellow-400';
+    return 'text-gray-400';
+  };
+
+  const getPercentileColor = (percentile) => {
+    if (percentile >= 95) return 'text-purple-400';
+    if (percentile >= 85) return 'text-green-400';
+    if (percentile >= 70) return 'text-blue-400';
+    if (percentile >= 50) return 'text-yellow-400';
+    return 'text-gray-400';
+  };
+
   if (initialLoading) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -119,8 +146,8 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
         <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6">
           <div className="animate-pulse">
             <div className="h-4 sm:h-6 bg-gray-200/60 rounded w-24 sm:w-32 mb-3 sm:mb-4"></div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-              {[...Array(4)].map((_, i) => (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
+              {[...Array(5)].map((_, i) => (
                 <div key={i} className="h-12 sm:h-20 bg-gray-200/60 rounded-lg sm:rounded-xl"></div>
               ))}
             </div>
@@ -171,30 +198,170 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             <User className="w-5 h-5 sm:w-7 sm:h-7 icon-shadow-adaptive-sm" />
             Your Performance
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
             <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Your Rank</p>
               <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-purple-300 to-purple-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
-                #{userPosition.user_position}
+                {userPosition.user_position ? `#${userPosition.user_position}` : 'N/A'}
               </p>
             </div>
             <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg">
-              <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Total Score</p>
+              <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Weighted Score</p>
               <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
-                {formatNumber(userPosition.total_score)}
+                {formatWeightedScore(userPosition.final_weighted_score)}
+              </p>
+            </div>
+            <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg">
+              <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Max Streak</p>
+              <p className={`text-xl sm:text-3xl font-black drop-shadow-lg tracking-tight ${getStreakColor(userPosition.max_streak)}`}>
+                {userPosition.max_streak || 0}
               </p>
             </div>
             <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Challenges</p>
               <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-yellow-300 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
-                {userPosition.challenges_participated}
+                {userPosition.challenges_participated || 0}
               </p>
             </div>
             <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center shadow-lg">
               <p className="text-xs text-white/90 font-medium mb-1 sm:mb-2 uppercase tracking-wide text-shadow-adaptive">Top</p>
               <p className="text-xl sm:text-3xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
-                {Math.max(1, Math.round(100 - userPosition.percentile))}%
+                {(() => {
+                  const topPercentage = getTopPercentage(userPosition.percentile);
+                  return topPercentage !== null ? `${topPercentage}%` : 'N/A';
+                })()}
               </p>
+            </div>
+          </div>
+          
+          {/* Enhanced Percentile Breakdown */}
+          <div className="mt-4 glass-1 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-white/10">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm sm:text-base font-bold text-white text-shadow-adaptive flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
+                Performance Breakdown
+              </h4>
+              <div className="flex items-center gap-1 text-xs text-white/60">
+                <Percent className="w-3 h-3" />
+                <span>Percentile Ranking</span>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Score Percentile */}
+              <div className="relative">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400"></div>
+                    <span className="text-xs sm:text-sm font-medium text-white/90">Total Score</span>
+                  </div>
+                  <span className={`text-sm sm:text-base font-bold ${getPercentileColor(userPosition.score_percentile || 0)} drop-shadow-sm`}>
+                    {userPosition.score_percentile ? `${userPosition.score_percentile.toFixed(0)}%` : 'N/A'}
+                  </span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${userPosition.score_percentile || 0}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-white/50 mt-1">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+
+              {/* Accuracy Percentile */}
+              <div className="relative">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-green-400 to-emerald-400"></div>
+                    <span className="text-xs sm:text-sm font-medium text-white/90">Accuracy</span>
+                  </div>
+                  <span className={`text-sm sm:text-base font-bold ${getPercentileColor(userPosition.accuracy_percentile || 0)} drop-shadow-sm`}>
+                    {userPosition.accuracy_percentile ? `${userPosition.accuracy_percentile.toFixed(0)}%` : 'N/A'}
+                  </span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${userPosition.accuracy_percentile || 0}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-white/50 mt-1">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+
+              {/* Streak Percentile */}
+              <div className="relative">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-red-400"></div>
+                    <span className="text-xs sm:text-sm font-medium text-white/90">Max Streak</span>
+                  </div>
+                  <span className={`text-sm sm:text-base font-bold ${getPercentileColor(userPosition.streak_percentile || 0)} drop-shadow-sm`}>
+                    {userPosition.streak_percentile ? `${userPosition.streak_percentile.toFixed(0)}%` : 'N/A'}
+                  </span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${userPosition.streak_percentile || 0}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-white/50 mt-1">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Overall Performance Indicator */}
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm text-white/70">Overall Performance</span>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const avgPercentile = ((userPosition.score_percentile || 0) + (userPosition.accuracy_percentile || 0) + (userPosition.streak_percentile || 0)) / 3;
+                    let indicator, color, bgColor;
+                    
+                    if (avgPercentile >= 90) {
+                      indicator = "Exceptional";
+                      color = "text-purple-300";
+                      bgColor = "bg-purple-500/20";
+                    } else if (avgPercentile >= 75) {
+                      indicator = "Strong";
+                      color = "text-green-300";
+                      bgColor = "bg-green-500/20";
+                    } else if (avgPercentile >= 50) {
+                      indicator = "Good";
+                      color = "text-blue-300";
+                      bgColor = "bg-blue-500/20";
+                    } else if (avgPercentile >= 25) {
+                      indicator = "Developing";
+                      color = "text-yellow-300";
+                      bgColor = "bg-yellow-500/20";
+                    } else {
+                      indicator = "Growing";
+                      color = "text-orange-300";
+                      bgColor = "bg-orange-500/20";
+                    }
+                    
+                    return (
+                      <>
+                        <span className={`text-xs sm:text-sm font-bold ${color}`}>
+                          {avgPercentile.toFixed(0)} percentile
+                        </span>
+                        <span className={`px-2 py-1 text-xs font-medium ${color} ${bgColor} rounded-full`}>
+                          {indicator}
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -210,6 +377,9 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                 <h2 className="text-xl sm:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3 text-shadow-adaptive">
                   <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive" />
                   Season Rankings
+                  <span className="text-sm sm:text-base font-medium bg-purple-600/80 text-white px-2 py-1 rounded-full">
+                    Weighted
+                  </span>
                 </h2>
                 {selectedSeason && (
                   <p className="text-white/90 mt-1 text-shadow-adaptive-sm text-sm sm:text-base">
@@ -265,7 +435,23 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                         </div>
                       </div>
                       <h3 className="font-bold text-white text-shadow-adaptive text-xs sm:text-base truncate cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push(`/profile/${leaderboard[1].user_id}`)}>{leaderboard[1].username}</h3>
-                      <p className="text-sm sm:text-2xl font-extrabold text-white/70 text-shadow-adaptive mt-1 sm:mt-2">{formatNumber(leaderboard[1].total_score)}</p>
+                      <p className="text-sm sm:text-2xl font-extrabold text-white/90 text-shadow-adaptive mt-1 sm:mt-2">{formatWeightedScore(leaderboard[1].final_weighted_score)} pts</p>
+                      
+                      {/* Stats Row */}
+                      <div className="flex items-center justify-center gap-1 sm:gap-2 mt-2">
+                        {/* Accuracy Badge */}
+                        <div className={`px-1.5 py-0.5 sm:px-2 bg-gradient-to-b ${getAccuracyGradient(leaderboard[1].average_accuracy)} rounded-full ${getAccuracyBorder(leaderboard[1].average_accuracy)}`}>
+                          <span className="text-white font-bold text-xs drop-shadow-md">{leaderboard[1].average_accuracy?.toFixed(1)}%</span>
+                        </div>
+                        
+                        {/* Streak - Always displayed and always orange */}
+                        <div className="flex items-center gap-0.5">
+                          <Flame className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400" />
+                          <span className="text-xs font-bold text-orange-400">{leaderboard[1].max_streak || 0}</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-xs text-white/60 mt-1">{formatNumber(leaderboard[1].total_score)} score</p>
                     </div>
                   </div>
                 )}
@@ -288,9 +474,25 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                         </div>
                       </div>
                       <h3 className="font-bold text-white text-shadow-adaptive text-sm sm:text-lg truncate cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push(`/profile/${leaderboard[0].user_id}`)}>{leaderboard[0].username}</h3>
-                      <p className="text-lg sm:text-3xl font-extrabold text-white/70 text-shadow-adaptive mt-1 sm:mt-2">
-                        {formatNumber(leaderboard[0].total_score)}
+                      <p className="text-lg sm:text-3xl font-extrabold text-white/90 text-shadow-adaptive mt-1 sm:mt-2">
+                        {formatWeightedScore(leaderboard[0].final_weighted_score)} pts
                       </p>
+                      
+                      {/* Stats Row */}
+                      <div className="flex items-center justify-center gap-1 sm:gap-2 mt-2">
+                        {/* Accuracy Badge */}
+                        <div className={`px-2 py-0.5 sm:px-2.5 sm:py-1 bg-gradient-to-b ${getAccuracyGradient(leaderboard[0].average_accuracy)} rounded-full ${getAccuracyBorder(leaderboard[0].average_accuracy)}`}>
+                          <span className="text-white font-bold text-xs sm:text-sm drop-shadow-md">{leaderboard[0].average_accuracy?.toFixed(1)}%</span>
+                        </div>
+                        
+                        {/* Streak - Always displayed and always orange */}
+                        <div className="flex items-center gap-0.5">
+                          <Flame className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400" />
+                          <span className="text-xs sm:text-sm font-bold text-orange-400">{leaderboard[0].max_streak || 0}</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-xs text-white/60 mt-1">{formatNumber(leaderboard[0].total_score)} score</p>
                     </div>
                   </div>
                 )}
@@ -312,7 +514,23 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                         </div>
                       </div>
                       <h3 className="font-bold text-white text-shadow-adaptive text-xs sm:text-base truncate cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push(`/profile/${leaderboard[2].user_id}`)}>{leaderboard[2].username}</h3>
-                      <p className="text-sm sm:text-2xl font-extrabold text-white/70 text-shadow-adaptive mt-1 sm:mt-2">{formatNumber(leaderboard[2].total_score)}</p>
+                      <p className="text-sm sm:text-2xl font-extrabold text-white/90 text-shadow-adaptive mt-1 sm:mt-2">{formatWeightedScore(leaderboard[2].final_weighted_score)} pts</p>
+                      
+                      {/* Stats Row */}
+                      <div className="flex items-center justify-center gap-1 sm:gap-2 mt-2">
+                        {/* Accuracy Badge */}
+                        <div className={`px-1.5 py-0.5 sm:px-2 bg-gradient-to-b ${getAccuracyGradient(leaderboard[2].average_accuracy)} rounded-full ${getAccuracyBorder(leaderboard[2].average_accuracy)}`}>
+                          <span className="text-white font-bold text-xs drop-shadow-md">{leaderboard[2].average_accuracy?.toFixed(1)}%</span>
+                        </div>
+                        
+                        {/* Streak - Always displayed and always orange */}
+                        <div className="flex items-center gap-0.5">
+                          <Flame className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400" />
+                          <span className="text-xs font-bold text-orange-400">{leaderboard[2].max_streak || 0}</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-xs text-white/60 mt-1">{formatNumber(leaderboard[2].total_score)} score</p>
                     </div>
                   </div>
                 )}
@@ -344,7 +562,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
               </div>
             ) : (
               leaderboard.slice(viewMode === 'full' ? 3 : 0).map((user, index) => {
-                const position = user.user_position || user.position;
+                const position = user.rank_position || user.user_position || user.position;
                 const isCurrentUser = currentUser && user.user_id === currentUser.id;
                 const isTop10 = position <= 10;
                 
@@ -362,7 +580,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                     <div className="flex items-center gap-2 sm:gap-4">
                       {/* Rank */}
                       <div className={`text-center min-w-[2rem] sm:min-w-[3rem] ${isTop10 ? 'font-black text-lg sm:text-2xl' : 'font-bold text-base sm:text-lg'} text-white text-shadow-adaptive`}>
-                        {position}
+                        {position || 'N/A'}
                       </div>
 
                       {/* Player Info */}
@@ -371,7 +589,8 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                           <img
                             src={user.avatar_url || '/default-avatar.png'}
                             alt={user.username}
-                            className={`${isTop10 ? 'w-8 h-8 sm:w-12 sm:h-12' : 'w-7 h-7 sm:w-10 sm:h-10'} rounded-full avatar-border shadow-md group-hover:shadow-lg transition-shadow`}
+                            className={`${isTop10 ? 'w-8 h-8 sm:w-12 sm:h-12' : 'w-7 h-7 sm:w-10 sm:h-10'} rounded-full avatar-border shadow-md group-hover:shadow-lg transition-shadow cursor-pointer`}
+                            onClick={() => router.push(`/profile/${user.user_id}`)}
                             onError={(e) => { e.target.src = '/default-avatar.png'; }}
                           />
                         </div>
@@ -397,11 +616,21 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                                 YOU
                               </span>
                             )}
+                            {(user.max_streak || 0) >= 5 && (
+                              <Flame className={`w-3 h-3 sm:w-4 sm:h-4 ${getStreakColor(user.max_streak || 0)}`} />
+                            )}
                           </div>
                           <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-white/90 mt-0.5 text-shadow-adaptive-sm">
-                            <span>{user.challenges_participated} challenges</span>
+                            <span>{user.challenges_participated || 0} challenges</span>
+                            {(user.max_streak || 0) > 0 && (
+                              <span className={`font-medium ${getStreakColor(user.max_streak || 0)}`}>
+                                {user.max_streak} streak
+                              </span>
+                            )}
                             {user.percentile >= 95 && (
-                              <span className="text-purple-300 font-medium hidden sm:inline">Top {Math.max(1, Math.round(100 - Math.floor(user.percentile)))}%</span>
+                              <span className="text-purple-300 font-medium hidden sm:inline">
+                                Top {Math.max(1, Math.round(100 - Math.floor(user.percentile)))}%
+                              </span>
                             )}
                           </div>
                         </div>
@@ -411,17 +640,20 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                       <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-6">
                         {/* Accuracy Badge */}
                         <div className={`hidden sm:flex w-[60px] sm:w-[72px] py-1 sm:py-1.5 bg-gradient-to-b ${getAccuracyGradient(user.average_accuracy)} ${getAccuracyBorder(user.average_accuracy)} text-white rounded-full font-bold text-xs sm:text-sm shadow-md items-center justify-center`}>
-                          <span className="drop-shadow-md">{user.average_accuracy?.toFixed(1)}%</span>
+                          <span className="drop-shadow-md">{user.average_accuracy?.toFixed(1) || '0.0'}%</span>
                         </div>
 
-                        {/* Score */}
-                        <div className="text-right min-w-[60px] sm:min-w-[100px]">
+                        {/* Weighted Score */}
+                        <div className="text-right min-w-[80px] sm:min-w-[120px]">
                           <p className={`${isTop10 ? 'text-lg sm:text-2xl' : 'text-base sm:text-xl'} font-black text-white text-shadow-adaptive`}>
-                            {formatNumber(user.total_score)}
+                            {formatWeightedScore(user.final_weighted_score)} pts
                           </p>
-                          {/* Show accuracy on mobile below score */}
-                          <p className="text-xs text-white/70 sm:hidden">
-                            {user.average_accuracy?.toFixed(1)}%
+                          {/* Show accuracy on mobile below score and raw score */}
+                          <div className="text-xs text-white/70 sm:hidden">
+                            {user.average_accuracy?.toFixed(1) || '0.0'}% • {formatNumber(user.total_score)}
+                          </div>
+                          <p className="text-xs text-white/50 hidden sm:block">
+                            {formatNumber(user.total_score)} raw
                           </p>
                         </div>
                       </div>

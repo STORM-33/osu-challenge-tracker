@@ -119,7 +119,7 @@ export default function ChallengeCard({
   const config = sizeConfig[size];
 
   return (
-    <div className={`group relative overflow-hidden glass-3 rounded-xl sm:rounded-2xl ${config.cardClass} transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer`}>
+    <div className={`group relative overflow-hidden glass-3 rounded-xl sm:rounded-2xl ${config.cardClass} transition-shadow duration-300 hover:shadow-2xl cursor-pointer`}>
       
       {/* Top 80% - Background Image Section */}
       <div className="relative h-[80%] overflow-hidden">

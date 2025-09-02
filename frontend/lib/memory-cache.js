@@ -76,11 +76,12 @@ export const memoryCache = new MemoryCache();
 export const CACHE_DURATIONS = {
   SEASONS: 3600000,        // 1 hour
   PARTNERS: 1800000,       // 30 minutes
+  TEAM: 1800000,          // 30 minutes
   CHALLENGES_LIST: 600000, // 10 minutes
   CHALLENGE_DETAIL: 600000, // 10 minutes
   LEADERBOARD: 600000,     // 10 minutes
   USER_PROFILE: 600000,    // 10 minutes
-  SETTINGS: 300000,        // 5 minutes - Settings cache duration
+  SETTINGS: 300000,        // 5 minutes 
   STATS: 300000,           // 5 minutes
   HEALTH: 60000,           // 1 minute
   AUTH_STATUS: 30000,      // 30 seconds

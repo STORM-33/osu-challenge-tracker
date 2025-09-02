@@ -157,17 +157,11 @@ export default function AboutChallengers() {
             <div className="p-4 sm:p-6 border-b border-white/10">
               <div className="view-mode-slider">
                 <div className="slider-track">
-                  <div className={`slider-thumb ${
-                    activeTab === 'ce' ? 'slider-thumb-right' : 
-                    activeTab === 'custom' ? 'slider-thumb-right' : ''
-                  }`} style={{
+                  <div className="slider-thumb" style={{
                     left: activeTab === 'weekly' ? '4px' : 
-                          activeTab === 'ce' ? '33.33%' :
-                          '66.66%',
-                    right: activeTab === 'weekly' ? '66.66%' : 
-                           activeTab === 'ce' ? '33.33%' :
-                           '4px',
-                    width: 'calc(33.33% - 8px)'
+                          activeTab === 'ce' ? 'calc(33.33% + 4px)' :
+                          'calc(66.66% + 4px)',
+                    width: 'calc(33.33% - 8px)',
                   }} />
                   <button
                     onClick={() => setActiveTab('weekly')}

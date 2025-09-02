@@ -67,6 +67,10 @@ cacheInvalidator.registerPattern('partners', [
   'partners_*'
 ]);
 
+cacheInvalidator.registerPattern('team', [
+  'team_*'
+]);
+
 cacheInvalidator.registerPattern('seasons', [
   'current_season_*',
   'seasons_*'
@@ -97,6 +101,9 @@ export function invalidateAfterUpdate(type, id = null) {
       break;
     case 'partner':
       cacheInvalidator.invalidate('partners');
+      break;
+    case 'team':
+      cacheInvalidator.invalidate('team');
       break;
     case 'season':
       cacheInvalidator.invalidate('seasons');

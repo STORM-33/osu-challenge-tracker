@@ -584,7 +584,7 @@
 
   .slider-track {
     @apply glass-2 rounded-full p-1 flex relative;
-    min-width: 300px; /* Increased from 220px to accommodate 4 tabs */
+    min-width: 300px;
     box-shadow: 
       0 4px 6px -1px rgba(0, 0, 0, 0.1),
       0 2px 4px -1px rgba(0, 0, 0, 0.06),
@@ -597,7 +597,7 @@
     top: 4px;
     bottom: 4px;
     left: 4px;
-    width: calc(25% - 4px); /* Changed from 50% to 25% for 4 tabs */
+    width: calc(25% - 8px); /* Fixed: account for padding on both sides */
     background: linear-gradient(to bottom, #e19d2c, #d1653a);
     border: 3px solid rgba(252, 211, 77, 1);
     border-radius: 9999px;
@@ -609,17 +609,64 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
-  /* Remove the old slider-thumb-right class and add new positioning classes */
+  /* Fixed positioning calculations */
   .slider-thumb-second {
-    left: calc(25% + 4px);
+    left: calc(25% + 4px); /* 25% + half the padding */
   }
 
   .slider-thumb-third {
-    left: calc(50% + 4px);
+    left: calc(50% + 4px); /* 50% + half the padding */
   }
 
   .slider-thumb-fourth {
-    left: calc(75% + 4px);
+    left: calc(75% + 4px); /* 75% + half the padding */
+  }
+
+  .slider-option {
+    @apply relative z-10 px-3 py-2 rounded-full font-medium transition-all duration-300;
+    flex: 1;
+    text-align: center;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Alternative solution with more precise calculations */
+  .slider-thumb-alt {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    width: calc((100% - 8px) / 4); /* Total width minus padding, divided by 4 */
+    background: linear-gradient(to bottom, #e19d2c, #d1653a);
+    border: 3px solid rgba(252, 211, 77, 1);
+    border-radius: 9999px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+      0 0 8px rgba(252, 211, 77, 0.5),
+      0 4px 8px rgba(0, 0, 0, 0.2),
+      0 2px 4px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  /* Alternative positioning - more mathematically precise */
+  .slider-thumb-alt.slider-thumb-first {
+    left: 4px;
+  }
+
+  .slider-thumb-alt.slider-thumb-second {
+    left: calc(4px + (100% - 8px) / 4);
+  }
+
+  .slider-thumb-alt.slider-thumb-third {
+    left: calc(4px + (100% - 8px) / 4 * 2);
+  }
+
+  .slider-thumb-alt.slider-thumb-fourth {
+    left: calc(4px + (100% - 8px) / 4 * 3);
   }
 
   .slider-option {
@@ -669,7 +716,7 @@
     top: 4px;
     bottom: 4px;
     left: 4px;
-    width: calc(50% - 4px);
+    width: calc(50% - 8px);
     background: linear-gradient(to bottom, #e19d2c, #d1653a);
     border: 3px solid rgba(252, 211, 77, 1);
     border-radius: 9999px;
