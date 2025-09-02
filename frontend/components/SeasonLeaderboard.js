@@ -653,7 +653,7 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                             {user.average_accuracy?.toFixed(1) || '0.0'}% • {formatNumber(user.total_score)}
                           </div>
                           <p className="text-xs text-white/50 hidden sm:block">
-                            {formatNumber(user.total_score)} raw
+                            {formatNumber(user.total_score)} score
                           </p>
                         </div>
                       </div>
