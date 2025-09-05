@@ -10,19 +10,6 @@ function MyApp({ Component, pageProps }) {
       <AuthProvider>
         <SettingsProvider>
           <Component {...pageProps} />
-          <Toaster 
-            position="bottom-right"
-            toastOptions={{
-              className: 'glass-2 text-white font-medium',
-              style: {
-                background: 'rgba(255, 255, 255, 0.1)',
-                color: '#fff',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-              },
-              duration: 4000,
-            }}
-          />
         </SettingsProvider>
       </AuthProvider>
     </ErrorBoundary>
