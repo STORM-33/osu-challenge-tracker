@@ -13,6 +13,61 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
   const dropdownRef = useRef(null);
   const router = useRouter();
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const logTouchEvent = (e) => {
+      console.log('Touch Event:', {
+        type: e.type,
+        touches: e.touches.length,
+        target: e.target.tagName,
+        clientX: e.touches[0]?.clientX,
+        clientY: e.touches[0]?.clientY,
+        viewport: {
+          height: window.innerHeight,
+          width: window.innerWidth,
+          scrollY: window.scrollY
+        }
+      });
+    };
+
+    const events = ['touchstart', 'touchmove', 'touchend'];
+    events.forEach(event => {
+      document.addEventListener(event, logTouchEvent, { passive: false });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, logTouchEvent);
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    const preventGestures = (e) => {
+      // Prevent all swipe gestures temporarily
+      if (e.touches && e.touches.length > 0) {
+        const touch = e.touches[0];
+        const isEdgeSwipe = touch.clientX <= 30 || touch.clientX >= window.innerWidth - 30;
+        const isBottomSwipe = touch.clientY >= window.innerHeight - 100;
+        
+        if (isEdgeSwipe || isBottomSwipe) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Blocked gesture:', { isEdgeSwipe, isBottomSwipe });
+        }
+      }
+    };
+
+    document.addEventListener('touchstart', preventGestures, { passive: false });
+    document.addEventListener('touchmove', preventGestures, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchstart', preventGestures);
+      document.removeEventListener('touchmove', preventGestures);
+    };
+  }, []);
+
   // Close mobile menu when route changes
   useEffect(() => {
     setMobileMenuOpen(false);
