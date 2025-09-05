@@ -7,6 +7,15 @@
     @apply bg-neutral-900 text-neutral-800;
     position: relative;
     min-height: 100vh;
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html {
+    overscroll-behavior: none;
+    touch-action: manipulation;
   }
   
   * {
