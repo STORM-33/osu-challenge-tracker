@@ -3,24 +3,27 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-neutral-900 text-neutral-800;
-    position: relative;
-    min-height: 100vh;
-    overscroll-behavior: none;
-    overscroll-behavior-y: none;
-    touch-action: pan-x pan-y;
-    -webkit-overflow-scrolling: touch;
+    body {
+      @apply bg-neutral-900 text-neutral-800;
+      position: relative;
+      min-height: 100svh;
+      min-height: 100vh; /* Fallback */
+    }
+    
+    html {
+      height: 100%;
+    }
+    
+    * {
+      @apply scroll-smooth;
+    }
   }
 
-  html {
-    overscroll-behavior: none;
-    touch-action: manipulation;
-  }
-  
-  * {
-    @apply scroll-smooth;
-  }
+  @layer utilities {
+    .min-h-screen {
+      min-height: 100vh; /* Fallback */
+      min-height: 100svh;
+    }
 }
 
 @layer components {
