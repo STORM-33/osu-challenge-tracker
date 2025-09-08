@@ -756,24 +756,76 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
                             )}
                             
                             {config.type === 'range' && (
-                              <div className="space-y-1">
+                              <div className="space-y-2">
                                 {(() => {
                                   const range = getSettingRange(config, mod.acronym, settingKey);
                                   return (
                                     <>
-                                      <input
-                                        type="range"
-                                        min={range.min}
-                                        max={range.max}
-                                        step={range.step}
-                                        value={currentValue}
-                                        onChange={(e) => handleSettingChange(mod.acronym, settingKey, parseFloat(e.target.value))}
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                                      />
-                                      <div className="flex justify-between text-xs text-gray-500">
-                                        <span>{range.min}</span>
-                                        <span>{range.max}</span>
+                                      {/* Current value display - larger and more prominent */}
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-700">
+                                          Current: 
+                                          <span className="ml-1 text-blue-600 font-semibold">
+                                            {config.format ? config.format(currentValue) : currentValue}
+                                          </span>
+                                        </span>
+                                        <span className="text-xs text-gray-500">
+                                          Range: {range.min} - {range.max}
+                                        </span>
                                       </div>
+                                      
+                                      {/* Range input with improved styling */}
+                                      <div className="relative">
+                                        <input
+                                          type="range"
+                                          min={range.min}
+                                          max={range.max}
+                                          step={range.step}
+                                          value={currentValue}
+                                          onChange={(e) => handleSettingChange(mod.acronym, settingKey, parseFloat(e.target.value))}
+                                          className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                          style={{
+                                            background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((currentValue - range.min) / (range.max - range.min)) * 100}%, #e5e7eb ${((currentValue - range.min) / (range.max - range.min)) * 100}%, #e5e7eb 100%)`
+                                          }}
+                                        />
+                                        
+                                        {/* Value indicator on slider */}
+                                        <div 
+                                          className="absolute top-0 w-1 h-3 bg-blue-700 rounded-full pointer-events-none"
+                                          style={{
+                                            left: `calc(${((currentValue - range.min) / (range.max - range.min)) * 100}% - 2px)`
+                                          }}
+                                        />
+                                      </div>
+                                      
+                                      {/* Min/max labels */}
+                                      <div className="flex justify-between text-xs text-gray-500">
+                                        <span>{config.format ? config.format(range.min) : range.min}</span>
+                                        <span>{config.format ? config.format(range.max) : range.max}</span>
+                                      </div>
+                                      
+                                      {/* Default value indicator if different from current */}
+                                      {(() => {
+                                        const defaultValue = typeof config.getDefault === 'function' 
+                                          ? config.getDefault(mod.acronym) 
+                                          : config.default;
+                                        
+                                        if (defaultValue !== currentValue) {
+                                          return (
+                                            <div className="text-xs text-gray-500 italic">
+                                              Default: {config.format ? config.format(defaultValue) : defaultValue}
+                                              <button
+                                                type="button"
+                                                onClick={() => handleSettingChange(mod.acronym, settingKey, defaultValue)}
+                                                className="ml-2 px-2 py-0.5 bg-gray-100 hover:bg-gray-200 rounded text-xs transition-colors"
+                                              >
+                                                Reset
+                                              </button>
+                                            </div>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
                                     </>
                                   );
                                 })()}
