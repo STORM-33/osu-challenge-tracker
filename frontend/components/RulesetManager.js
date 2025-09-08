@@ -89,19 +89,24 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
     setErrors([]);
 
     try {
-      // Validate form data (removed name validation)
-      if (!formData.required_mods || formData.required_mods.length === 0) {
+      // Clean up settings to remove default values before saving
+      const cleanedMods = cleanupSettings(formData.required_mods);
+      
+      if (!cleanedMods || cleanedMods.length === 0) {
         throw new Error('At least one mod must be selected');
       }
 
-      // Save ruleset (removed name and description from payload)
+      // Save ruleset with cleaned mods
       const response = await fetch(`/api/admin/rulesets/${challengeId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          required_mods: cleanedMods // Use cleaned mods instead of raw form data
+        })
       });
 
       const data = await response.json();

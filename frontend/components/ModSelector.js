@@ -500,31 +500,44 @@ export default function ModSelector({ selectedMods = [], onChange, matchType = '
       // Hide settings panel
       setShowSettings(prev => ({ ...prev, [acronym]: false }));
     } else {
-      // Add mod with default settings
-      const modInfo = OSU_MODS[acronym];
-      const defaultSettings = {};
-      
-      if (modInfo.settings.length > 0) {
-        for (const settingKey of modInfo.settings) {
-          const config = SETTING_CONFIGS[settingKey];
-          if (config) {
-            // Handle dynamic defaults based on mod
-            if (typeof config.getDefault === 'function') {
-              defaultSettings[settingKey] = config.getDefault(acronym);
-            } else {
-              defaultSettings[settingKey] = config.default;
-            }
-          }
-        }
-      }
-      
+      // Add mod with EMPTY settings initially
+      // Only populate settings when user explicitly changes them
       const newMod = {
         acronym,
-        settings: defaultSettings
+        settings: {} // Start with empty settings object
       };
       
       onChange([...selectedMods, newMod]);
     }
+  };
+
+  const cleanupSettings = (mods) => {
+    return mods.map(mod => {
+      const cleanedSettings = {};
+      const modInfo = OSU_MODS[mod.acronym];
+      
+      if (modInfo && modInfo.settings.length > 0) {
+        Object.entries(mod.settings || {}).forEach(([key, value]) => {
+          const config = SETTING_CONFIGS[key];
+          if (config) {
+            // Get the default value for this setting
+            const defaultValue = typeof config.getDefault === 'function' 
+              ? config.getDefault(mod.acronym) 
+              : config.default;
+            
+            // Only include non-default values
+            if (value !== defaultValue) {
+              cleanedSettings[key] = value;
+            }
+          }
+        });
+      }
+      
+      return {
+        acronym: mod.acronym,
+        settings: cleanedSettings
+      };
+    });
   };
 
   const handleSettingChange = (modAcronym, settingKey, value) => {
