@@ -1,4 +1,12 @@
+
 {
+  "crons": [
+    {
+      "path": "/api/cron/update-challenges",
+      "schedule": "*/10 * * * *"
+    }
+  ],
+  
   "redirects": [
     {
       "source": "/",

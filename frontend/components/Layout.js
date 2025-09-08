@@ -32,22 +32,6 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
     };
   }, []);
 
-  useEffect(() => {
-    const setVH = () => {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-    };
-
-    setVH();
-    window.addEventListener('resize', setVH);
-    window.addEventListener('orientationchange', setVH);
-
-    return () => {
-      window.removeEventListener('resize', setVH);
-      window.removeEventListener('orientationchange', setVH);
-    };
-  }, []);
-
   const handleLogout = async () => {
     try {
       console.log('🚪 Starting logout...');
@@ -81,7 +65,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
   ];
 
   return (
-    <div className="relative" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
+    <div className="min-h-screen relative">
       {/* Background image layer - now using settings with updated field name */}
       {settings?.background_enabled ? (
         settings.background_id ? (
