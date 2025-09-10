@@ -84,6 +84,35 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
     }
   };
 
+  const cleanupSettings = (mods) => {
+    return mods.map(mod => {
+      const cleanedSettings = {};
+      const modInfo = OSU_MODS[mod.acronym];
+      
+      if (modInfo && modInfo.settings.length > 0) {
+        Object.entries(mod.settings || {}).forEach(([key, value]) => {
+          const config = SETTING_CONFIGS[key];
+          if (config) {
+            // Get the default value for this setting
+            const defaultValue = typeof config.getDefault === 'function' 
+              ? config.getDefault(mod.acronym) 
+              : config.default;
+            
+            // Only include non-default values
+            if (value !== defaultValue) {
+              cleanedSettings[key] = value;
+            }
+          }
+        });
+      }
+      
+      return {
+        acronym: mod.acronym,
+        settings: cleanedSettings
+      };
+    });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setErrors([]);
