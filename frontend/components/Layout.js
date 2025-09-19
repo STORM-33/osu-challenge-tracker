@@ -10,6 +10,10 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
   const { settings, getBackgroundStyle, loading: settingsLoading } = useSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState(null);
+  const [hoverTimeout, setHoverTimeout] = useState(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
   const dropdownRef = useRef(null);
   const router = useRouter();
 
@@ -31,6 +35,53 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Handle hover logic for navigation items
+  const handleMouseEnter = (itemHref) => {
+    setHoveredItem(itemHref);
+    setShowTooltip(false);
+    setTooltipVisible(false);
+    
+    // Clear any existing timeout
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+    }
+    
+    // Set new timeout for 1 minute (60000ms)
+    const timeout = setTimeout(() => {
+      // Use a callback to get the current state
+      setHoveredItem(currentHoveredItem => {
+        if (currentHoveredItem === itemHref) {
+          setShowTooltip(true);
+          // Small delay to allow DOM update, then trigger animation
+          setTimeout(() => setTooltipVisible(true), 10);
+        }
+        return currentHoveredItem;
+      });
+    }, 60000);
+    
+    setHoverTimeout(timeout);
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredItem(null);
+    setShowTooltip(false);
+    setTooltipVisible(false);
+    
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+  };
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+      }
+    };
+  }, [hoverTimeout]);
 
   const handleLogout = async () => {
     try {
@@ -166,12 +217,28 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                     href={item.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="nav-pill-inactive text-shadow-adaptive-sm hover:nav-pill-active"
+                    className="nav-pill-inactive text-shadow-adaptive-sm hover:nav-pill-active relative"
+                    onMouseEnter={() => handleMouseEnter(item.href)}
+                    onMouseLeave={handleMouseLeave}
                   >
                     <div className="flex items-center gap-2">
                       <item.icon className="w-4 h-4 icon-shadow-adaptive-sm" />
                       {item.label}
                     </div>
+                    
+                    {/* Tooltip */}
+                    {hoveredItem === item.href && showTooltip && (
+                      <div 
+                        className={`absolute top-full mt-2 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-out ${
+                          tooltipVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+                        }`}
+                      >
+                        <div className="glass-3 rounded-lg px-3 py-2 text-sm text-white font-medium text-shadow-adaptive-sm whitespace-nowrap">
+                          Just click bro
+                          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 glass-3 rotate-45"></div>
+                        </div>
+                      </div>
+                    )}
                   </a>
                 ) : (
                   <Link 
@@ -180,14 +247,28 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                     prefetch={false}
                     className={
                       router.pathname === item.href 
-                        ? 'nav-pill-active text-shadow-adaptive-sm'
-                        : 'nav-pill-inactive text-shadow-adaptive-sm'
+                        ? 'nav-pill-active text-shadow-adaptive-sm relative'
+                        : 'nav-pill-inactive text-shadow-adaptive-sm relative'
                     }
+                    onMouseEnter={() => handleMouseEnter(item.href)}
+                    onMouseLeave={handleMouseLeave}
                   >
                     <div className="flex items-center gap-2">
                       <item.icon className="w-4 h-4 icon-shadow-adaptive-sm" />
                       {item.label}
                     </div>
+                    
+                    {/* Tooltip */}
+                    {hoveredItem === item.href && showTooltip && (
+                      <div className={`absolute top-full mt-2 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-out ${
+                          tooltipVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+                        }`}>
+                        <div className="glass-3 rounded-lg px-3 py-2 text-sm text-white font-medium text-shadow-adaptive-sm whitespace-nowrap">
+                          Just click bro
+                          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 glass-3 rotate-45"></div>
+                        </div>
+                      </div>
+                    )}
                   </Link>
                 )
               ))}
