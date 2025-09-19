@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Save, X, Crown, AlertCircle, CheckCircle, Loader2, Target, Trophy, Settings2, Eye } from 'lucide-react';
 import ModSelector from './ModSelector';
 import { generateRulesetName, generateRulesetDescription, previewRulesetName } from '../lib/ruleset-name-generator';
+import { OSU_MODS, SETTING_RANGES } from '../lib/osu-mods-reference';
 
 export default function RulesetManager({ challengeId, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);

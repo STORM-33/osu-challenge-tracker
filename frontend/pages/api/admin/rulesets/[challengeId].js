@@ -1,7 +1,6 @@
 import { supabaseAdmin } from '../../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../../lib/auth-middleware';
-
-const { OSU_MODS, CONFLICTING_MODS, SETTING_RANGES } = require('../../../../lib/osu-mods-reference');
+import { OSU_MODS, CONFLICTING_MODS, SETTING_RANGES } from '../../../../lib/osu-mods-reference';
 
 async function handler(req, res) {
   const { challengeId } = req.query;
