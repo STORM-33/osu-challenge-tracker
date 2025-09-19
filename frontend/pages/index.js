@@ -1,9 +1,55 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Trophy, Calendar, Gift, Zap, Users, Music, Sparkles, Info, ChevronRight, Star, Dice3, Award, Clock, AlertCircle, CheckCircle2, BarChart3, TrendingUp, Target } from 'lucide-react';
 
 export default function AboutChallengers() {
   const [activeTab, setActiveTab] = useState('weekly');
+  const [clickCount, setClickCount] = useState(0);
+  const [isFalling, setIsFalling] = useState(false);
+  const [hasFallen, setHasFallen] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+  const trophyRef = useRef(null);
+  const clickTimeoutRef = useRef(null);
+
+  const handleTrophyClick = () => {
+    if (hasFallen) return; // Don't allow clicking if trophy has already fallen
+    
+    setClickCount(prev => prev + 1);
+    
+    // Clear existing timeout
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+
+    // Start shaking immediately
+    setIsShaking(true);
+
+    // Check if we've reached the threshold for falling
+    if (clickCount >= 9) { // Falls on 10th click
+      setIsFalling(true);
+      setIsShaking(false);
+      
+      // Mark as fallen permanently after animation starts
+      setTimeout(() => {
+        setHasFallen(true);
+      }, 100);
+    } else {
+      // Reset shake and click count after a delay if user stops clicking
+      clickTimeoutRef.current = setTimeout(() => {
+        setIsShaking(false);
+        setClickCount(0);
+      }, 1000);
+    }
+  };
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Layout>
@@ -14,10 +60,45 @@ export default function AboutChallengers() {
             <div className="text-center">
               {/* Trophy Animation Container */}
               <div className="relative inline-block mb-6 sm:mb-8">
-                <Trophy className="w-16 h-16 sm:w-24 sm:h-24 text-white relative z-10 icon-shadow-adaptive animate-float" />
+                {!hasFallen && (
+                  <Trophy 
+                    ref={trophyRef}
+                    onClick={handleTrophyClick}
+                    className={`w-16 h-16 sm:w-24 sm:h-24 text-white relative z-10 icon-shadow-adaptive cursor-pointer transition-all duration-300 hover:scale-110 select-none ${
+                      isFalling 
+                        ? 'animate-trophy-fall' 
+                        : isShaking 
+                          ? 'animate-trophy-shake' 
+                          : 'animate-float'
+                    }`}
+                    style={{
+                      transform: isFalling ? 'translateY(200vh) rotate(720deg)' : 'none',
+                      transition: isFalling ? 'transform 3s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none'
+                    }}
+                  />
+                )}
+                
+                {/* Click indicator */}
+                {clickCount > 0 && !isFalling && !hasFallen && (
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                    {clickCount}
+                  </div>
+                )}
+
+                {/* Empty space placeholder when trophy is gone */}
+                {hasFallen && (
+                  <div className="w-16 h-16 sm:w-24 sm:h-24 opacity-20 flex items-center justify-center">
+                    <div className="text-white/30 text-xs sm:text-sm text-center">
+                      Trophy has fallen!<br />
+                      <span className="text-xs">Reload to respawn</span>
+                    </div>
+                  </div>
+                )}
               </div>
               
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white text-shadow-adaptive-lg mb-4 sm:mb-6">
+              <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-black text-white text-shadow-adaptive-lg mb-4 sm:mb-6 transition-all duration-300 ${
+                isFalling ? 'animate-text-bounce' : ''
+              }`}>
                 osu!Challengers
               </h1>
               
@@ -474,6 +555,52 @@ export default function AboutChallengers() {
           </div>
         </div>
       </div>
+
+      {/* Custom CSS for animations */}
+      <style jsx>{`
+        @keyframes trophy-shake {
+          0%, 100% { transform: translateX(0) rotate(0deg); }
+          10% { transform: translateX(-2px) rotate(-1deg); }
+          20% { transform: translateX(2px) rotate(1deg); }
+          30% { transform: translateX(-2px) rotate(-1deg); }
+          40% { transform: translateX(2px) rotate(1deg); }
+          50% { transform: translateX(-1px) rotate(-0.5deg); }
+          60% { transform: translateX(1px) rotate(0.5deg); }
+          70% { transform: translateX(-1px) rotate(-0.5deg); }
+          80% { transform: translateX(1px) rotate(0.5deg); }
+          90% { transform: translateX(-0.5px) rotate(-0.25deg); }
+        }
+
+        @keyframes text-bounce {
+          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+          10% { transform: translateY(-5px); }
+          30% { transform: translateY(-3px); }
+          60% { transform: translateY(-2px); }
+          90% { transform: translateY(-1px); }
+        }
+
+        .animate-trophy-shake {
+          animation: trophy-shake 0.5s ease-in-out infinite;
+        }
+
+        .animate-text-bounce {
+          animation: text-bounce 0.8s ease-in-out;
+        }
+
+        /* Subtle hint animation when trophy is being clicked */
+        .trophy-clickable {
+          transition: all 0.2s ease;
+        }
+
+        .trophy-clickable:hover {
+          filter: brightness(1.2);
+          transform: scale(1.05);
+        }
+
+        .trophy-clickable:active {
+          transform: scale(0.95);
+        }
+      `}</style>
     </Layout>
   );
 }

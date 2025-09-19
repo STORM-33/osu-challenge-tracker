@@ -47,7 +47,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
       clearTimeout(hoverTimeout);
     }
     
-    // Set new timeout for 1 minute (60000ms)
+    // Set new timeout for 10s (10000ms)
     const timeout = setTimeout(() => {
       // Use a callback to get the current state
       setHoveredItem(currentHoveredItem => {
@@ -58,7 +58,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
         }
         return currentHoveredItem;
       });
-    }, 60000);
+    }, 10000);
     
     setHoverTimeout(timeout);
   };
