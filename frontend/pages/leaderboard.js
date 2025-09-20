@@ -172,15 +172,15 @@ export default function SeasonLeaderboardPage() {
                 <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-white/90">
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm"><strong>50% Total Score:</strong> Sum of all your scores across season challenges</span>
+                    <span className="text-shadow-adaptive-sm"><strong>70% Total Score:</strong> Sum of all your scores across season challenges</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm"><strong>25% Accuracy:</strong> Average accuracy across all your plays</span>
+                    <span className="text-shadow-adaptive-sm"><strong>15% Accuracy:</strong> Average accuracy across all your plays</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm"><strong>25% Participation Streak:</strong> Maximum consecutive challenges participated in</span>
+                    <span className="text-shadow-adaptive-sm"><strong>15% Participation Streak:</strong> Maximum consecutive challenges participated in</span>
                   </li>
                 </ul>
               </div>

@@ -1,5 +1,5 @@
 import { withAdminAuth } from '../../../../lib/auth-middleware';
-import { OSU_MODS, CONFLICTING_MODS, SETTING_RANGES } from '../../../../lib/osu-mods-reference';
+import { OSU_MODS, CONFLICTING_MODS, SETTING_RANGES, SETTING_CONFIGS } from '../../../../lib/osu-mods-reference';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
