@@ -1,5 +1,4 @@
 import apiTracker, { trackedFetch } from './api-tracker';
-import syncLogger from './sync-logger';
 
 class TrackedOsuAPI {
   constructor() {
@@ -21,7 +20,7 @@ class TrackedOsuAPI {
       return this.token.access_token;
     }
 
-    console.log('Authenticating with osu! API...');
+    console.log('🔑 Authenticating with osu! API...');
     
     const response = await trackedFetch('https://osu.ppy.sh/oauth/token', {
       method: 'POST',
@@ -46,7 +45,7 @@ class TrackedOsuAPI {
       expires: Date.now() + (tokenData.expires_in * 1000) - 60000 // 1 min buffer
     };
 
-    console.log('osu! API authentication successful');
+    console.log('✅ osu! API authentication successful');
     return this.token.access_token;
   }
 
@@ -54,7 +53,7 @@ class TrackedOsuAPI {
   async getUser(userId) {
     const token = await this.getToken();
     
-    console.log(`Making osu! API request: /api/v2/users/${userId}`);
+    console.log(`📡 osu! API: GET /users/${userId}`);
     
     const response = await trackedFetch(`${this.baseURL}/users/${userId}`, {
       headers: {
@@ -67,14 +66,18 @@ class TrackedOsuAPI {
       throw new Error(`Failed to get user ${userId}: ${response.status}`);
     }
 
-    console.log(`osu! API request successful: /users/${userId}`);
+    console.log(`✅ osu! API: /users/${userId} success`);
     return response.json();
   }
 
   // Get multiplayer room 
   async getRoom(roomId) {
+    const startTime = Date.now();
+    
     try {
       const token = await this.getToken();
+      
+      console.log(`📡 osu! API: GET /rooms/${roomId}`);
       
       const response = await trackedFetch(`${this.baseURL}/rooms/${roomId}`, {
         headers: {
@@ -87,13 +90,14 @@ class TrackedOsuAPI {
       }
 
       const data = await response.json();
-      console.log(`osu! API request successful: /rooms/${roomId}`);
+      const duration = Date.now() - startTime;
+      
+      console.log(`✅ osu! API: /rooms/${roomId} success (${duration}ms)`);
       return data;
       
     } catch (error) {
-      console.error(`❌ osu! API failed: GET /rooms/${roomId}`, error.message);
-
-      syncLogger.syncError('osu-api', roomId, error, null, { roomId });
+      const duration = Date.now() - startTime;
+      console.error(`❌ osu! API: GET /rooms/${roomId} failed (${duration}ms):`, error.message);
       throw error;
     }
   }
@@ -107,7 +111,7 @@ class TrackedOsuAPI {
       url += `&cursor_string=${cursor}`;
     }
     
-    console.log(`Making osu! API request: /api/v2/rooms/${roomId}/playlist/${playlistId}/scores?limit=${limit}&sort=score_desc`);
+    console.log(`📡 osu! API: GET /rooms/${roomId}/playlist/${playlistId}/scores (limit=${limit})`);
     
     const response = await trackedFetch(url, {
       headers: {
@@ -120,10 +124,8 @@ class TrackedOsuAPI {
       throw new Error(`Failed to get scores for room ${roomId}, playlist ${playlistId}: ${response.status}`);
     }
 
-    console.log(`osu! API request successful: /rooms/${roomId}/playlist/${playlistId}/scores`);
-    
-    // Parse the response first
     const data = await response.json();
+    console.log(`✅ osu! API: Fetched ${data.scores?.length || 0} scores`);
     
     return data;
   }
@@ -135,8 +137,11 @@ class TrackedOsuAPI {
     let allScores = [];
     let cursor = null;
     let apiCallCount = 0;
+    const maxPages = 20; // Safety limit
     
     try {
+      console.log(`📊 Starting score fetch for room ${roomId}, playlist ${playlistId}`);
+      
       do {
         try {
           const response = await this.getRoomScores(roomId, playlistId, 50, cursor);
@@ -146,32 +151,28 @@ class TrackedOsuAPI {
           cursor = response.cursor_string;
           apiCallCount++;
           
-          console.log(`Fetched ${scores.length} scores (total: ${allScores.length})`);
+          console.log(`  Page ${apiCallCount}: +${scores.length} scores (total: ${allScores.length})`);
           
         } catch (pageError) {
-          console.error(`❌ Failed to fetch scores page ${apiCallCount + 1}:`, pageError);
+          console.error(`❌ Failed to fetch scores page ${apiCallCount + 1}:`, pageError.message);
           break;
         }
         
-        if (apiCallCount > 20) {
-          console.warn('⚠️ Too many API calls, stopping pagination');
+        if (apiCallCount >= maxPages) {
+          console.warn(`⚠️ Reached max pages (${maxPages}), stopping pagination`);
           break;
         }
         
       } while (cursor);
 
-      console.log(`Finished fetching scores: ${allScores.length} total (${apiCallCount} API calls made)`);
-      
-      if (process.env.NODE_ENV === 'development') {
-        syncLogger.log('osu-api', 'scores-complete', `Fetched ${allScores.length} scores`, startTime, {
-          roomId, playlistId, totalScores: allScores.length
-        });
-      }
+      const duration = Date.now() - startTime;
+      console.log(`✅ Score fetch complete: ${allScores.length} scores, ${apiCallCount} API calls, ${duration}ms`);
       
       return allScores;
       
     } catch (error) {
-      syncLogger.syncError('osu-api', `${roomId}-${playlistId}`, error, startTime, { roomId, playlistId });
+      const duration = Date.now() - startTime;
+      console.error(`❌ getAllRoomScores failed for room ${roomId}, playlist ${playlistId} (${duration}ms):`, error.message);
       throw error;
     }
   }
@@ -180,7 +181,7 @@ class TrackedOsuAPI {
   async getBeatmap(beatmapId) {
     const token = await this.getToken();
     
-    console.log(`Making osu! API request: /api/v2/beatmaps/${beatmapId}`);
+    console.log(`📡 osu! API: GET /beatmaps/${beatmapId}`);
     
     const response = await trackedFetch(`${this.baseURL}/beatmaps/${beatmapId}`, {
       headers: {
@@ -193,31 +194,40 @@ class TrackedOsuAPI {
       throw new Error(`Failed to get beatmap ${beatmapId}: ${response.status}`);
     }
 
-    console.log(`osu! API request successful: /beatmaps/${beatmapId}`);
+    console.log(`✅ osu! API: /beatmaps/${beatmapId} success`);
     return response.json();
   }
 
   // Batch get users
   async getUsers(userIds) {
+    const startTime = Date.now();
     const users = [];
+    
+    console.log(`📊 Fetching ${userIds.length} users in batches...`);
     
     // Process in batches to avoid rate limits
     const batchSize = 5;
     for (let i = 0; i < userIds.length; i += batchSize) {
       const batch = userIds.slice(i, i + batchSize);
       const batchPromises = batch.map(id => this.getUser(id).catch(err => {
-        console.warn(`Failed to get user ${id}:`, err.message);
+        console.warn(`⚠️ Failed to get user ${id}:`, err.message);
         return null;
       }));
       
       const batchResults = await Promise.all(batchPromises);
-      users.push(...batchResults.filter(user => user !== null));
+      const validUsers = batchResults.filter(user => user !== null);
+      users.push(...validUsers);
+      
+      console.log(`  Batch ${Math.floor(i / batchSize) + 1}: ${validUsers.length}/${batch.length} users fetched`);
       
       // Small delay between batches
       if (i + batchSize < userIds.length) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
+    
+    const duration = Date.now() - startTime;
+    console.log(`✅ User fetch complete: ${users.length}/${userIds.length} users (${duration}ms)`);
     
     return users;
   }
@@ -236,7 +246,7 @@ class TrackedOsuAPI {
   // Log current usage with context
   logUsage(context = '') {
     const usage = this.getCurrentUsage();
-    console.log(`📊 ${context} Usage at ${usage.percentage}% (${usage.current}/${usage.limit}) - External: ${usage.external}`);
+    console.log(`📊 ${context ? context + ' - ' : ''}API Usage: ${usage.percentage}% (${usage.current}/${usage.limit}), External: ${usage.external}`);
   }
 }
 

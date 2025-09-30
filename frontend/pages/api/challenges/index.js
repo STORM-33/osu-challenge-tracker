@@ -3,10 +3,10 @@ import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
 import { trackedFetch } from '../../../lib/api-tracker';
 import { handleAPIResponse, handleAPIError, validateRequest, getPaginationParams, paginatedResponse } from '../../../lib/api-utils';
-import syncManager from '../../../lib/sync-manager';
 import apiTracker from '../../../lib/api-tracker';
 import { memoryCache, createCacheKey, CACHE_DURATIONS } from '../../../lib/memory-cache';
 import { generateETag, checkETag } from '../../../lib/api-utils';
+import { isStale } from '../../../lib/sync-config';
 
 async function handler(req, res) {
   if (req.method === 'GET') {
@@ -27,8 +27,7 @@ async function handleGetChallenges(req, res) {
         season_id: { type: 'number', min: 1 },
         search: { type: 'string', maxLength: 100 },
         sortBy: { type: 'string', enum: ['created_at', 'updated_at', 'name', 'participant_count', 'start_date'] },
-        sortOrder: { type: 'string', enum: ['asc', 'desc'] },
-        auto_sync: { type: 'string', enum: ['true', 'false'] }
+        sortOrder: { type: 'string', enum: ['asc', 'desc'] }
       }
     });
 
@@ -37,68 +36,45 @@ async function handleGetChallenges(req, res) {
       season_id,
       search = '',
       sortBy = 'created_at',
-      sortOrder = 'desc',
-      auto_sync = 'false' 
+      sortOrder = 'desc'
     } = req.query;
 
     const { limit, offset, page } = getPaginationParams(req, 100, 50);
 
     // CREATE CACHE KEY
     const cacheKey = createCacheKey('challenges_list', 'all', {
-      active,
-      season_id,
-      search,
-      sortBy,
-      sortOrder,
-      page,
-      limit
+      active, season_id, search, sortBy, sortOrder, page, limit
     });
 
-    // TRY MEMORY CACHE FIRST (but skip if auto_sync is enabled)
-    if (auto_sync !== 'true') {
-      const cached = memoryCache.get(cacheKey);
-      if (cached) {
-        console.log(`📋 Serving challenges from memory cache: ${cacheKey}`);
-        const etag = generateETag(cached);
-        if (checkETag(req, etag)) {
-          return res.status(304).end();
-        }
-        return paginatedResponse(res, cached, cached.pagination?.total || 0, { 
-          limit, 
-          page 
-        });
+    // TRY CACHE FIRST
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      console.log(`📋 Serving challenges from cache: ${cacheKey}`);
+      const etag = generateETag(cached);
+      if (checkETag(req, etag)) {
+        return res.status(304).end();
       }
+      return paginatedResponse(res, cached.data, cached.pagination.total, { 
+        limit, page 
+      });
     }
 
-    console.log(`📋 Fetching challenges list (active: ${active}, auto_sync: ${auto_sync})`);
+    console.log(`📋 Fetching challenges from database`);
 
-    // Your existing database query logic...
+    // FETCH FROM DATABASE
     let query = supabase
       .from('challenges')
       .select(`
         *,
-        seasons (
-          id,
-          name,
-          start_date,
-          end_date,
-          is_current
-        ),
+        seasons (id, name, start_date, end_date, is_current),
         playlists (
-          id,
-          playlist_id,
-          beatmap_title,
-          beatmap_artist,
-          beatmap_version,
-          beatmap_difficulty,
-          beatmap_cover_url,
-          beatmap_card_url,
-          beatmap_list_url,
-          beatmap_slimcover_url
+          id, playlist_id, beatmap_title, beatmap_artist,
+          beatmap_version, beatmap_difficulty, beatmap_cover_url,
+          beatmap_card_url, beatmap_list_url, beatmap_slimcover_url
         )
       `, { count: 'exact' });
 
-    // Apply filters...
+    // Apply filters
     if (active === 'true') {
       query = query.eq('is_active', true);
     } else if (active === 'false') {
@@ -120,75 +96,40 @@ async function handleGetChallenges(req, res) {
 
     const { data, error, count } = await query;
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    if (!data || data.length === 0) {
-      return paginatedResponse(res, { challenges: [], sync_summary: {} }, count || 0, { limit, page });
-    }
+    // CALCULATE FRESHNESS FOR EACH CHALLENGE
+    const challengesWithFreshness = data.map(challenge => ({
+      ...challenge,
+      data_age_minutes: challenge.updated_at 
+        ? Math.floor((Date.now() - new Date(challenge.updated_at).getTime()) / 60000)
+        : null,
+      is_fresh: !isStale(challenge.updated_at)
+    }));
 
-    // Your existing sync logic...
-    const challengesWithSyncInfo = await Promise.all(
-      data.map(async (challenge) => {
-        const syncStatus = syncManager.getSyncStatus('challenge', challenge.room_id.toString());
-        const stalenessCheck = await syncManager.checkStaleness('challenge', challenge.room_id.toString());
-        const canSyncResult = await syncManager.canSync('challenge', challenge.room_id.toString());
-
-        return {
-          ...challenge,
-          sync_metadata: {
-            last_synced: stalenessCheck.lastUpdated,
-            is_stale: stalenessCheck.isStale,
-            time_since_update: stalenessCheck.timeSinceUpdate,
-            sync_in_progress: syncStatus.inProgress,
-            can_sync: canSyncResult.canSync,
-            sync_reason: canSyncResult.reason,
-            next_sync_available_in: canSyncResult.nextSyncIn || syncStatus.canSyncIn || 0,
-            job_id: syncStatus.jobId || null
-          }
-        };
-      })
-    );
-
-    // Your existing background sync logic...
-    const backgroundSyncResults = [];
-    if (auto_sync === 'true' && active === 'true') {
-      // ... your existing sync triggering logic
-    }
-
-    // Prepare response data
     const responseData = {
-      challenges: challengesWithSyncInfo,
-      sync_summary: {
-        auto_sync_enabled: auto_sync === 'true',
-        background_syncs_triggered: backgroundSyncResults.filter(r => r.triggered).length,
-        total_stale: challengesWithSyncInfo.filter(c => c.sync_metadata?.is_stale).length,
-        total_syncing: challengesWithSyncInfo.filter(c => c.sync_metadata?.sync_in_progress).length,
-        sync_results: backgroundSyncResults
+      challenges: challengesWithFreshness,
+      summary: {
+        total: count || 0,
+        fresh: challengesWithFreshness.filter(c => c.is_fresh).length,
+        stale: challengesWithFreshness.filter(c => !c.is_fresh).length
       }
     };
 
-    // CACHE THE RESULT (but skip if auto_sync is enabled)
-    if (auto_sync !== 'true') {
-      const cacheData = {
-        ...responseData,
-        pagination: {
-          total: count || 0,
-          page,
-          limit
-        }
-      };
-      
-      memoryCache.set(cacheKey, cacheData, CACHE_DURATIONS.CHALLENGES_LIST);
-    }
+    // CACHE THE RESULT
+    const cacheData = {
+      data: responseData,
+      pagination: { total: count || 0, page, limit }
+    };
+    
+    memoryCache.set(cacheKey, cacheData, CACHE_DURATIONS.CHALLENGES_LIST);
 
-    console.log(`📋 Challenges list loaded: ${challengesWithSyncInfo.length} challenges, ${backgroundSyncResults.filter(r => r.triggered).length} background syncs triggered`);
+    console.log(`📋 Loaded ${data.length} challenges (${responseData.summary.fresh} fresh, ${responseData.summary.stale} stale)`);
 
     return paginatedResponse(res, responseData, count || 0, { limit, page });
 
   } catch (error) {
-    console.error('Enhanced challenges list API error:', error);
+    console.error('Challenges list API error:', error);
     return handleAPIError(res, error);
   }
 }
@@ -201,19 +142,17 @@ async function handleCreateChallenge(req, res) {
       user: req.user?.username
     });
 
-    // Fixed validation - make name optional and custom_name optional
     validateRequest(req, {
       method: 'POST',
       body: {
         roomId: { required: true, type: 'number', min: 1 },
-        name: { type: 'string', maxLength: 500 }, // Optional
-        custom_name: { type: 'string', maxLength: 255 } // Optional
+        name: { type: 'string', maxLength: 500 },
+        custom_name: { type: 'string', maxLength: 255 }
       }
     });
 
     const { roomId, name, custom_name } = req.body;
 
-    // Validate room ID format
     if (!Number.isInteger(roomId) || roomId <= 0) {
       throw new Error('Room ID must be a positive integer');
     }
@@ -232,7 +171,7 @@ async function handleCreateChallenge(req, res) {
       .eq('room_id', roomId)
       .single();
 
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+    if (checkError && checkError.code !== 'PGRST116') {
       console.error('❌ Error checking existing challenge:', checkError);
       throw new Error('Database error while checking existing challenge');
     }
@@ -271,7 +210,7 @@ async function handleCreateChallenge(req, res) {
       room_id: roomId,
       name: name || `Challenge ${roomId}`,
       custom_name: custom_name || null,
-      host: 'Unknown', // Will be updated when synced
+      host: 'Unknown', // Will be updated by cron
       room_type: 'playlisted',
       participant_count: 0,
       is_active: true,
@@ -305,27 +244,6 @@ async function handleCreateChallenge(req, res) {
 
     console.log('✅ Challenge created successfully:', challenge.id);
 
-    // Trigger initial sync in background
-    let backgroundSyncTriggered = false;
-    let syncJobId = null;
-    
-    try {
-      const queueResult = await syncManager.queueSync('challenge', roomId.toString(), { 
-        priority: 5, // New challenges get highest priority
-        force: true // Force sync for new challenges
-      });
-      
-      if (queueResult.success) {
-        backgroundSyncTriggered = true;
-        syncJobId = queueResult.jobId;
-        console.log(`✅ Initial background sync queued for new challenge ${roomId} (job: ${syncJobId})`);
-      } else {
-        console.warn(`⚠️ Could not queue sync for new challenge ${roomId}: ${queueResult.reason}`);
-      }
-    } catch (syncError) {
-      console.warn(`⚠️ Failed to queue initial sync for new challenge ${roomId}:`, syncError.message);
-    }
-
     const usageStats = apiTracker.getUsageStats();
 
     console.log('🎉 Challenge creation completed successfully');
@@ -333,16 +251,12 @@ async function handleCreateChallenge(req, res) {
     return handleAPIResponse(res, {
       challenge: {
         ...challenge,
-        sync_metadata: {
-          background_sync_triggered: backgroundSyncTriggered,
-          job_id: syncJobId,
-          sync_in_progress: backgroundSyncTriggered,
-          is_new_challenge: true
+        data_info: {
+          message: 'Challenge created. Data will be fetched automatically within 5 minutes.',
+          next_cron_update: 'Within 5 minutes'
         }
       },
-      message: backgroundSyncTriggered 
-        ? 'Challenge created successfully. Data is being fetched in the background.'
-        : 'Challenge created successfully. Please manually trigger sync to fetch data.',
+      message: 'Challenge created successfully. Cron job will fetch data within 5 minutes.',
       apiUsage: {
         percentage: usageStats.usage?.functions?.percentage || '0',
         remaining: usageStats.usage?.functions?.remaining || 100000
@@ -352,7 +266,6 @@ async function handleCreateChallenge(req, res) {
   } catch (error) {
     console.error('❌ Create challenge error:', error);
     
-    // Provide more specific error messages
     if (error.message?.includes('duplicate key')) {
       return res.status(409).json({
         success: false,

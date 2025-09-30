@@ -1,32 +1,31 @@
-import { supabase } from '../../../lib/supabase';
-import syncManager from '../../../lib/sync-manager';
+import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
 import apiTracker from '../../../lib/api-tracker';
-
-const CRON_SECRET = process.env.CRON_SECRET || 'your-secure-cron-secret-key';
-const MAX_CONCURRENT_UPDATES = 3; // Limit concurrent updates to avoid overwhelming API
+import { syncConfig, isStale } from '../../../lib/sync-config';
+import { invalidateChallengeCache } from '../../../lib/memory-cache';
+import pLimit from 'p-limit';
 
 export default async function handler(req, res) {
   const startTime = Date.now();
   
   try {
-    // 1. VERIFY CRON REQUEST AUTHENTICATION
+    // 1. VERIFY CRON AUTHENTICATION
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
     const authHeader = req.headers.authorization;
-    if (!authHeader || authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (!authHeader || authHeader !== `Bearer ${syncConfig.CRON_SECRET}`) {
       console.warn('🚨 Unauthorized cron request attempt');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log('⏰ CRON JOB: Starting automated challenge updates');
+    console.log('⏰ CRON: Starting automated challenge updates (5-min cycle)');
 
-    // 2. CHECK API LIMITS BEFORE PROCEEDING
+    // 2. CHECK API LIMITS
     const limitStatus = apiTracker.checkLimits();
     if (limitStatus === 'critical') {
-      console.warn('🚨 CRON JOB: API limits critical, skipping update cycle');
+      console.warn('🚨 CRON: API limits critical, skipping update cycle');
       return res.status(429).json({
         success: false,
         reason: 'api_limits_critical',
@@ -35,116 +34,103 @@ export default async function handler(req, res) {
     }
 
     // 3. GET ALL ACTIVE CHALLENGES
-    const { data: activeChallenges, error: fetchError } = await supabase
+    const { data: activeChallenges, error: fetchError } = await supabaseAdmin
       .from('challenges')
       .select('id, room_id, name, updated_at, is_active')
       .eq('is_active', true)
-      .order('updated_at', { ascending: true }); // Prioritize oldest first
+      .order('updated_at', { ascending: true }); // Oldest first
 
     if (fetchError) {
-      throw new Error(`Failed to fetch active challenges: ${fetchError.message}`);
+      throw new Error(`Failed to fetch challenges: ${fetchError.message}`);
     }
 
     if (!activeChallenges || activeChallenges.length === 0) {
-      console.log('📋 CRON JOB: No active challenges found');
+      console.log('📋 CRON: No active challenges found');
       return handleAPIResponse(res, {
         success: true,
-        challenges_processed: 0,
-        message: 'No active challenges to update'
+        challenges_checked: 0,
+        challenges_updated: 0,
+        message: 'No active challenges'
       });
     }
 
-    console.log(`📋 CRON JOB: Found ${activeChallenges.length} active challenges`);
+    console.log(`📋 CRON: Found ${activeChallenges.length} active challenges`);
 
-    // 4. FILTER CHALLENGES THAT NEED UPDATING
-    const challengesToUpdate = [];
-    
-    for (const challenge of activeChallenges) {
-      try {
-        // Check if challenge needs updating
-        const stalenessCheck = await syncManager.checkStaleness('challenge', challenge.room_id.toString());
-        const canSyncResult = await syncManager.canSync('challenge', challenge.room_id.toString());
-        
-        if (stalenessCheck.isStale && canSyncResult.canSync) {
-          challengesToUpdate.push({
-            ...challenge,
-            timeSinceUpdate: stalenessCheck.timeSinceUpdate,
-            priority: calculatePriority(stalenessCheck.timeSinceUpdate)
-          });
-        } else {
-          console.log(`⏭️ CRON JOB: Skipping challenge ${challenge.room_id} - ${canSyncResult.reason || 'not stale'}`);
-        }
-      } catch (error) {
-        console.warn(`⚠️ CRON JOB: Error checking challenge ${challenge.room_id}:`, error.message);
-      }
-    }
+    // 4. FILTER STALE CHALLENGES (updated more than 5 min ago)
+    const staleChallenges = activeChallenges.filter(challenge => 
+      isStale(challenge.updated_at)
+    );
 
-    if (challengesToUpdate.length === 0) {
-      console.log('✅ CRON JOB: All challenges are up to date');
+    if (staleChallenges.length === 0) {
+      console.log('✅ CRON: All challenges are up to date');
       return handleAPIResponse(res, {
         success: true,
         challenges_checked: activeChallenges.length,
-        challenges_processed: 0,
-        message: 'All challenges are up to date'
+        challenges_updated: 0,
+        message: 'All challenges are fresh'
       });
     }
 
-    // 5. SORT BY PRIORITY (OLDEST UPDATES FIRST)
-    challengesToUpdate.sort((a, b) => b.priority - a.priority);
-    
-    console.log(`🔄 CRON JOB: ${challengesToUpdate.length} challenges need updating`);
+    console.log(`🔄 CRON: ${staleChallenges.length} challenges need updating`);
 
-    // 6. PROCESS CHALLENGES IN BATCHES
+    // 5. UPDATE CHALLENGES IN PARALLEL (with concurrency limit)
+    const limit = pLimit(syncConfig.MAX_CONCURRENT_UPDATES);
     const updateResults = [];
-    const batchSize = Math.min(MAX_CONCURRENT_UPDATES, challengesToUpdate.length);
-    
-    for (let i = 0; i < challengesToUpdate.length; i += batchSize) {
-      const batch = challengesToUpdate.slice(i, i + batchSize);
-      
-      console.log(`📦 CRON JOB: Processing batch ${Math.floor(i / batchSize) + 1} (${batch.length} challenges)`);
-      
-      // Process batch in parallel
-      const batchPromises = batch.map(challenge => processChallenge(challenge));
-      const batchResults = await Promise.allSettled(batchPromises);
-      
-      // Collect results
-      batchResults.forEach((result, index) => {
-        const challenge = batch[index];
-        if (result.status === 'fulfilled') {
-          updateResults.push({
+
+    const updatePromises = staleChallenges.map(challenge =>
+      limit(async () => {
+        try {
+          console.log(`🔄 CRON: Updating challenge ${challenge.room_id}...`);
+          
+          // Call the update-challenge endpoint
+          const updateResult = await updateChallenge(challenge.room_id);
+          
+          // Invalidate cache after successful update
+          if (updateResult.success) {
+            invalidateChallengeCache(challenge.room_id);
+          }
+          
+          return {
             room_id: challenge.room_id,
             success: true,
-            job_id: result.value.jobId,
-            message: 'Update queued successfully'
-          });
-        } else {
-          updateResults.push({
+            ...updateResult
+          };
+        } catch (error) {
+          console.error(`❌ CRON: Failed to update ${challenge.room_id}:`, error.message);
+          return {
             room_id: challenge.room_id,
             success: false,
-            error: result.reason?.message || 'Unknown error',
-            message: 'Failed to queue update'
-          });
-          console.error(`❌ CRON JOB: Failed to process challenge ${challenge.room_id}:`, result.reason);
+            error: error.message
+          };
         }
-      });
-      
-      // Short delay between batches to avoid overwhelming the system
-      if (i + batchSize < challengesToUpdate.length) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-    }
+      })
+    );
 
-    // 7. SUMMARIZE RESULTS
+    const results = await Promise.allSettled(updatePromises);
+    
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        updateResults.push(result.value);
+      } else {
+        updateResults.push({
+          room_id: staleChallenges[index].room_id,
+          success: false,
+          error: result.reason?.message || 'Unknown error'
+        });
+      }
+    });
+
+    // 6. SUMMARIZE RESULTS
     const successCount = updateResults.filter(r => r.success).length;
     const failureCount = updateResults.filter(r => !r.success).length;
     const totalTime = Date.now() - startTime;
 
-    console.log(`✅ CRON JOB: Completed in ${totalTime}ms - ${successCount} successful, ${failureCount} failed`);
+    console.log(`✅ CRON: Completed in ${totalTime}ms - ${successCount} successful, ${failureCount} failed`);
 
     return handleAPIResponse(res, {
       success: true,
       challenges_checked: activeChallenges.length,
-      challenges_processed: challengesToUpdate.length,
+      challenges_updated: staleChallenges.length,
       successful_updates: successCount,
       failed_updates: failureCount,
       execution_time_ms: totalTime,
@@ -153,45 +139,46 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('❌ CRON JOB: Fatal error:', error);
+    console.error('❌ CRON: Fatal error:', error);
     return handleAPIError(res, error);
   }
 }
 
-// Helper function to calculate update priority based on staleness
-function calculatePriority(timeSinceUpdate) {
-  const hours = timeSinceUpdate / (1000 * 60 * 60);
+// Helper function to update a single challenge
+async function updateChallenge(roomId) {
+  // Import and call the update logic directly
+  const updateChallengeModule = await import('../update-challenge');
+  const updateHandler = updateChallengeModule.default;
   
-  if (hours >= 24) return 10; // Very stale
-  if (hours >= 12) return 8;  // Quite stale
-  if (hours >= 6) return 6;   // Moderately stale
-  if (hours >= 3) return 4;   // Somewhat stale
-  if (hours >= 1) return 2;   // Recently stale
-  return 1; // Just became stale
-}
-
-// Helper function to process individual challenge
-async function processChallenge(challenge) {
-  try {
-    console.log(`🔄 CRON JOB: Queuing update for challenge ${challenge.room_id} (priority: ${challenge.priority})`);
-    
-    const queueResult = await syncManager.queueSync('challenge', challenge.room_id.toString(), {
-      priority: challenge.priority,
-      force: false, // Respect cooldowns in cron jobs
-      source: 'cron_job'
-    });
-    
-    if (!queueResult.success) {
-      throw new Error(queueResult.reason || 'Failed to queue sync');
-    }
-    
-    return {
-      jobId: queueResult.jobId,
-      success: true
-    };
-    
-  } catch (error) {
-    console.error(`❌ CRON JOB: Error processing challenge ${challenge.room_id}:`, error);
-    throw error;
+  // Create mock request/response
+  const mockReq = {
+    method: 'POST',
+    body: { roomId: parseInt(roomId) }
+  };
+  
+  let responseData = null;
+  let responseStatus = 200;
+  
+  const mockRes = {
+    status: (code) => {
+      responseStatus = code;
+      return mockRes;
+    },
+    json: (data) => {
+      responseData = data;
+      return mockRes;
+    },
+    setHeader: () => mockRes
+  };
+  
+  await updateHandler(mockReq, mockRes);
+  
+  if (responseStatus >= 400) {
+    throw new Error(responseData?.error || 'Update failed');
   }
+  
+  return {
+    success: true,
+    data: responseData
+  };
 }

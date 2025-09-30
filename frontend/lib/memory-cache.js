@@ -74,19 +74,35 @@ export const memoryCache = new MemoryCache();
 
 // Cache duration constants (milliseconds)
 export const CACHE_DURATIONS = {
-  SEASONS: 3600000,        // 1 hour
-  PARTNERS: 1800000,       // 30 minutes
-  TEAM: 1800000,          // 30 minutes
-  CHALLENGES_LIST: 600000, // 10 minutes
-  CHALLENGE_DETAIL: 600000, // 10 minutes
-  LEADERBOARD: 600000,     // 10 minutes
-  USER_PROFILE: 600000,    // 10 minutes
-  SETTINGS: 300000,        // 5 minutes 
-  STATS: 300000,           // 5 minutes
-  HEALTH: 60000,           // 1 minute
-  AUTH_STATUS: 30000,      // 30 seconds
-  ADMIN_DATA: 300000       // 5 minutes
+  SEASONS: 3600000,           // 1 hour (rarely changes)
+  PARTNERS: 1800000,          // 30 minutes
+  TEAM: 1800000,              // 30 minutes
+  CHALLENGES_LIST: 240000,    // 4 minutes (just under cron interval)
+  CHALLENGE_DETAIL: 240000,   // 4 minutes (just under cron interval)
+  LEADERBOARD: 240000,        // 4 minutes
+  USER_PROFILE: 300000,       // 5 minutes
+  SETTINGS: 300000,           // 5 minutes
+  STATS: 180000,              // 3 minutes
+  HEALTH: 60000,              // 1 minute
+  AUTH_STATUS: 30000,         // 30 seconds
+  ADMIN_DATA: 300000          // 5 minutes
 };
+
+export function invalidateChallengeCache(roomId = null) {
+  if (roomId) {
+    // Invalidate specific challenge
+    memoryCache.delete(`challenge_detail_${roomId}`);
+    console.log(`🗑️ Invalidated cache for challenge ${roomId}`);
+  }
+  // Always invalidate list cache when any challenge updates
+  const stats = memoryCache.getStats();
+  stats.keys.forEach(key => {
+    if (key.startsWith('challenges_list_')) {
+      memoryCache.delete(key);
+    }
+  });
+  console.log(`🗑️ Invalidated challenges list cache`);
+}
 
 // Helper function to create cache keys
 export function createCacheKey(type, id, params = {}) {

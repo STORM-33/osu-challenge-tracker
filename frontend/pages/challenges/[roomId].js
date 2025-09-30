@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -6,13 +6,12 @@ import Layout from '../../components/Layout';
 import ScoreTable from '../../components/ScoreTable';
 import CombinedLeaderboard from '../../components/CombinedLeaderboard';
 import { challengeQueries } from '../../lib/supabase';
-import { ArrowLeft, Loader2, Users, Calendar, Music, Star, Trophy, CheckCircle, Clock, AlertCircle, Search, Filter, TrendingUp, Crown, Target, ChevronRight } from 'lucide-react';
+import { 
+  ArrowLeft, Loader2, Users, Calendar, Music, Star, Trophy, 
+  Clock, AlertCircle, Search, Filter, ChevronRight, Target 
+} from 'lucide-react';
 import { generateRulesetName, generateRulesetDescription } from '../../lib/ruleset-name-generator';
-import { syncConfig } from '../../lib/sync-config';
-import { SyncStatusIndicator } from '../../components/SyncStatusIndicator';
-import { useSmartSync } from '../../hooks/useSmartSync';
 
-// Enhanced fetcher that handles sync metadata
 const fetcher = async (url) => {
   const res = await fetch(url);
   if (!res.ok) {
@@ -22,15 +21,10 @@ const fetcher = async (url) => {
   return data.data || data;
 };
 
-// Constants from centralized config
-const COMPLETION_BANNER_DURATION = syncConfig.thresholds.COMPLETION_BANNER_DURATION;
-
 const formatUTCDateTime = (utcDateString) => {
   if (!utcDateString) return 'N/A';
-  
   const utcString = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
   const date = new Date(utcString);
-  
   return date.toLocaleString(undefined, {
     day: '2-digit',
     month: '2-digit',
@@ -39,9 +33,8 @@ const formatUTCDateTime = (utcDateString) => {
     minute: '2-digit',
     second: '2-digit'
   });
-}
+};
 
-// Difficulty color function matching osu! colors
 const getDifficultyColor = (difficulty) => {
   if (difficulty < 1.25) return 'text-blue-300 bg-blue-500';
   if (difficulty < 2.0) return 'text-cyan-300 bg-cyan-500';
@@ -59,74 +52,35 @@ export default function ChallengeDetail() {
   const router = useRouter();
   const { roomId } = router.query;
   
-  // Only use smart sync when roomId is available
-  const { shouldSync: shouldSyncChallenge, markSyncComplete: markChallengeComplete } = useSmartSync(
-    roomId ? `challenge_${roomId}` : null
-  );
-
-  // Handle the case when roomId or shouldSyncChallenge is not ready
-  const challengeEndpoint = useMemo(() => {
-    if (!roomId) return null;
-    
-    const params = new URLSearchParams();
-    if (shouldSyncChallenge) {
-      params.append('auto_sync', 'true');
-    }
-    return `/api/challenges/${roomId}${params.toString() ? `?${params.toString()}` : ''}`;
-  }, [roomId, shouldSyncChallenge]);
-  
   const { data: challengeData, error, mutate: refresh, isValidating } = useSWR(
-    challengeEndpoint, // This will be null initially, which is fine
+    roomId ? `/api/challenges/${roomId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      refreshInterval: 0,
-      onSuccess: (data) => {
-        // Mark sync complete if background sync was triggered
-        if (shouldSyncChallenge && data?.sync_metadata?.background_sync_triggered) {
-          markChallengeComplete();
-        }
-      }
+      revalidateOnReconnect: true,
+      refreshInterval: 300000, // Auto-refresh every 5 minutes
     }
   );
 
-  // Extract data from response
   const challenge = challengeData?.challenge;
   const rulesetInfo = challengeData?.ruleset_info;
   const rulesetWinner = challengeData?.ruleset_winner;
-  const syncMetadata = challengeData?.sync_metadata;
+  const dataInfo = challengeData?.data_info;
   const loading = !challengeData && !error;
 
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-
-  // State for playlist selection and sorting
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
   const [sortBy, setSortBy] = useState('difficulty');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Set initial selected playlist when challenge loads
   useEffect(() => {
     if (challenge?.playlists?.length > 0 && !selectedPlaylistId) {
       setSelectedPlaylistId(challenge.playlists[0].id);
     }
   }, [challenge?.playlists, selectedPlaylistId]);
 
-  const debouncedRefresh = () => {
-    if (isValidating) return;
-    refresh();
-  };
-
-  // Fetch combined leaderboard when we have a challenge with multiple maps that have scores
-  const shouldShowCombinedLeaderboard = challenge && challenge.playlists && 
-    challenge.playlists.filter(p => p.scores && p.scores.length > 0).length >= 2;
+  const shouldShowCombinedLeaderboard = challenge?.playlists?.filter(
+    p => p.scores?.length > 0
+  ).length >= 2;
 
   const { data: combinedLeaderboard, isLoading: leaderboardLoading } = useSWR(
     shouldShowCombinedLeaderboard ? ['leaderboard', challenge.id] : null,
@@ -134,13 +88,11 @@ export default function ChallengeDetail() {
     { revalidateOnFocus: false }
   );
 
-  // Sort and filter playlists
   const getSortedAndFilteredPlaylists = () => {
     if (!challenge?.playlists) return [];
     
     let playlists = [...challenge.playlists];
     
-    // Apply search filter
     if (searchQuery) {
       playlists = playlists.filter(p => 
         p.beatmap_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -149,7 +101,6 @@ export default function ChallengeDetail() {
       );
     }
     
-    // Apply sorting
     switch (sortBy) {
       case 'difficulty':
         return playlists.sort((a, b) => (a.beatmap_difficulty || 0) - (b.beatmap_difficulty || 0));
@@ -162,10 +113,7 @@ export default function ChallengeDetail() {
     }
   };
 
-  // Get currently selected playlist
   const selectedPlaylist = challenge?.playlists?.find(p => p.id === selectedPlaylistId);
-
-  // Check if this is a single playlist challenge
   const isSinglePlaylist = challenge?.playlists?.length === 1;
 
   const RulesetNote = ({ challenge, rulesetInfo }) => {
@@ -191,15 +139,12 @@ export default function ChallengeDetail() {
       }
     };
 
-    const rulesetName = getRulesetName();
-    const rulesetDescription = getRulesetDescription();
-
     return (
       <div className="glass-1 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 performance-card-orange">
         <div className="flex items-center gap-2 text-xs sm:text-sm">
           <Target className="w-4 h-4 text-orange-400 flex-shrink-0 icon-shadow-adaptive-sm" />
           <span className="text-white/90 text-shadow-adaptive-sm">
-            <strong>Ruleset Active:</strong> <code className="glass-2 text-white px-1.5 py-0.5 rounded font-mono text-xs ml-1">{rulesetName}</code> - {rulesetDescription}
+            <strong>Ruleset Active:</strong> <code className="glass-2 text-white px-1.5 py-0.5 rounded font-mono text-xs ml-1">{getRulesetName()}</code> - {getRulesetDescription()}
           </span>
         </div>
       </div>
@@ -212,13 +157,7 @@ export default function ChallengeDetail() {
     <Layout>
       <div className="min-h-screen py-4 sm:py-6 lg:py-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-          {/* Sync Status Indicator */}
-          <SyncStatusIndicator 
-            syncMetadata={syncMetadata}
-            isValidating={isValidating}
-            showDebug={true} // process.env.NODE_ENV === 'development'
-          />
-
+          
           {/* Back button */}
           <div className="mb-4 sm:mb-6">
             <Link 
@@ -240,11 +179,15 @@ export default function ChallengeDetail() {
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 glass-2">
                 <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-400 icon-shadow-adaptive" />
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-white/90 mb-3 sm:mb-4 text-shadow-adaptive">Failed to load challenge</h3>
-              <p className="text-white/70 mb-4 sm:mb-6 text-shadow-adaptive-sm text-sm sm:text-base">There was an error loading this challenge.</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white/90 mb-3 sm:mb-4 text-shadow-adaptive">
+                Failed to load challenge
+              </h3>
+              <p className="text-white/70 mb-4 sm:mb-6 text-shadow-adaptive-sm text-sm sm:text-base">
+                There was an error loading this challenge.
+              </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                 <button
-                  onClick={debouncedRefresh}
+                  onClick={refresh}
                   disabled={isValidating}
                   className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-b from-red-500 to-pink-500 text-white font-semibold rounded-full hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 text-sm sm:text-base"
                 >
@@ -310,24 +253,26 @@ export default function ChallengeDetail() {
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs text-white/70 text-shadow-adaptive-sm">
-                        Last updated: {formatUTCDateTime(challenge.updated_at)}
-                        {syncMetadata?.is_stale && challenge.is_active && (
-                          <span className="text-yellow-300 font-medium flex items-center gap-1 ml-2">
-                            <Clock className="w-3 h-3 icon-shadow-adaptive-sm" />
-                            Data may be outdated
+                    {dataInfo && challenge.is_active && (
+                      <div className="flex items-center gap-2 text-xs text-white/70 text-shadow-adaptive-sm">
+                        <Clock className="w-3 h-3 icon-shadow-adaptive-sm" />
+                        <span>
+                          Last updated: {dataInfo.data_age_minutes !== null ? `${dataInfo.data_age_minutes}min ago` : 'just now'}
+                        </span>
+                        {!dataInfo.is_fresh && (
+                          <span className="text-yellow-300 font-medium ml-2">
+                            (updating soon)
                           </span>
                         )}
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               <RulesetNote challenge={challenge} rulesetInfo={rulesetInfo} />
 
-              {/* Combined Leaderboard - Special Treatment */}
+              {/* Combined Leaderboard */}
               {shouldShowCombinedLeaderboard && (
                 <div className="mb-6 sm:mb-8">
                   <div className="glass-2 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl border border-purple-400/30">
@@ -339,9 +284,11 @@ export default function ChallengeDetail() {
                           <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white icon-shadow-adaptive" />
                         </div>
                         <div>
-                          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-white text-shadow-adaptive">Combined Leaderboard</h2>
+                          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-white text-shadow-adaptive">
+                            Combined Leaderboard
+                          </h2>
                           <p className="text-white/80 text-xs sm:text-sm mt-0.5 text-shadow-adaptive-sm">
-                            Total scores across all {challenge.playlists.length} maps - determines winners
+                            Total scores across all {challenge.playlists.length} maps
                           </p>
                         </div>
                       </div>
@@ -359,9 +306,7 @@ export default function ChallengeDetail() {
 
               {/* Individual Maps Section */}
               {isSinglePlaylist ? (
-                // Single playlist - show scores directly
                 <div className="glass-1 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
-                  {/* Map header */}
                   {challenge.playlists[0] && (
                     <>
                       <div className="p-4 sm:p-6 border-b border-white/10">
@@ -397,7 +342,6 @@ export default function ChallengeDetail() {
                   )}
                 </div>
               ) : (
-                // Multiple playlists - show selection UI
                 <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 shadow-xl">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <h2 className="text-xl sm:text-2xl font-bold text-white text-shadow-adaptive flex items-center gap-2 sm:gap-3">
@@ -405,9 +349,7 @@ export default function ChallengeDetail() {
                       Individual Maps
                     </h2>
                     
-                    {/* Controls */}
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                      {/* Search */}
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50 icon-shadow-adaptive-sm" />
                         <input
@@ -419,7 +361,6 @@ export default function ChallengeDetail() {
                         />
                       </div>
                       
-                      {/* Sort */}
                       <div className="flex items-center gap-2">
                         <Filter className="w-4 h-4 text-white/70 icon-shadow-adaptive-sm" />
                         <select
@@ -435,9 +376,8 @@ export default function ChallengeDetail() {
                     </div>
                   </div>
 
-                  {/* Playlist List */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[400px] overflow-y-auto scrollbar-glass">
-                    {getSortedAndFilteredPlaylists().map((playlist, index) => {
+                    {getSortedAndFilteredPlaylists().map((playlist) => {
                       const participantCount = playlist.scores?.length || 0;
                       const isSelected = playlist.id === selectedPlaylistId;
                       
@@ -451,7 +391,6 @@ export default function ChallengeDetail() {
                               : 'glass-1 hover:glass-2'
                           }`}
                         >
-                          {/* Map thumbnail */}
                           <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                             {playlist.beatmap_cover_url ? (
                               <>
@@ -476,7 +415,6 @@ export default function ChallengeDetail() {
                             )}
                           </div>
                           
-                          {/* Map info */}
                           <div className="flex-1 min-w-0 text-left">
                             <h3 className="font-semibold text-white text-sm line-clamp-1 text-shadow-adaptive mb-0.5">
                               {playlist.beatmap_title}
@@ -498,7 +436,6 @@ export default function ChallengeDetail() {
                             </div>
                           </div>
                           
-                          {/* Selection indicator */}
                           {isSelected && (
                             <ChevronRight className="w-5 h-5 text-purple-400 icon-shadow-adaptive" />
                           )}
@@ -507,7 +444,6 @@ export default function ChallengeDetail() {
                     })}
                   </div>
 
-                  {/* Selected Playlist Scores */}
                   <div className="border-t border-white/10 pt-6">
                     {selectedPlaylist ? (
                       <>
@@ -539,18 +475,21 @@ export default function ChallengeDetail() {
                 </div>
               )}
 
-              {/* Footer Status */}
+              {/* Footer */}
               <div className="mt-8 sm:mt-12 text-center pb-4 sm:pb-8">
-                <div className="inline-flex items-center gap-3 px-4 sm:px-6 py-2 sm:py-3 glass-1 rounded-full shadow-md">
-                  <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                    syncMetadata?.sync_in_progress ? 'bg-blue-500 animate-pulse' : 
-                    syncMetadata?.is_stale && challenge?.is_active ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}></div>
-                  <p className="text-xs sm:text-sm text-white/90 font-medium text-shadow-adaptive-sm">
-                    {syncMetadata?.sync_in_progress ? 'Fetching latest scores from osu!...' : 
-                     syncMetadata?.is_stale && challenge?.is_active ? 'Data updates available' : 'Data is up to date'}
-                  </p>
-                </div>
+                {challenge.is_active && (
+                  <div className="inline-flex items-center gap-3 px-4 sm:px-6 py-2 sm:py-3 glass-1 rounded-full shadow-md">
+                    <div className={`w-2 h-2 rounded-full ${
+                      dataInfo?.is_fresh ? 'bg-green-500' : 'bg-yellow-500'
+                    }`}></div>
+                    <p className="text-xs sm:text-sm text-white/90 font-medium text-shadow-adaptive-sm">
+                      {dataInfo?.is_fresh 
+                        ? 'Data is up to date' 
+                        : `Will update in ~${dataInfo?.next_update_in_minutes || 5} minutes`
+                      }
+                    </p>
+                  </div>
+                )}
               </div>
             </>
           )}

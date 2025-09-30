@@ -1,19 +1,15 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import ChallengeCard from '../components/ChallengeCard';
 import SeasonSelector from '../components/SeasonSelector';
-import { SyncStatusIndicator } from '../components/SyncStatusIndicator'; 
-import { useSmartSync } from '../hooks/useSmartSync';
 import { 
-  Loader2, Trophy, History, Sparkles, RefreshCw, 
-  Users, Music, Clock, MessageCircle, AlertCircle
+  Trophy, History, Sparkles, RefreshCw, 
+  Users, Music, Clock, AlertCircle
 } from 'lucide-react';
-import { syncConfig } from '../lib/sync-config';
 
-// Enhanced fetcher that handles sync metadata
 const fetcher = async (url) => {
   const res = await fetch(url);
   if (!res.ok) {
@@ -23,50 +19,27 @@ const fetcher = async (url) => {
   return data.data || data;
 };
 
-export default function Home() {
+export default function ChallengesPage() {
   const [selectedSeason, setSelectedSeason] = useState(null);
   const [currentSeason, setCurrentSeason] = useState(null);
   const [historicalChallenges, setHistoricalChallenges] = useState([]);
   const [loadingHistorical, setLoadingHistorical] = useState(false);
-  const [expandedSeasons, setExpandedSeasons] = useState(new Set());
-  const [quickStats, setQuickStats] = useState(null);
-  const { shouldSync, markSyncComplete, timeSinceLastSync } = useSmartSync('challenges');
 
-  // Smart API endpoint with conditional auto-sync
-  const activeChallengesEndpoint = useMemo(() => {
-    const params = new URLSearchParams();
-    params.append('active', 'true');
-    params.append('auto_sync', shouldSync ? 'true' : 'false');
-    return `/api/challenges?${params.toString()}`;
-  }, [shouldSync]);
-
-  // Use SWR for active challenges with background sync
+  // Fetch active challenges with simple SWR
   const {
     data: activeChallengesData,
     error,
     mutate: refreshActiveChallenges,
     isValidating
-  } = useSWR(activeChallengesEndpoint, fetcher, {
-    refreshInterval: 0, // Disable automatic refresh - use smart sync instead
-    refreshWhenHidden: false,
-    refreshWhenOffline: false,
+  } = useSWR('/api/challenges?active=true', fetcher, {
+    refreshInterval: 300000, // Auto-refresh every 5 minutes
     revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    dedupingInterval: 10000, 
-    onSuccess: (data) => {
-      if (data?.sync_summary) {
-        console.log('Sync summary:', data.sync_summary);
-        
-        // Mark sync as complete if background syncs were triggered
-        if (shouldSync && data.sync_summary.background_syncs_triggered > 0) {
-          markSyncComplete();
-        }
-      }
-    }
+    revalidateOnReconnect: true,
+    dedupingInterval: 60000,
   });
 
   const activeChallenges = activeChallengesData?.challenges || [];
-  const syncSummary = activeChallengesData?.sync_summary;
+  const summary = activeChallengesData?.summary;
   const loading = !activeChallengesData && !error;
 
   useEffect(() => {
@@ -74,23 +47,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (selectedSeason && selectedSeason.id) {
+    if (selectedSeason?.id) {
       fetchHistoricalChallenges(selectedSeason.id);
     }
   }, [selectedSeason]);
-
-  // Calculate quick stats when active challenges change
-  useEffect(() => {
-    if (activeChallenges.length > 0) {
-      const totalParticipants = activeChallenges.reduce((sum, c) => sum + (c.participant_count || 0), 0);
-      const totalMaps = activeChallenges.reduce((sum, c) => sum + (c.playlists?.length || 0), 0);
-      
-      setQuickStats({
-        totalParticipants,
-        totalMaps,
-      });
-    }
-  }, [activeChallenges]);
 
   const fetchInitialData = async () => {
     try {
@@ -122,7 +82,7 @@ export default function Home() {
       const data = await response.json();
       
       let challenges = [];
-      if (data.success && data.data && data.data.challenges) {
+      if (data.success && data.data?.challenges) {
         challenges = data.data.challenges;
       } else if (data.challenges) {
         challenges = data.challenges;
@@ -131,10 +91,6 @@ export default function Home() {
       }
       
       setHistoricalChallenges(challenges);
-      
-      if (selectedSeason?.is_current) {
-        setExpandedSeasons(new Set([selectedSeason.name]));
-      }
     } catch (err) {
       console.error('Historical challenges fetch error:', err);
       setHistoricalChallenges([]);
@@ -143,22 +99,17 @@ export default function Home() {
     }
   };
 
-  const handleSeasonChange = (season) => {
-    setSelectedSeason(season);
-  };
-
   const getChallengeType = (challenge) => {
     const mapCount = challenge.playlists?.length || 0;
     return mapCount === 1 ? 'weekly' : 'monthly';
   };
 
   const getFilteredChallenges = (challenges) => {
-    return challenges
-      .sort((a, b) => {
-        const dateA = new Date(a.end_date || a.start_date || a.created_at || 0);
-        const dateB = new Date(b.end_date || b.start_date || b.created_at || 0);
-        return dateB.getTime() - dateA.getTime();
-      });
+    return challenges.sort((a, b) => {
+      const dateA = new Date(a.end_date || a.start_date || a.created_at || 0);
+      const dateB = new Date(b.end_date || b.start_date || b.created_at || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
   };
 
   const formatDate = (dateString) => {
@@ -182,39 +133,22 @@ export default function Home() {
   return (
     <Layout>
       <div className="min-h-screen py-4 sm:py-6 lg:py-8">
-        {/* Unified Sync Status Indicator */}
-        <SyncStatusIndicator 
-          syncMetadata={{
-            sync_in_progress: (syncSummary?.total_syncing || 0) > 0,
-            job_id: syncSummary?.total_syncing > 0 ? 'bulk_sync_active' : null, // ✅ STABLE
-            background_sync_triggered: (syncSummary?.background_syncs_triggered || 0) > 0,
-            is_stale: false
-          }}
-          isValidating={isValidating}
-          showDebug={true} // process.env.NODE_ENV === 'development'
-        />
-        
-        {/* Main Content */}
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+          
           {/* Active Challenges Section */}
           <div className="mb-8 sm:mb-12 lg:mb-16">
-            {/* Header Section - Mobile First */}
             <div className="mb-6 sm:mb-8 lg:mb-10">
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 lg:gap-8">
                 <div className="text-center lg:text-left">
-                  {/* Icon and Title - Stacked on mobile, inline on larger screens */}
                   <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4 mb-4">
                     <div className="relative">
                       <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white icon-shadow-adaptive-lg" />
                       <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 absolute -top-1 -right-1 icon-shadow-adaptive-sm" />
                     </div>
-                    
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white text-shadow-adaptive-lg">
                       Active Challenges
                     </h1>
                   </div>
-                  
-                  {/* Description - Mobile optimized */}
                   <p className="text-white/85 text-sm sm:text-base lg:text-lg max-w-none lg:max-w-2xl text-shadow-adaptive px-4 sm:px-0">
                     Jump into any of our currently active challenges and compete with players worldwide for the top spots!
                   </p>
@@ -222,25 +156,36 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Challenges Display Area */}
-            <div className="relative">
-              {/* Subtle Loading Indicator */}
-              {loading && (
-                <div className="absolute top-4 right-4 z-10">
-                  <div className="flex items-center gap-2 px-4 py-2 glass-1 rounded-xl shadow-sm">
-                    <Loader2 className="w-4 h-4 animate-spin text-white icon-shadow-adaptive-sm" />
-                    <span className="text-sm text-white font-medium text-shadow-adaptive-sm">Loading challenges</span>
-                  </div>
+            {/* Data Freshness Info */}
+            {summary && (
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm text-white/70">
+                  <Clock className="w-4 h-4 icon-shadow-adaptive-sm" />
+                  <span className="text-shadow-adaptive-sm">
+                    {summary.fresh || 0} fresh, {summary.stale || 0} updating
+                  </span>
                 </div>
-              )}
+                <button
+                  onClick={refreshActiveChallenges}
+                  disabled={isValidating}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/70 hover:text-white transition-colors glass-1 rounded-full disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 icon-shadow-adaptive-sm ${isValidating ? 'animate-spin' : ''}`} />
+                  {isValidating ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
+            )}
 
-              {/* Content */}
+            {/* Challenges Display */}
+            <div className="relative">
               {error ? (
                 <div className="glass-1 rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center shadow-xl">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                     <AlertCircle className="w-8 h-8 sm:w-10 sm:h-10 text-red-400 icon-shadow-adaptive" />
                   </div>
-                  <p className="text-red-300 mb-6 font-medium text-shadow-adaptive text-sm sm:text-base">Failed to load challenges: {error.message}</p>
+                  <p className="text-red-300 mb-6 font-medium text-shadow-adaptive text-sm sm:text-base">
+                    Failed to load challenges: {error.message}
+                  </p>
                   <button 
                     onClick={refreshActiveChallenges}
                     disabled={isValidating}
@@ -249,22 +194,21 @@ export default function Home() {
                     {isValidating ? 'Retrying...' : 'Try Again'}
                   </button>
                 </div>
-              ) : activeChallenges.length === 0 && !loading ? (
+              ) : activeChallenges.length === 0 ? (
                 <div className="glass-1 rounded-2xl sm:rounded-3xl p-8 sm:p-16 text-center shadow-xl">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                     <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white/70 icon-shadow-adaptive" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white/90 mb-3 text-shadow-adaptive">No Active Challenges</h3>
-                  <p className="text-white/70 mb-2 text-shadow-adaptive-sm text-sm sm:text-base">Check back soon for new challenges!</p>
-                  <p className="text-xs sm:text-sm text-white/60 text-shadow-adaptive-sm">New challenges are added regularly</p>
+                  <h3 className="text-lg sm:text-xl font-bold text-white/90 mb-3 text-shadow-adaptive">
+                    No Active Challenges
+                  </h3>
+                  <p className="text-white/70 mb-2 text-shadow-adaptive-sm text-sm sm:text-base">
+                    Check back soon for new challenges!
+                  </p>
                 </div>
               ) : (
-                <div className={`grid gap-4 sm:gap-6 lg:gap-8 transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
-                {activeChallenges.map(challenge => {
-                  const isUpdating = challenge.sync_metadata?.sync_in_progress;
-                  const isStale = challenge.sync_metadata?.is_stale;
-                  
-                  return (
+                <div className="grid gap-4 sm:gap-6 lg:gap-8">
+                  {activeChallenges.map(challenge => (
                     <Link key={challenge.id} href={`/challenges/${challenge.room_id}`}>
                       <div className="transform transition-all duration-300">
                         <ChallengeCard 
@@ -272,13 +216,11 @@ export default function Home() {
                           size="large"
                           challengeType={getChallengeType(challenge)}
                           showBackground={true}
-                          isUpdating={isUpdating}
                         />
                       </div>
                     </Link>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -293,7 +235,7 @@ export default function Home() {
                 </h2>
               </div>
               <SeasonSelector 
-                onSeasonChange={handleSeasonChange}
+                onSeasonChange={setSelectedSeason}
                 currentSeasonId={selectedSeason?.id}
               />
             </div>
@@ -335,7 +277,6 @@ export default function Home() {
 
               {filteredChallenges.length > 0 ? (
                 <div className="glass-1 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
-                  {/* Header section with responsive grid */}
                   <div className="p-2">
                     <div className="streak-card-current rounded-xl sm:rounded-2xl overflow-hidden">
                       <div className="grid grid-cols-[3fr_1fr] sm:grid-cols-[3fr_1fr_1fr] lg:grid-cols-[4fr_1fr_1fr_1fr_1fr] gap-0 items-center">
@@ -358,10 +299,8 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  {/* Separator line */}
                   <div className="border-t border-white/10"></div>
                   
-                  {/* Table body using matching responsive grid */}
                   <div className="divide-y divide-white/10">
                     {filteredChallenges.map((challenge) => {
                       const challengeType = getChallengeType(challenge);
@@ -375,12 +314,6 @@ export default function Home() {
                                 <div className="font-semibold text-white group-hover:text-purple-300 transition-colors text-shadow-adaptive text-sm sm:text-base">
                                   {displayName || `Challenge #${challenge.id}`}
                                 </div>
-                                {challenge.description && (
-                                  <div className="text-xs sm:text-sm text-white/60 mt-1 text-shadow-adaptive-sm line-clamp-2">
-                                    {challenge.description}
-                                  </div>
-                                )}
-                                {/* Show additional info on mobile */}
                                 <div className="sm:hidden mt-2 flex flex-wrap gap-2 text-xs">
                                   <span className="inline-flex items-center gap-1 text-white/60">
                                     <Music className="w-3 h-3 text-purple-400" />
@@ -405,7 +338,6 @@ export default function Home() {
                               }`}>
                                 {challengeType}
                               </span>
-                              {/* Show end date on mobile */}
                               <div className="sm:hidden flex items-center gap-1 text-xs text-white/60">
                                 <Clock className="w-3 h-3 text-gray-400" />
                                 {challenge.end_date ? formatDate(challenge.end_date) : 'N/A'}
@@ -440,48 +372,27 @@ export default function Home() {
                   <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                     <History className="w-8 h-8 sm:w-10 sm:h-10 text-white/70 icon-shadow-adaptive" />
                   </div>
-                  <h3 className="text-lg sm:text-2xl font-bold text-white/90 mb-3 text-shadow-adaptive">No Historical Challenges</h3>
+                  <h3 className="text-lg sm:text-2xl font-bold text-white/90 mb-3 text-shadow-adaptive">
+                    No Historical Challenges
+                  </h3>
                   <p className="text-white/70 mb-2 text-shadow-adaptive-sm text-sm sm:text-base">
                     {selectedSeason?.is_current 
                       ? 'Completed challenges will appear here as they finish'
                       : 'This season had no completed challenges'
                     }
                   </p>
-                  <p className="text-xs sm:text-sm text-white/60 text-shadow-adaptive-sm">
-                    Challenge history helps track your progress over time
-                  </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Footer Status Indicator */}
+          {/* Footer */}
           <div className="mt-12 sm:mt-16 lg:mt-20 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-3 sm:px-6 sm:py-3 glass-1 rounded-xl sm:rounded-2xl shadow-lg">
-              <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                syncSummary?.total_syncing > 0 ? 'bg-blue-400 animate-pulse' : 
-                syncSummary?.auto_sync_enabled ? 'bg-green-400' : 'bg-gray-400'
-              }`}></div>
+              <div className="w-2 h-2 rounded-full bg-green-400"></div>
               <p className="text-xs sm:text-sm text-white/80 font-medium text-shadow-adaptive-sm">
-                {syncSummary?.total_syncing > 0 ? 
-                  `Fetching latest scores (${syncSummary.total_syncing} active)...` : 
-                  syncSummary?.auto_sync_enabled ? 
-                    'Auto-sync enabled - data updates automatically' :
-                    'Data updates when you visit challenges'
-                }
+                Data updates automatically every 5 minutes
               </p>
-            </div>
-            
-            {/* Manual refresh button */}
-            <div className="mt-4">
-              <button
-                onClick={refreshActiveChallenges}
-                disabled={isValidating}
-                className="text-xs text-white/70 hover:text-white/90 transition-colors flex items-center gap-1 mx-auto disabled:opacity-50 hover:bg-white/10 px-3 py-1 rounded-full text-shadow-adaptive-sm"
-              >
-                <RefreshCw className={`w-3 h-3 icon-shadow-adaptive-sm ${isValidating ? 'animate-spin' : ''}`} />
-                Manual Refresh
-              </button>
             </div>
           </div>
         </div>

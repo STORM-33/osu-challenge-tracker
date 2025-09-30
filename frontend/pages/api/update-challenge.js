@@ -2,11 +2,10 @@ import { supabaseAdmin } from '../../lib/supabase-admin';
 import { trackedOsuAPI } from '../../lib/osu-api'; 
 import apiTracker from '../../lib/api-tracker';
 import { handleAPIError, validateRequest } from '../../lib/api-utils';
-import { markChallengeUpdated } from '../../lib/global-update-tracker';
+import { markChallengeUpdated } from '../../lib/update-tracker';
 import pLimit from 'p-limit';
-import syncLogger from '../../lib/sync-logger';
 
-// Helper function to process mods and ensure proper format
+// Helper function to process mods
 function processModsData(mods) {
   if (!mods || !Array.isArray(mods) || mods.length === 0) {
     return {
@@ -36,7 +35,7 @@ function processModsData(mods) {
   }
 }
 
-// Enhanced atomic update function with mod support
+// Atomic update function
 async function executeAtomicUpdateWithMods(challengeData, playlistsData, scoresData, participationData) {
   const { data, error } = await supabaseAdmin.rpc('update_challenge_atomic_with_mods', {
     challenge_data: challengeData,
@@ -52,9 +51,9 @@ async function executeAtomicUpdateWithMods(challengeData, playlistsData, scoresD
   return data;
 }
 
-// Optimized parallel processing for playlists
+// Process playlists in parallel
 async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRetries = 3) {
-  console.log(`🚀 Request ${requestId}: Processing ${roomData.playlist?.length || 0} playlists in parallel`);
+  console.log(`🚀 Request ${requestId}: Processing ${roomData.playlist?.length || 0} playlists`);
   
   if (!roomData.playlist || roomData.playlist.length === 0) {
     return {
@@ -67,7 +66,6 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
     };
   }
 
-  // Limit concurrent API calls to avoid overwhelming the osu! API
   const concurrencyLimit = pLimit(4);
   const batchSize = 8;
   
@@ -80,17 +78,14 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
   const allUsersData = [];
   const userMap = new Map();
 
-  // Helper function to process a single playlist
   const processPlaylist = async (playlist, index) => {
     try {
-      // Check API limits before processing
       const currentLimitStatus = apiTracker.checkLimits();
       if (currentLimitStatus === 'critical') {
-        console.warn(`🚨 Request ${requestId}: Hit critical limit during playlist ${index + 1}, skipping remaining`);
+        console.warn(`🚨 Request ${requestId}: Hit critical limit at playlist ${index + 1}`);
         return null;
       }
 
-      // Prepare playlist data
       const covers = playlist.beatmap?.beatmapset?.covers || {};
       const playlistRecord = {
         playlist_id: playlist.id,
@@ -105,7 +100,6 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
         beatmap_slimcover_url: covers.slimcover || null,
       };
 
-      // Fetch scores with retry logic
       let scores;
       let scoreRetryCount = 0;
       
@@ -116,7 +110,7 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
         } catch (scoreError) {
           scoreRetryCount++;
           if (scoreRetryCount >= maxRetries) {
-            console.error(`❌ Request ${requestId}: Failed to fetch scores for playlist ${playlist.id} after ${maxRetries} attempts`);
+            console.error(`❌ Request ${requestId}: Failed to fetch scores for playlist ${playlist.id}`);
             throw scoreError;
           }
           await new Promise(resolve => setTimeout(resolve, 500 * scoreRetryCount));
@@ -130,7 +124,6 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
       if (scores && scores.length > 0) {
         for (const score of scores) {
           try {
-            // Deduplicate users
             const userKey = score.user_id.toString();
             if (!userMap.has(userKey)) {
               const userData = {
@@ -144,7 +137,6 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
               playlistUsersData.push(userData);
             }
 
-            // Process mods with detailed information
             const modData = processModsData(score.mods);
             const scoreValue = score.total_score || score.score || 0;
             
@@ -162,12 +154,12 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
             
             playlistScoresData.push(scoreRecord);
           } catch (scoreProcessError) {
-            console.error(`❌ Request ${requestId}: Error processing score in playlist ${playlist.id}:`, scoreProcessError);
+            console.error(`❌ Request ${requestId}: Error processing score:`, scoreProcessError);
           }
         }
       }
 
-      console.log(`✅ Request ${requestId}: Playlist ${index + 1}/${roomData.playlist.length} processed (${scores?.length || 0} scores)`);
+      console.log(`✅ Request ${requestId}: Playlist ${index + 1}/${roomData.playlist.length} done (${scores?.length || 0} scores)`);
 
       return {
         playlistRecord,
@@ -183,22 +175,19 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
     }
   };
 
-  // Process playlists in batches
   const playlists = roomData.playlist;
   for (let batchStart = 0; batchStart < playlists.length; batchStart += batchSize) {
     const batchEnd = Math.min(batchStart + batchSize, playlists.length);
     const batch = playlists.slice(batchStart, batchEnd);
     
-    console.log(`📦 Request ${requestId}: Processing batch ${Math.floor(batchStart / batchSize) + 1} (playlists ${batchStart + 1}-${batchEnd})`);
+    console.log(`📦 Request ${requestId}: Batch ${Math.floor(batchStart / batchSize) + 1}`);
     
-    // Process current batch in parallel
     const batchPromises = batch.map((playlist, batchIndex) => 
       concurrencyLimit(() => processPlaylist(playlist, batchStart + batchIndex))
     );
     
     const batchResults = await Promise.allSettled(batchPromises);
     
-    // Collect results from successful operations
     for (const result of batchResults) {
       if (result.status === 'fulfilled' && result.value) {
         const { playlistRecord, scoresData, usersData, apiCalls, scoreCount } = result.value;
@@ -209,21 +198,17 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
         totalApiCallsForPlaylists += apiCalls;
         playlistsProcessed++;
         scoresProcessed += scoreCount;
-      } else if (result.status === 'rejected') {
-        console.error(`❌ Request ${requestId}: Batch playlist failed:`, result.reason);
       }
     }
     
-    // Small delay between batches
     if (batchEnd < playlists.length) {
       await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
 
-  // Deduplicate users data
   const uniqueUsersData = Array.from(userMap.values());
 
-  console.log(`🎯 Request ${requestId}: Parallel processing complete - ${playlistsProcessed}/${playlists.length} playlists, ${scoresProcessed} scores, ${uniqueUsersData.length} unique users`);
+  console.log(`🎯 Request ${requestId}: Complete - ${playlistsProcessed}/${playlists.length} playlists, ${scoresProcessed} scores`);
 
   return {
     playlistsData: allPlaylistsData,
@@ -235,20 +220,14 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
   };
 }
 
-// Optimized database transaction
+// Execute database update with retries
 async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scoresData, usersData, requestId) {
   const maxRetries = 3;
   let retryCount = 0;
   
   while (retryCount < maxRetries) {
     try {
-      console.log(`💾 Request ${requestId}: Executing atomic database transaction (attempt ${retryCount + 1}/${maxRetries})`);
-      console.log(`💾 Request ${requestId}: Challenge data being updated:`, {
-        room_id: challengeData.room_id,
-        name: challengeData.name?.substring(0, 30),
-        playlists_count: playlistsData.length,
-        scores_count: scoresData.length
-      });
+      console.log(`💾 Request ${requestId}: Database transaction (attempt ${retryCount + 1})`);
       
       const result = await executeAtomicUpdateWithMods(
         challengeData,
@@ -257,239 +236,72 @@ async function executeOptimizedAtomicUpdate(challengeData, playlistsData, scores
         usersData
       );
       
-      console.log(`✅ Request ${requestId}: Database transaction completed`);
-      console.log(`💾 Request ${requestId}: Returned challenge ID:`, result?.challenge_id);
-      
+      console.log(`✅ Request ${requestId}: Transaction complete`);
       return result;
       
     } catch (transactionError) {
       retryCount++;
-      console.error(`❌ Request ${requestId}: Database transaction attempt ${retryCount} failed:`, transactionError);
+      console.error(`❌ Request ${requestId}: Transaction failed (attempt ${retryCount})`);
       
       if (retryCount >= maxRetries) {
-        throw new Error(`Database transaction failed after ${maxRetries} attempts: ${transactionError.message}`);
+        throw new Error(`Transaction failed after ${maxRetries} attempts: ${transactionError.message}`);
       }
       
       const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
-      console.log(`⏳ Request ${requestId}: Retrying database transaction in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 }
 
-// Ruleset winner calculation
+// Calculate ruleset winner
 async function updateChallengeRulesetWinner(challengeId, requestId) {
   try {
-    console.log(`🏆 Request ${requestId}: Calculating ruleset winner for challenge ${challengeId}`);
+    console.log(`🏆 Request ${requestId}: Calculating ruleset winner for ${challengeId}`);
     
-    // ENHANCED: First, let's see what's actually in the database
-    console.log(`🔍 Request ${requestId}: Checking if challenge ${challengeId} exists...`);
-    
-    const { data: allChallenges, error: allError } = await supabaseAdmin
-      .from('challenges')
-      .select('id, room_id, name, has_ruleset, required_mods')  // ← FIXED: Only existing columns
-      .limit(10);
-    
-    if (allError) {
-      console.error(`❌ Request ${requestId}: Error fetching all challenges:`, allError);
-    } else {
-      console.log(`📋 Request ${requestId}: Recent challenges in DB:`, allChallenges?.map(c => ({ 
-        id: c.id, 
-        room_id: c.room_id, 
-        name: c.name?.substring(0, 30),
-        has_ruleset: c.has_ruleset 
-      })));
-    }
-    
-    // ENHANCED: Check both by ID and by room_id 
     const { data: challenge, error: challengeError } = await supabaseAdmin
       .from('challenges')
       .select('id, room_id, has_ruleset, required_mods, ruleset_match_type')
       .eq('id', challengeId)
       .single();
 
-    console.log(`🔍 Request ${requestId}: Challenge lookup by ID ${challengeId}:`, { 
-      found: !!challenge, 
-      error: challengeError?.message,
-      challenge: challenge ? {
-        id: challenge.id,
-        room_id: challenge.room_id,
-        has_ruleset: challenge.has_ruleset,
-      } : null
-    });
-
     if (challengeError || !challenge) {
-      // ENHANCED: Try to find by room_id as fallback
-      console.log(`🔍 Request ${requestId}: Challenge ${challengeId} not found by ID, checking by room_id...`);
-      
-      const { data: recentChallenge } = await supabaseAdmin
-        .from('challenges')
-        .select('id, room_id, has_ruleset, name, created_at')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (recentChallenge) {
-        console.log(`🔍 Request ${requestId}: Most recent challenge:`, {
-          id: recentChallenge.id,
-          room_id: recentChallenge.room_id,
-          name: recentChallenge.name?.substring(0, 30),
-          has_ruleset: recentChallenge.has_ruleset,
-          created_at: recentChallenge.created_at
-        });
-      }
-      
-      console.warn(`⚠️ Request ${requestId}: Challenge ${challengeId} not found for ruleset update`);
+      console.warn(`⚠️ Request ${requestId}: Challenge ${challengeId} not found`);
       return { success: false, error: 'Challenge not found' };
     }
 
     if (!challenge.has_ruleset) {
-      console.log(`📝 Request ${requestId}: Challenge ${challengeId} has no ruleset, skipping winner calculation`);
+      console.log(`📝 Request ${requestId}: No ruleset, skipping`);
       return { success: true, has_ruleset: false };
     }
-
-    console.log(`🏆 Request ${requestId}: Challenge has ruleset, proceeding with winner calculation`);
 
     const { data: winnerResult, error: winnerError } = await supabaseAdmin
       .rpc('update_challenge_ruleset_winner', { challenge_id_param: challengeId });
 
     if (winnerError) {
-      console.error(`❌ Request ${requestId}: Error calculating ruleset winner:`, winnerError);
+      console.error(`❌ Request ${requestId}: Ruleset winner error:`, winnerError);
       return { success: false, error: winnerError.message };
     }
 
-    if (winnerResult && winnerResult.winner_updated) {
-      console.log(`🏆 Request ${requestId}: Ruleset winner updated - ${winnerResult.winner_username} with score ${winnerResult.winner_score}`);
-    } else {
-      console.log(`📝 Request ${requestId}: No qualifying scores found for ruleset`);
+    if (winnerResult?.winner_updated) {
+      console.log(`🏆 Request ${requestId}: Winner: ${winnerResult.winner_username}`);
     }
 
     return {
       success: true,
       has_ruleset: true,
-      required_mods: challenge.required_mods,  // ← Optional: add this if you want
-      ruleset_match_type: challenge.ruleset_match_type,  // ← Optional: add this if you want
       winner_result: winnerResult
     };
 
   } catch (error) {
-    console.error(`❌ Request ${requestId}: Error in ruleset winner calculation:`, error);
+    console.error(`❌ Request ${requestId}: Ruleset calculation error:`, error);
     return { success: false, error: error.message };
   }
 }
 
-// Database-based distributed locking
-const LOCK_TIMEOUT = 4 * 60 * 1000;
-
-async function acquireDistributedLock(roomId, requestId, timeoutMs = LOCK_TIMEOUT) {
-  const lockId = `challenge_update_${roomId}`;
-  const expiresAt = new Date(Date.now() + timeoutMs).toISOString();
-  
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('api_locks')
-      .insert({
-        lock_id: lockId,
-        request_id: requestId,
-        created_at: new Date().toISOString(),
-        expires_at: expiresAt,
-        resource_type: 'challenge_update',
-        resource_id: roomId.toString()
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      if (error.code === '23505') {
-        const { data: existingLock } = await supabaseAdmin
-          .from('api_locks')
-          .select('*')
-          .eq('lock_id', lockId)
-          .single();
-        
-        if (existingLock && new Date(existingLock.expires_at) < new Date()) {
-          const { data: updatedLock, error: updateError } = await supabaseAdmin
-            .from('api_locks')
-            .update({
-              request_id: requestId,
-              created_at: new Date().toISOString(),
-              expires_at: expiresAt
-            })
-            .eq('lock_id', lockId)
-            .eq('expires_at', existingLock.expires_at)
-            .select()
-            .single();
-          
-          if (!updateError && updatedLock) {
-            console.log(`🔐 Request ${requestId}: Acquired expired lock for room ${roomId}`);
-            return { success: true, lock: updatedLock };
-          }
-        }
-        
-        return { 
-          success: false, 
-          error: 'Resource is currently locked',
-          existingLock 
-        };
-      }
-      
-      throw error;
-    }
-    
-    console.log(`🔐 Request ${requestId}: Acquired new lock for room ${roomId}`);
-    return { success: true, lock: data };
-    
-  } catch (error) {
-    console.error(`❌ Request ${requestId}: Lock acquisition error:`, error);
-    return { success: false, error: error.message };
-  }
-}
-
-async function releaseDistributedLock(roomId, requestId) {
-  const lockId = `challenge_update_${roomId}`;
-  
-  try {
-    const { error } = await supabaseAdmin
-      .from('api_locks')
-      .delete()
-      .eq('lock_id', lockId)
-      .eq('request_id', requestId);
-    
-    if (error) {
-      console.error(`❌ Request ${requestId}: Failed to release lock for room ${roomId}:`, error);
-    } else {
-      console.log(`🔓 Request ${requestId}: Released lock for room ${roomId}`);
-    }
-  } catch (error) {
-    console.error(`❌ Request ${requestId}: Lock release error:`, error);
-  }
-}
-
-async function cleanupExpiredLocks() {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('api_locks')
-      .delete()
-      .lt('expires_at', new Date().toISOString())
-      .select();
-    
-    if (data && data.length > 0) {
-      console.log(`🧹 Cleaned up ${data.length} expired locks`);
-    }
-  } catch (error) {
-    console.error('❌ Lock cleanup error:', error);
-  }
-}
-
-// MAIN HANDLER - CLEAN VERSION
+// MAIN HANDLER
 async function handler(req, res) {
   const requestId = Math.random().toString(36).substr(2, 9);
   const totalStartTime = Date.now();
-
-  // MINIMAL LOGGING: Start
-  const logId = syncLogger.syncStart('update-challenge', req.body?.roomId || 'unknown', { requestId });
-
-  await cleanupExpiredLocks();
 
   try {
     validateRequest(req, {
@@ -503,178 +315,124 @@ async function handler(req, res) {
     const roomIdNum = parseInt(roomId);
     
     if (isNaN(roomIdNum) || roomIdNum <= 0) {
-      throw new Error('Invalid room ID - must be a positive number');
+      throw new Error('Invalid room ID');
     }
 
-    // Acquire distributed lock
-    const lockResult = await acquireDistributedLock(roomIdNum, requestId);
+    // Check API limits
+    const limitStatus = apiTracker.checkLimits();
+    if (limitStatus === 'critical') {
+      throw new Error('API usage critical');
+    }
+
+    console.log(`🔄 Request ${requestId}: Updating challenge ${roomIdNum}`);
+
+    // 1. Fetch room data
+    let roomData;
+    let retryCount = 0;
+    const maxRetries = 3;
     
-    if (!lockResult.success) {
-      console.log(`🔒 Request ${requestId}: Room ${roomIdNum} is locked: ${lockResult.error}`);
-      
-      return res.status(429).json({ 
-        success: false,
-        error: 'Challenge update already in progress',
-        details: {
-          roomId: roomIdNum,
-          requestId,
-          message: 'Another instance is currently updating this challenge'
-        }
-      });
+    while (retryCount < maxRetries) {
+      try {
+        roomData = await trackedOsuAPI.getRoom(roomIdNum);
+        break;
+      } catch (apiError) {
+        retryCount++;
+        if (retryCount >= maxRetries) throw apiError;
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
+    }
+    
+    if (!roomData?.id) {
+      throw new Error('Room not found');
     }
 
+    // 2. Prepare challenge data
+    let backgroundImageUrl = null;
+    if (roomData.playlist?.length > 0) {
+      const firstBeatmap = roomData.playlist[0];
+      backgroundImageUrl = firstBeatmap.beatmap?.beatmapset?.covers?.cover || null;
+    }
+
+    const challengeData = {
+      room_id: roomIdNum,
+      name: roomData.name,
+      host: roomData.host?.username || 'Unknown',
+      room_type: roomData.type || 'playlists',
+      start_date: roomData.starts_at,
+      end_date: roomData.ends_at,
+      participant_count: roomData.participant_count || 0,
+      is_active: roomData.active || false,
+      background_image_url: backgroundImageUrl,
+      updated_at: new Date().toISOString()
+    };
+
+    // 3. Process playlists and scores
+    const {
+      playlistsData,
+      scoresData,
+      usersData,
+      totalApiCallsForPlaylists,
+      playlistsProcessed,
+      scoresProcessed
+    } = await processPlaylistsInParallel(roomData, roomIdNum, requestId);
+
+    // 4. Update database
+    let challengeDbId = null;
     try {
-      // Check API limits
-      const limitStatus = apiTracker.checkLimits();
-      const usageStats = apiTracker.getUsageStats();
-      
-      console.log(`📊 Request ${requestId}: Current API usage: ${usageStats.usage?.functions?.percentage || '0'}%`);
-      
-      if (limitStatus === 'critical') {
-        throw new Error('API usage critical - temporarily limiting requests');
-      }
-
-      console.log(`🔄 Request ${requestId}: Starting challenge update for room ${roomIdNum}`);
-
-      // 1. Fetch room data
-      let roomData;
-      let retryCount = 0;
-      const maxRetries = 3;
-      
-      while (retryCount < maxRetries) {
-        try {
-          roomData = await trackedOsuAPI.getRoom(roomIdNum);
-          break;
-        } catch (apiError) {
-          retryCount++;
-          if (retryCount >= maxRetries) {
-            throw apiError;
-          }
-          console.warn(`⚠️ Request ${requestId}: API retry ${retryCount}/${maxRetries} for room ${roomIdNum}`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-        }
-      }
-      
-      console.log(`📡 Request ${requestId}: Room data fetched successfully`);
-      
-      if (!roomData || !roomData.id) {
-        throw new Error('Room not found');
-      }
-
-      // 2. Prepare challenge data
-      let backgroundImageUrl = null;
-      if (roomData.playlist && roomData.playlist.length > 0) {
-        const firstBeatmap = roomData.playlist[0];
-        if (firstBeatmap.beatmap?.beatmapset?.covers?.cover) {
-          backgroundImageUrl = firstBeatmap.beatmap.beatmapset.covers.cover;
-        }
-      }
-
-      const challengeData = {
-        room_id: roomIdNum,
-        name: roomData.name,
-        host: roomData.host?.username || 'Unknown',
-        room_type: roomData.type || 'playlists',
-        start_date: roomData.starts_at,
-        end_date: roomData.ends_at,
-        participant_count: roomData.participant_count || 0,
-        is_active: roomData.active || false,
-        background_image_url: backgroundImageUrl,
-        updated_at: new Date().toISOString()
-      };
-
-      // 3. Process playlists and scores
-      const {
+      const result = await executeOptimizedAtomicUpdate(
+        challengeData,
         playlistsData,
         scoresData,
         usersData,
-        totalApiCallsForPlaylists,
-        playlistsProcessed,
-        scoresProcessed
-      } = await processPlaylistsInParallel(roomData, roomIdNum, requestId);
-      
-      console.log(`⚡ Request ${requestId}: Processed ${playlistsProcessed} playlists, ${scoresProcessed} scores`);
-
-      // 4. Update database
-      let challengeDbId = null;
-      
-      try {
-        const result = await executeOptimizedAtomicUpdate(
-          challengeData,
-          playlistsData,
-          scoresData,
-          usersData,
-          requestId
-        );
-        
-        challengeDbId = result.challenge_id;
-        
-      } catch (transactionError) {
-        console.error(`❌ Request ${requestId}: Database transaction failed:`, transactionError);
-        throw new Error(`Database transaction failed: ${transactionError.message}`);
-      }
-
-      // 5. Calculate ruleset winner
-      let rulesetResult = { success: false, has_ruleset: false };
-      
-      if (challengeDbId) {
-        try {
-          rulesetResult = await updateChallengeRulesetWinner(challengeDbId, requestId);
-        } catch (rulesetError) {
-          console.warn(`⚠️ Request ${requestId}: Ruleset winner calculation failed:`, rulesetError);
-          rulesetResult = { success: false, error: rulesetError.message };
-        }
-      }
-      
-      const totalTime = Date.now() - totalStartTime;
-
-      // 6. Update global tracking cache
-      markChallengeUpdated(roomIdNum);
-
-      const finalUsage = apiTracker.getUsageStats();
-      
-      console.log(`✅ Request ${requestId}: Challenge update complete in ${Math.round(totalTime)}ms`);
-
-      // MINIMAL LOGGING: Success
-      syncLogger.syncComplete('update-challenge', roomIdNum, totalStartTime, {
-        requestId,
-        playlistsProcessed,
-        scoresProcessed,
-        totalTime: Math.round(totalTime)
-      });
-
-      return res.status(200).json({ 
-        success: true, 
-        challenge: challengeData,
-        message: 'Challenge data updated successfully',
-        stats: {
-          playlistsProcessed,
-          scoresProcessed,
-          totalPlaylists: roomData.playlist?.length || 0,
-          estimatedExternalCalls: totalApiCallsForPlaylists,
-          uniqueUsers: usersData.length
-        },
-        performance: {
-          totalTimeMs: Math.round(totalTime)
-        },
-        apiUsage: {
-          percentage: finalUsage.usage?.functions?.percentage || '0',
-          remaining: finalUsage.usage?.functions?.remaining || 100000
-        },
-        ruleset: rulesetResult,
         requestId
-      });
-
-    } catch (error) {
-      console.error(`❌ Request ${requestId}: Update challenge error:`, error);
-      return handleAPIError(res, error);
-    } finally {
-      await releaseDistributedLock(roomIdNum, requestId);
+      );
+      challengeDbId = result.challenge_id;
+    } catch (transactionError) {
+      throw new Error(`Database update failed: ${transactionError.message}`);
     }
 
+    // 5. Calculate ruleset winner
+    let rulesetResult = { success: false, has_ruleset: false };
+    if (challengeDbId) {
+      try {
+        rulesetResult = await updateChallengeRulesetWinner(challengeDbId, requestId);
+      } catch (rulesetError) {
+        console.warn(`⚠️ Request ${requestId}: Ruleset failed:`, rulesetError);
+      }
+    }
+    
+    const totalTime = Date.now() - totalStartTime;
+
+    // 6. Mark as updated
+    markChallengeUpdated(roomIdNum);
+
+    const finalUsage = apiTracker.getUsageStats();
+    
+    console.log(`✅ Request ${requestId}: Complete in ${Math.round(totalTime)}ms`);
+
+    return res.status(200).json({ 
+      success: true, 
+      challenge: challengeData,
+      message: 'Challenge updated successfully',
+      stats: {
+        playlistsProcessed,
+        scoresProcessed,
+        totalPlaylists: roomData.playlist?.length || 0,
+        uniqueUsers: usersData.length
+      },
+      performance: {
+        totalTimeMs: Math.round(totalTime)
+      },
+      apiUsage: {
+        percentage: finalUsage.usage?.functions?.percentage || '0',
+        remaining: finalUsage.usage?.functions?.remaining || 100000
+      },
+      ruleset: rulesetResult,
+      requestId
+    });
+
   } catch (error) {
-    console.error(`❌ Request validation error:`, error);
-    syncLogger.syncError('update-challenge', req.body?.roomId || 'unknown', error, totalStartTime, { requestId });
+    console.error(`❌ Request error:`, error);
     return handleAPIError(res, error);
   }
 }
