@@ -30,7 +30,7 @@
   ],
   "headers": [
     {
-      "source": "/api/challenges/(.*)",
+      "source": "/api/challenges(.*)",
       "headers": [
         {
           "key": "Cache-Control",
