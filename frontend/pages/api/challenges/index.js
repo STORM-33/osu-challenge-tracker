@@ -50,10 +50,18 @@ async function handleGetChallenges(req, res) {
     const cached = memoryCache.get(cacheKey);
     if (cached) {
       console.log(`📋 Serving challenges from cache: ${cacheKey}`);
+      
+      // Set cache headers
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=150');
+      res.setHeader('CDN-Cache-Control', 'max-age=300');
+      
       const etag = generateETag(cached);
+      res.setHeader('ETag', etag);
+      
       if (checkETag(req, etag)) {
         return res.status(304).end();
       }
+      
       return paginatedResponse(res, cached.data, cached.pagination.total, { 
         limit, page 
       });
@@ -125,6 +133,9 @@ async function handleGetChallenges(req, res) {
     memoryCache.set(cacheKey, cacheData, CACHE_DURATIONS.CHALLENGES_LIST);
 
     console.log(`📋 Loaded ${data.length} challenges (${responseData.summary.fresh} fresh, ${responseData.summary.stale} stale)`);
+
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=150');
+    res.setHeader('CDN-Cache-Control', 'max-age=300');
 
     return paginatedResponse(res, responseData, count || 0, { limit, page });
 

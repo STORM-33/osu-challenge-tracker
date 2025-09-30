@@ -23,7 +23,7 @@ async function handler(req, res) {
       
       return handleAPIResponse(res, cached, { 
         cache: true, 
-        cacheTime: 3600,
+        cacheTime: 300,
         enableETag: true,
         req // Pass req for ETag handling
       });
@@ -158,12 +158,12 @@ async function handler(req, res) {
       };
     }
 
-    // Cache for 1 hour
+    // Cache for 5 minutes
     memoryCache.set(cacheKey, responseData, CACHE_DURATIONS.SEASONS);
 
     return handleAPIResponse(res, responseData, { 
       cache: true, 
-      cacheTime: 3600,
+      cacheTime: 300,
       enableETag: true,
       req // Pass req for ETag handling
     });
