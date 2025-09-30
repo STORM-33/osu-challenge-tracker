@@ -7,11 +7,12 @@ async function handler(req, res) {
   }
   
   // Allow very short caching for performance, but not so long it breaks logout
-  res.setHeader('Cache-Control', 'private, max-age=10, must-revalidate');
+  res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   
   // Add cache busting headers for logout scenarios
   const timestamp = Date.now();
-  res.setHeader('X-Auth-Check-Time', timestamp.toString());
 
   try {
     console.log('🔍 Auth status check:', {

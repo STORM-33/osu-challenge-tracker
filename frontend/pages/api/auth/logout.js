@@ -1,5 +1,7 @@
 import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
 
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || 'challengersnexus.com';
+
 function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -11,21 +13,16 @@ function handler(req, res) {
 
   try {
     const isProduction = process.env.NODE_ENV === 'production';
-    
-    // Clear cookies with proper production attributes
+
     const clearCookies = [
-      // Main session cookie with correct production attributes
       `osu_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProduction ? '; Secure' : ''}`,
-      
-      // Clear OAuth state cookies with production attributes
       `osu_auth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProduction ? '; Secure' : ''}`,
       `osu_auth_state=; Path=/; HttpOnly; SameSite=None; Max-Age=0${isProduction ? '; Secure' : ''}`,
       `osu_auth_state_backup=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProduction ? '; Secure' : ''}`,
       
-      // Clear any potential domain-specific cookies
       ...(isProduction ? [
-        'osu_session=; Path=/; Domain=.challengersnexus.com; HttpOnly; SameSite=Lax; Max-Age=0; Secure',
-        'osu_session=; Path=/; Domain=challengersnexus.com; HttpOnly; SameSite=Lax; Max-Age=0; Secure'
+        `osu_session=; Path=/; Domain=.${COOKIE_DOMAIN}; HttpOnly; SameSite=Lax; Max-Age=0; Secure`,
+        `osu_session=; Path=/; Domain=${COOKIE_DOMAIN}; HttpOnly; SameSite=Lax; Max-Age=0; Secure`
       ] : [])
     ];
 

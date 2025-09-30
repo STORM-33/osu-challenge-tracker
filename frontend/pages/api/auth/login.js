@@ -19,29 +19,17 @@ function handler(req, res) {
     
     // Set cookies with proper attributes for OAuth flows
     const stateCookieOptions = [
-        `osu_auth_state=${state}`,
-        'Path=/',
-        'HttpOnly',
-        'SameSite=None', // Allow cross-site for OAuth
-        'Max-Age=600', // 10 minutes
-        ...(isProduction ? ['Secure'] : [])
+    `osu_auth_state=${state}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Max-Age=600',
+    ...(isProduction ? ['Secure'] : [])
     ].join('; ');
-    
-    // Backup cookie with Lax (in case browser doesn't support None)
-    const backupCookieOptions = [
-        `osu_auth_state_backup=${state}`,
-        'Path=/',
-        'HttpOnly', 
-        'SameSite=Lax',
-        'Max-Age=600',
-        ...(isProduction ? ['Secure'] : [])
-    ].join('; ');
-    
-    console.log('🍪 Setting primary cookie (SameSite=None):', stateCookieOptions);
-    console.log('🍪 Setting backup cookie (SameSite=Lax):', backupCookieOptions);
-    
-    // Set both cookies for maximum compatibility
-    res.setHeader('Set-Cookie', [stateCookieOptions, backupCookieOptions]);
+
+    console.log('Setting state cookie (SameSite=Lax):', stateCookieOptions);
+
+    res.setHeader('Set-Cookie', stateCookieOptions);
     
     // Build OAuth URL with proper parameters
     const authUrl = new URL('https://osu.ppy.sh/oauth/authorize');

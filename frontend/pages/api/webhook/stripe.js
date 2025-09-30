@@ -11,6 +11,21 @@ export const config = {
   },
 };
 
+function parseUserId(userIdString) {
+  if (!userIdString || userIdString === 'guest') {
+    return null;
+  }
+  
+  const parsed = parseInt(userIdString, 10);
+  
+  if (isNaN(parsed) || parsed < 1 || parsed > 2147483647) {
+    console.error('Invalid userId in webhook metadata:', userIdString);
+    return null;
+  }
+  
+  return parsed;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -30,6 +45,26 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  const { data: existingEvent, error: checkError } = await supabaseAdmin
+    .from('processed_webhook_events')
+    .select('id')
+    .eq('stripe_event_id', event.id)
+    .single();
+
+  if (existingEvent) {
+    console.log('Duplicate webhook event received (already processed):', event.id);
+    return res.status(200).json({ 
+      received: true, 
+      duplicate: true,
+      message: 'Event already processed'
+    });
+  }
+
+  if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = not found, which is expected
+    console.error('Error checking webhook event:', checkError);
+    // Continue processing - don't block on check failure
   }
 
   // Handle the event
@@ -64,6 +99,19 @@ export default async function handler(req, res) {
         
       default:
         console.log(`Unhandled event type ${event.type}`);
+    }
+
+    const { error: insertError } = await supabaseAdmin
+      .from('processed_webhook_events')
+      .insert({
+        stripe_event_id: event.id,
+        event_type: event.type,
+        processed_at: new Date().toISOString()
+      });
+
+    if (insertError && insertError.code !== '23505') { // 23505 = unique constraint violation
+      console.error('Error recording processed webhook event:', insertError);
+      // Don't fail the webhook - event was processed successfully
     }
 
     res.status(200).json({ received: true });
@@ -108,7 +156,7 @@ async function handleCheckoutSessionCompleted(session) {
 
   // Create the donation record
   const donationData = {
-    user_id: session.metadata?.userId !== 'guest' ? parseInt(session.metadata.userId) : null,
+    user_id: parseUserId(session.metadata?.userId),
     amount: session.amount_total / 100,
     currency: session.currency,
     status: 'completed',
@@ -181,7 +229,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
   const { error } = await supabaseAdmin
     .from('donations')
     .insert({
-      user_id: invoice.metadata?.userId !== 'guest' ? parseInt(invoice.metadata.userId) : null,
+      user_id: parseUserId(invoice.metadata?.userId),
       amount: invoice.amount_paid / 100,
       currency: invoice.currency,
       status: 'completed',

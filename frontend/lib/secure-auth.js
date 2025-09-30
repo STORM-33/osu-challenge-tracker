@@ -1,7 +1,10 @@
 import crypto from 'crypto';
 import { supabaseAdmin } from './supabase-admin';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-change-this';
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET || SESSION_SECRET.length < 32) {
+  throw new Error('SESSION_SECRET must be set and at least 32 characters');
+}
 const SESSION_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // Get real user IP, accounting for Cloudflare proxy
@@ -70,24 +73,6 @@ export function verifySessionToken(token, userAgent = '', req = null) {
     if (Date.now() > payload.expiresAt) {
       console.warn('🔒 Session expired');
       return null;
-    }
-    
-    // Get real IP for comparison
-    const currentIP = req ? getRealIP(req) : '';
-    
-    if (payload.ipAddress && currentIP && payload.ipAddress !== currentIP) {
-      const oldIPParts = payload.ipAddress.split('.');
-      const newIPParts = currentIP.split('.');
-      
-      // Only warn if it's a significant change (different /24 subnet)
-      if (oldIPParts.slice(0, 3).join('.') !== newIPParts.slice(0, 3).join('.')) {
-        console.warn('🔒 IP address mismatch - possible session hijacking', {
-          old: payload.ipAddress,
-          new: currentIP,
-          cloudflareIP: req?.headers['x-forwarded-for']?.split(',')[0]?.trim(),
-          userAgent: userAgent.substring(0, 50)
-        });
-      }
     }
     
     return {

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { generateSessionToken } from '../../../lib/secure-auth';
 
 async function handler(req, res) {
   const { code, state, error } = req.query;
@@ -140,28 +141,18 @@ async function handler(req, res) {
       admin: dbUser.admin 
     });
     
-    // Generate completely new session token with security metadata
-    const sessionData = {
-      userId: dbUser.id,
-      timestamp: Date.now(),
-      random: require('crypto').randomBytes(32).toString('hex'),
-      userAgent: req.headers['user-agent']?.substring(0, 100),
-      ipAddress: (req.headers['x-forwarded-for'] || req.connection.remoteAddress || '').split(',')[0].trim(),
-      expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
-    };
-    
-    const sessionToken = Buffer.from(JSON.stringify({
-      data: sessionData,
-      signature: require('crypto')
-        .createHmac('sha256', process.env.SESSION_SECRET)
-        .update(JSON.stringify(sessionData))
-        .digest('hex')
-    })).toString('base64');
-    
+    // Generate secure session token using the proper function
+    const { token: sessionToken, expiresAt } = generateSessionToken(
+      dbUser.id,
+      req.headers['user-agent'],
+      req  // Pass full request for proper IP extraction
+    );
+
     // Set NEW session cookie
-    const sessionCookie = `osu_session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000` + (isProduction ? '; Secure' : '');
-    
-    console.log('🍪 Setting NEW session cookie');
+    const maxAge = Math.floor((expiresAt - Date.now()) / 1000);
+    const sessionCookie = `osu_session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}` + (isProduction ? '; Secure' : '');
+
+    console.log('Setting NEW session cookie');
     
     // Set all cookies
     res.setHeader('Set-Cookie', [...clearCookies, sessionCookie]);

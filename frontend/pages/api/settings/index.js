@@ -84,6 +84,25 @@ async function handler(req, res) {
       
       // Update settings
       const updatedSettings = await settingsQueries.updateUserSettings(user.id, validatedSettings);
+
+      // Re-verify background access after update
+      if (validatedSettings.background_id) {
+        const currentDonations = await donationQueries.getUserDonationTotal(user.id);
+        const background = await settingsQueries.getBackground(validatedSettings.background_id);
+        
+        if (background && background.category !== 'public' && 
+            currentDonations < (background.min_donation_total || 0)) {
+          console.log(`Background access revoked for user ${user.id} - insufficient donations`);
+          
+          // Revert the background setting
+          await settingsQueries.updateUserSettings(user.id, { 
+            background_id: null 
+          });
+          
+          // Update the response to reflect the reversion
+          updatedSettings.background_id = null;
+        }
+      }
       
       return handleAPIResponse(res, {
         settings: updatedSettings,
@@ -138,14 +157,15 @@ function validateSettings(settings) {
     validated.profile_visibility = settings.profile_visibility;
   }
   
-  // Background selection (updated field name)
-  if (typeof settings.background_id === 'number' || settings.background_id === null) {
-    validated.background_id = settings.background_id;
-  }
-  
-  // Legacy field support (for backward compatibility during transition)
-  if (typeof settings.donor_background_id === 'number' || settings.donor_background_id === null) {
-    validated.background_id = settings.donor_background_id;
+  if (settings.background_id !== undefined) {
+    if (typeof settings.background_id === 'number' || settings.background_id === null) {
+      validated.background_id = settings.background_id;
+    }
+  } else if (settings.donor_background_id !== undefined) {
+    console.warn('Using legacy donor_background_id field for user', user?.id);
+    if (typeof settings.donor_background_id === 'number' || settings.donor_background_id === null) {
+      validated.background_id = settings.donor_background_id;
+    }
   }
   
   if (settings.donor_effects && typeof settings.donor_effects === 'object') {
