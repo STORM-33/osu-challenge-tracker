@@ -301,7 +301,7 @@ export default function AboutChallengers() {
                       </div>
                       <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="text-xl sm:text-2xl font-black text-white mb-1 text-shadow-adaptive">Week 4</div>
-                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">7.0★ - 7.4★</div>
+                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">7.0★ - 7.5★</div>
                       </div>
                     </div>
                   </div>
