@@ -7,6 +7,7 @@ import pLimit from 'p-limit';
 
 export default async function handler(req, res) {
   const startTime = Date.now();
+  const cronRunTime = new Date().toISOString();
   
   try {
     // 1. VERIFY CRON AUTHENTICATION
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log('⏰ CRON: Starting automated challenge updates (5-min cycle)');
+    console.log(`⏰ CRON: Starting at ${cronRunTime} (Threshold: ${syncConfig.STALENESS_THRESHOLD_MS}ms)`);
 
     // 2. CHECK API LIMITS
     const limitStatus = apiTracker.checkLimits();
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. GET ALL ACTIVE CHALLENGES
+    // 3. GET ALL ACTIVE CHALLENGES - WITH CACHE BUSTING
     const { data: activeChallenges, error: fetchError } = await supabaseAdmin
       .from('challenges')
       .select('id, room_id, name, updated_at, is_active')
@@ -56,24 +57,56 @@ export default async function handler(req, res) {
 
     console.log(`📋 CRON: Found ${activeChallenges.length} active challenges`);
 
-    // 4. FILTER STALE CHALLENGES (updated more than 5 min ago)
+    // 4. DEBUG: Log each challenge's staleness check
+    const debugInfo = activeChallenges.map(challenge => {
+      const updatedAt = challenge.updated_at;
+      const updatedAtDate = new Date(updatedAt);
+      const now = Date.now();
+      const ageMs = now - updatedAtDate.getTime();
+      const ageMinutes = Math.floor(ageMs / 60000);
+      const isStaleResult = isStale(updatedAt);
+      
+      console.log(`🔍 CRON: Challenge ${challenge.room_id}:`);
+      console.log(`   - updated_at (raw): ${updatedAt}`);
+      console.log(`   - updated_at (parsed): ${updatedAtDate.toISOString()}`);
+      console.log(`   - cron run time: ${cronRunTime}`);
+      console.log(`   - age: ${ageMs}ms (${ageMinutes} minutes)`);
+      console.log(`   - threshold: ${syncConfig.STALENESS_THRESHOLD_MS}ms`);
+      console.log(`   - isStale(): ${isStaleResult}`);
+      console.log(`   - should update: ${ageMs > syncConfig.STALENESS_THRESHOLD_MS}`);
+      
+      return {
+        room_id: challenge.room_id,
+        updated_at_raw: updatedAt,
+        updated_at_parsed: updatedAtDate.toISOString(),
+        age_ms: ageMs,
+        age_minutes: ageMinutes,
+        threshold_ms: syncConfig.STALENESS_THRESHOLD_MS,
+        is_stale: isStaleResult,
+        should_update: ageMs > syncConfig.STALENESS_THRESHOLD_MS
+      };
+    });
+
+    // 5. FILTER STALE CHALLENGES
     const staleChallenges = activeChallenges.filter(challenge => 
       isStale(challenge.updated_at)
     );
 
     if (staleChallenges.length === 0) {
-      console.log('✅ CRON: All challenges are up to date');
+      console.log('✅ CRON: All challenges are up to date (but check debug info above!)');
       return handleAPIResponse(res, {
         success: true,
         challenges_checked: activeChallenges.length,
         challenges_updated: 0,
-        message: 'All challenges are fresh'
+        message: 'All challenges are fresh',
+        debug: debugInfo,
+        cron_run_time: cronRunTime
       });
     }
 
     console.log(`🔄 CRON: ${staleChallenges.length} challenges need updating`);
 
-    // 5. UPDATE CHALLENGES IN PARALLEL (with concurrency limit)
+    // 6. UPDATE CHALLENGES IN PARALLEL (with concurrency limit)
     const limit = pLimit(syncConfig.MAX_CONCURRENT_UPDATES);
     const updateResults = [];
 
@@ -120,7 +153,7 @@ export default async function handler(req, res) {
       }
     });
 
-    // 6. SUMMARIZE RESULTS
+    // 7. SUMMARIZE RESULTS
     const successCount = updateResults.filter(r => r.success).length;
     const failureCount = updateResults.filter(r => !r.success).length;
     const totalTime = Date.now() - startTime;
@@ -135,7 +168,9 @@ export default async function handler(req, res) {
       failed_updates: failureCount,
       execution_time_ms: totalTime,
       api_usage: apiTracker.getUsageStats(),
-      results: updateResults
+      results: updateResults,
+      debug: debugInfo,
+      cron_run_time: cronRunTime
     });
 
   } catch (error) {
