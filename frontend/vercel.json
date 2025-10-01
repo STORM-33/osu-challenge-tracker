@@ -1,5 +1,4 @@
 {
-  
   "crons": [{
     "path": "/api/cron/update-challenges",
     "schedule": "*/5 * * * *"
@@ -29,97 +28,6 @@
     }
   ],
   "headers": [
-    {
-      "source": "/api/challenges(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=300, stale-while-revalidate=150"
-        },
-        {
-          "key": "CDN-Cache-Control",
-          "value": "max-age=300"
-        }
-      ]
-    },
-    {
-      "source": "/api/seasons/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=1800, stale-while-revalidate=900"
-        },
-        {
-          "key": "CDN-Cache-Control",
-          "value": "max-age=1800"
-        }
-      ]
-    },
-    {
-      "source": "/api/partners/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=900, stale-while-revalidate=450"
-        },
-        {
-          "key": "CDN-Cache-Control",
-          "value": "max-age=900"
-        }
-      ]
-    },
-    {
-      "source": "/api/team/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=900, stale-while-revalidate=450"
-        },
-        {
-          "key": "CDN-Cache-Control",
-          "value": "max-age=900"
-        }
-      ]
-    },
-    {
-      "source": "/api/stats",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=180, stale-while-revalidate=90"
-        },
-        {
-          "key": "CDN-Cache-Control",
-          "value": "max-age=180"
-        }
-      ]
-    },
-    {
-      "source": "/api/user/profile/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=600, stale-while-revalidate=300"
-        },
-        {
-          "key": "CDN-Cache-Control",
-          "value": "max-age=600"
-        }
-      ]
-    },
-    {
-      "source": "/api/health",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=60, stale-while-revalidate=30"
-        },
-        {
-          "key": "CDN-Cache-Control",
-          "value": "max-age=60"
-        }
-      ]
-    },
     {
       "source": "/_next/static/(.*)",
       "headers": [
