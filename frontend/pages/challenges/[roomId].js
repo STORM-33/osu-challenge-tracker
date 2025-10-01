@@ -68,6 +68,32 @@ export default function ChallengeDetail() {
   const dataInfo = challengeData?.data_info;
   const loading = !challengeData && !error;
 
+  // Calculate real-time data age on client side
+  const [dataAgeMinutes, setDataAgeMinutes] = useState(null);
+  const [isFresh, setIsFresh] = useState(true);
+
+  useEffect(() => {
+    if (!challenge?.updated_at) {
+      setDataAgeMinutes(null);
+      setIsFresh(true);
+      return;
+    }
+    
+    const calculateAge = () => {
+      const age = Math.floor((Date.now() - new Date(challenge.updated_at).getTime()) / 60000);
+      setDataAgeMinutes(age);
+      setIsFresh(age < 5); // Fresh if updated within last 5 minutes
+    };
+
+    // Calculate immediately
+    calculateAge();
+    
+    // Update every minute
+    const interval = setInterval(calculateAge, 60000);
+
+    return () => clearInterval(interval);
+  }, [challenge?.updated_at]);
+
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
   const [sortBy, setSortBy] = useState('difficulty');
   const [searchQuery, setSearchQuery] = useState('');
@@ -253,13 +279,13 @@ export default function ChallengeDetail() {
                       </span>
                     </div>
                     
-                    {dataInfo && challenge.is_active && (
+                    {challenge.is_active && (
                       <div className="flex items-center gap-2 text-xs text-white/70 text-shadow-adaptive-sm">
                         <Clock className="w-3 h-3 icon-shadow-adaptive-sm" />
                         <span>
-                          Last updated: {dataInfo.data_age_minutes !== null ? `${dataInfo.data_age_minutes}min ago` : 'just now'}
+                          Last updated: {dataAgeMinutes !== null ? `${dataAgeMinutes}min ago` : 'just now'}
                         </span>
-                        {!dataInfo.is_fresh && (
+                        {!isFresh && (
                           <span className="text-yellow-300 font-medium ml-2">
                             (updating soon)
                           </span>
@@ -480,12 +506,12 @@ export default function ChallengeDetail() {
                 {challenge.is_active && (
                   <div className="inline-flex items-center gap-3 px-4 sm:px-6 py-2 sm:py-3 glass-1 rounded-full shadow-md">
                     <div className={`w-2 h-2 rounded-full ${
-                      dataInfo?.is_fresh ? 'bg-green-500' : 'bg-yellow-500'
+                      isFresh ? 'bg-green-500' : 'bg-yellow-500'
                     }`}></div>
                     <p className="text-xs sm:text-sm text-white/90 font-medium text-shadow-adaptive-sm">
-                      {dataInfo?.is_fresh 
+                      {isFresh 
                         ? 'Data is up to date' 
-                        : `Will update in ~${dataInfo?.next_update_in_minutes || 5} minutes`
+                        : `Will update in ~${Math.max(0, 5 - (dataAgeMinutes || 0))} minutes`
                       }
                     </p>
                   </div>
