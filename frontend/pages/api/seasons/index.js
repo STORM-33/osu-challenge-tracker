@@ -19,6 +19,11 @@ async function handleGetSeasons(req, res) {
 
     return handleAPIResponse(res, {
       seasons: seasons || []
+    }, {
+      cache: true,
+      cacheTime: 1800,
+      enableETag: true,
+      req
     });
   } catch (error) {
     console.error('Seasons fetch error:', error);

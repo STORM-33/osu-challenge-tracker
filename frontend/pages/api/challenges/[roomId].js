@@ -22,9 +22,11 @@ async function handler(req, res) {
     const cached = memoryCache.get(cacheKey);
     if (cached) {
       console.log(`📋 Serving challenge ${roomId} from cache`);
-      return handleAPIResponse(res, cached, { 
-        cache: true, 
-        cacheTime: 300 
+      return handleAPIResponse(res, cached, {
+        cache: true,
+        cacheTime: 300,
+        enableETag: true,
+        req
       });
     }
 
@@ -134,9 +136,11 @@ async function handler(req, res) {
 
     console.log(`📋 Challenge ${roomId} loaded (age: ${dataAgeMinutes}min)`);
 
-    return handleAPIResponse(res, responseData, { 
-      cache: true, 
-      cacheTime: 300 
+    return handleAPIResponse(res, responseData, {
+      cache: true,
+      cacheTime: 300,
+      enableETag: true,
+      req
     });
 
   } catch (error) {

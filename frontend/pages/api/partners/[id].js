@@ -37,7 +37,12 @@ async function handleGetPartner(req, res, partnerId) {
       throw error;
     }
 
-    return handleAPIResponse(res, { partner });
+    return handleAPIResponse(res, { partner }, {
+      cache: true,
+      cacheTime: 900,
+      enableETag: true,
+      req
+    });
 
   } catch (error) {
     console.error('Get partner error:', error);
