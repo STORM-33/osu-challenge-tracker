@@ -1,9 +1,28 @@
 // Date formatting and utility functions
 
+// Helper to ensure UTC interpretation
+function ensureUTC(date) {
+  if (!date) return null;
+  
+  // If it's already a Date object, return it
+  if (date instanceof Date) return date;
+  
+  // If it's a string, ensure it's interpreted as UTC
+  const dateString = date.toString();
+  
+  // If it already has timezone info (Z, +, or ends with timezone), use as-is
+  if (dateString.includes('Z') || dateString.includes('+') || dateString.includes('-', 10)) {
+    return new Date(dateString);
+  }
+  
+  // Otherwise, treat as UTC by appending 'Z'
+  return new Date(dateString + 'Z');
+}
+
 export function formatDate(date, format = 'short') {
     if (!date) return 'N/A';
     
-    const d = new Date(date);
+    const d = ensureUTC(date);
     
     switch (format) {
       case 'short':
@@ -46,7 +65,7 @@ export function formatDate(date, format = 'short') {
   
   export function getRelativeTime(date) {
     const now = new Date();
-    const then = new Date(date);
+    const then = ensureUTC(date);
     const seconds = Math.floor((now - then) / 1000);
     
     if (seconds < 60) return 'just now';
@@ -73,7 +92,7 @@ export function formatDate(date, format = 'short') {
   export function getDaysRemaining(endDate) {
     if (!endDate) return null;
     
-    const end = new Date(endDate);
+    const end = ensureUTC(endDate);
     const now = new Date();
     const diff = end - now;
     
@@ -85,7 +104,7 @@ export function formatDate(date, format = 'short') {
   export function getTimeRemaining(endDate) {
     if (!endDate) return null;
     
-    const end = new Date(endDate);
+    const end = ensureUTC(endDate);
     const now = new Date();
     const diff = end - now;
     
@@ -114,7 +133,7 @@ export function formatDate(date, format = 'short') {
   
   export function isToday(date) {
     const today = new Date();
-    const d = new Date(date);
+    const d = ensureUTC(date);
     
     return d.getDate() === today.getDate() &&
       d.getMonth() === today.getMonth() &&
@@ -123,7 +142,7 @@ export function formatDate(date, format = 'short') {
   
   export function isThisWeek(date) {
     const now = new Date();
-    const d = new Date(date);
+    const d = ensureUTC(date);
     const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
     const weekEnd = new Date(now.setDate(now.getDate() - now.getDay() + 6));
     
@@ -141,7 +160,7 @@ export function formatDate(date, format = 'short') {
   
   // Format timestamps for display
   export function formatTimestamp(timestamp) {
-    const date = new Date(timestamp);
+    const date = ensureUTC(timestamp);
     const now = new Date();
     const diffMs = now - date;
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));

@@ -72,6 +72,16 @@ export default function ChallengeDetail() {
   const [dataAgeMinutes, setDataAgeMinutes] = useState(null);
   const [isFresh, setIsFresh] = useState(true);
 
+  const ensureUTC = (dateString) => {
+    if (!dateString) return null;
+    // If it already has timezone info, use as-is
+    if (dateString.includes('Z') || dateString.includes('+') || dateString.includes('-', 10)) {
+      return new Date(dateString);
+    }
+    // Otherwise, treat as UTC by appending 'Z'
+    return new Date(dateString + 'Z');
+  };
+
   useEffect(() => {
     if (!challenge?.updated_at) {
       setDataAgeMinutes(null);
@@ -80,7 +90,9 @@ export default function ChallengeDetail() {
     }
     
     const calculateAge = () => {
-      const age = Math.floor((Date.now() - new Date(challenge.updated_at).getTime()) / 60000);
+      // FIX: Use ensureUTC to properly interpret the timestamp
+      const updatedAt = ensureUTC(challenge.updated_at);
+      const age = Math.floor((Date.now() - updatedAt.getTime()) / 60000);
       setDataAgeMinutes(age);
       setIsFresh(age < 5); // Fresh if updated within last 5 minutes
     };
