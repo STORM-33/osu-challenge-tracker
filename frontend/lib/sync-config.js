@@ -1,6 +1,6 @@
 export const syncConfig = {
   // How old data must be before cron updates it (5 minutes)
-  STALENESS_THRESHOLD_MS: parseInt(process.env.STALENESS_THRESHOLD_MS) || 5 * 60 * 1000,
+  STALENESS_THRESHOLD_MS: parseInt(process.env.STALENESS_THRESHOLD_MS) || 4 * 60 * 1000,
   
   // Maximum concurrent updates in cron job
   MAX_CONCURRENT_UPDATES: parseInt(process.env.MAX_CONCURRENT_UPDATES) || 5,
