@@ -52,13 +52,13 @@ export function handleAPIResponse(res, data, options = {}) {
 
   // Set cache headers if enabled
   if (cache) {
-    res.setHeader(
-      'Cache-Control',
-      `s-maxage=${cacheTime}, stale-while-revalidate=${Math.floor(cacheTime / 2)}`
+  res.setHeader(
+    'Cache-Control',
+    `public, max-age=0, s-maxage=${cacheTime}, stale-while-revalidate=${Math.floor(cacheTime / 2)}, must-revalidate`
     );
     res.setHeader('CDN-Cache-Control', `max-age=${cacheTime}`);
   } else {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
   }
 
   return res.status(status).json({
