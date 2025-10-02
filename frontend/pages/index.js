@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Trophy, Calendar, Gift, Zap, Users, Music, Sparkles, Info, ChevronRight, Star, Dice3, Award, Clock, AlertCircle, CheckCircle2, BarChart3, TrendingUp, Target } from 'lucide-react';
+import { Trophy, Calendar, Gift, Zap, Users, Music, Sparkles, Info, ChevronRight, Star, Dice3, Award, Clock, AlertCircle, CheckCircle2, BarChart3, TrendingUp, Target, Download } from 'lucide-react';
 
 export default function AboutChallengers() {
   const [activeTab, setActiveTab] = useState('weekly');
@@ -534,6 +534,103 @@ export default function AboutChallengers() {
               </div>
             </div>
           </div>
+
+          {/* Browser Extensions Section */}
+<div className="mt-8 sm:mt-10 lg:mt-12 mb-8 sm:mb-10">
+  <div className="text-center mb-6 sm:mb-8">
+    <div className="flex items-center justify-center gap-3 mb-4">
+      <div className="p-2 sm:p-3 icon-gradient-blue rounded-lg sm:rounded-xl icon-container-blue">
+        <Download className="w-5 h-5 sm:w-6 sm:h-6 text-white icon-shadow-adaptive" />
+      </div>
+      <h2 className="text-2xl sm:text-3xl font-bold text-white text-shadow-adaptive">
+        Quick Access Tools
+      </h2>
+    </div>
+    
+    <p className="text-white/85 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto text-shadow-adaptive px-4 sm:px-0">
+      View your osu!Challengers stats directly on the osu! website with our browser extension!
+    </p>
+  </div>
+
+  {/* Extension Preview Card */}
+  <div className="glass-1 rounded-xl sm:rounded-2xl overflow-hidden mb-6 sm:mb-8 max-w-5xl mx-auto">
+    <div className="flex flex-col lg:flex-row h-auto lg:h-96">
+      {/* Screenshot Side - Fixed square on desktop */}
+      <div className="relative w-full lg:w-96 h-64 sm:h-80 lg:h-96 flex-shrink-0 overflow-hidden">
+        <img 
+          src="/extension-preview.png" 
+          alt="osu!Challengers Extension Preview"
+          className="w-full h-full object-cover"
+        />
+      </div>
+      
+      {/* Text Side */}
+      <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center items-center text-center flex-grow">
+        <div className="max-w-lg">
+          <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 text-shadow-adaptive">
+            Stats on Your Profile
+          </h3>
+          <ul className="space-y-3 mb-6 text-left">
+            <li className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 icon-shadow-adaptive-sm" />
+              <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
+                View your osu!Challengers performance directly on osu! profiles
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 icon-shadow-adaptive-sm" />
+              <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
+                Track your seasonal rank, total score, and top performances
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 icon-shadow-adaptive-sm" />
+              <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
+                Integrated directly into the osu! website design
+              </span>
+            </li>
+          </ul>
+          <p className="text-xs sm:text-sm text-white/70 text-shadow-adaptive-sm">
+            Developed by Paraliyzed_evo & Thunderbirdo
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Download Buttons */}
+  <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+    <a
+      href="https://addons.mozilla.org/en-US/firefox/addon/osu-challengers/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 px-6 py-4 sm:px-8 sm:py-5 glass-2 rounded-xl sm:rounded-2xl hover:glass-3 transition-all duration-300 text-white text-shadow-adaptive transform hover:scale-105 hover:shadow-xl group"
+    >
+      <div className="p-2.5 sm:p-3 bg-gradient-to-b from-orange-500 to-orange-600 rounded-lg group-hover:from-orange-400 group-hover:to-orange-500 transition-all">
+        <Download className="w-5 h-5 sm:w-6 sm:h-6 icon-shadow-adaptive-sm" />
+      </div>
+      <div className="text-left">
+        <div className="font-bold text-base sm:text-lg">Firefox Extension</div>
+        <div className="text-xs sm:text-sm text-white/70">For Firefox Browser</div>
+      </div>
+    </a>
+    
+    <a
+      href="https://chromewebstore.google.com/detail/osuchallengers/ghfcjealgjkjpndjlicmcabbgakphien"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 px-6 py-4 sm:px-8 sm:py-5 glass-2 rounded-xl sm:rounded-2xl hover:glass-3 transition-all duration-300 text-white text-shadow-adaptive transform hover:scale-105 hover:shadow-xl group"
+    >
+      <div className="p-2.5 sm:p-3 bg-gradient-to-b from-blue-500 to-blue-600 rounded-lg group-hover:from-blue-400 group-hover:to-blue-500 transition-all">
+        <Download className="w-5 h-5 sm:w-6 sm:h-6 icon-shadow-adaptive-sm" />
+      </div>
+      <div className="text-left">
+        <div className="font-bold text-base sm:text-lg">Chrome Extension</div>
+        <div className="text-xs sm:text-sm text-white/70">For Chrome & Edge</div>
+      </div>
+    </a>
+  </div>
+</div>
 
           {/* Footer CTA */}
           <div className="mt-8 sm:mt-10 text-center">
