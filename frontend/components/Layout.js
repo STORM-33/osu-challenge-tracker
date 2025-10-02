@@ -122,20 +122,20 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
         settings.background_id ? (
           // Background image (updated field name)
           <div 
-            className="fixed inset-0 -z-20 bg-cover bg-center"
+            className="bg-fixed-mobile -z-20 bg-cover bg-center"
             style={getBackgroundStyle()}
           />
         ) : (
           // Color/gradient background
           <div 
-            className="fixed inset-0 -z-20"
+            className="bg-fixed-mobile -z-20"
             style={getBackgroundStyle()}
           />
         )
       ) : (
         // Disabled background - use solid dark color
         <div 
-          className="fixed inset-0 -z-20"
+          className="bg-fixed-mobile -z-20"
           style={{ backgroundColor: '#0a0a0a' }}
         />
       )}

@@ -3,15 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+    html {
+      height: 100%;
+      overflow-x: hidden;
+    }
+
     body {
       @apply bg-neutral-900 text-neutral-800;
       position: relative;
-      min-height: 100svh;
-      min-height: 100vh; /* Fallback */
-    }
-    
-    html {
-      height: 100%;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      overscroll-behavior-y: none;
     }
     
     * {
@@ -301,6 +303,16 @@
 }
 
 @layer utilities {
+
+  .bg-fixed-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100lvh;
+    min-height: -webkit-fill-available;
+  }
 
   /* Icon-style badge classes that match the gradient and border pattern */
   .badge-icon-green {
