@@ -7,15 +7,24 @@ import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Ho
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
   const { user, loading, isAdmin, signOut } = useAuth(); 
-  const { settings, getBackgroundStyle, loading: settingsLoading } = useSettings();
+  const { settings, getBackgroundStyle, loading: settingsLoading, isFromCache } = useSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [hoverTimeout, setHoverTimeout] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [bgReady, setBgReady] = useState(false);
   const dropdownRef = useRef(null);
   const router = useRouter();
+
+  // Mark background as ready after settings load or immediately if from cache
+  useEffect(() => {
+    if (!settingsLoading || isFromCache) {
+      const timer = setTimeout(() => setBgReady(true), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [settingsLoading, isFromCache]);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -42,18 +51,14 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
     setShowTooltip(false);
     setTooltipVisible(false);
     
-    // Clear any existing timeout
     if (hoverTimeout) {
       clearTimeout(hoverTimeout);
     }
     
-    // Set new timeout for 10s (10000ms)
     const timeout = setTimeout(() => {
-      // Use a callback to get the current state
       setHoveredItem(currentHoveredItem => {
         if (currentHoveredItem === itemHref) {
           setShowTooltip(true);
-          // Small delay to allow DOM update, then trigger animation
           setTimeout(() => setTooltipVisible(true), 10);
         }
         return currentHoveredItem;
@@ -98,7 +103,6 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
     } catch (error) {
       console.error('🚨 Logout error:', error);
       setProfileDropdownOpen(false);
-      // Still redirect on error
       if (router.pathname !== '/') {
         router.push('/');
       }
@@ -117,26 +121,19 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
 
   return (
     <div className="min-h-screen relative">
-      {/* Background image layer - now using settings with updated field name */}
-      {settings?.background_enabled ? (
-        settings.background_id ? (
-          // Background image (updated field name)
-          <div 
-            className="bg-fixed-mobile -z-20 bg-cover bg-center"
-            style={getBackgroundStyle()}
-          />
-        ) : (
-          // Color/gradient background
-          <div 
-            className="bg-fixed-mobile -z-20"
-            style={getBackgroundStyle()}
-          />
-        )
-      ) : (
-        // Disabled background - use solid dark color
+      {/* Background image layer with smooth transition */}
+      <div 
+        className={`bg-fixed-mobile -z-20 transition-opacity duration-500 ${bgReady ? 'opacity-100' : 'opacity-0'}`}
+        style={getBackgroundStyle()}
+      />
+      
+      {/* Fallback background shown during initial load */}
+      {!bgReady && (
         <div 
           className="bg-fixed-mobile -z-20"
-          style={{ backgroundColor: '#0a0a0a' }}
+          style={{ 
+            background: 'linear-gradient(135deg, #FF5714 0%, #1056F9 100%)'
+          }}
         />
       )}
       

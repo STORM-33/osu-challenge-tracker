@@ -3,12 +3,63 @@ import { useAuth } from './AuthContext';
 
 const SettingsContext = createContext();
 
+const STORAGE_KEY = 'user_settings_cache';
+const CACHE_VERSION = 1;
+
 export const useSettings = () => {
   const context = useContext(SettingsContext);
   if (!context) {
     throw new Error('useSettings must be used within a SettingsProvider');
   }
   return context;
+};
+
+// Helper functions for local storage
+const getCachedSettings = (userId) => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const cached = localStorage.getItem(`${STORAGE_KEY}_${userId}`);
+    if (!cached) return null;
+    
+    const parsed = JSON.parse(cached);
+    
+    // Check cache version and expiry (24 hours)
+    if (parsed.version !== CACHE_VERSION || 
+        Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(`${STORAGE_KEY}_${userId}`);
+      return null;
+    }
+    
+    return parsed.data;
+  } catch (error) {
+    console.error('Error reading cached settings:', error);
+    return null;
+  }
+};
+
+const setCachedSettings = (userId, data) => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const cacheData = {
+      version: CACHE_VERSION,
+      timestamp: Date.now(),
+      data
+    };
+    localStorage.setItem(`${STORAGE_KEY}_${userId}`, JSON.stringify(cacheData));
+  } catch (error) {
+    console.error('Error caching settings:', error);
+  }
+};
+
+const clearCachedSettings = (userId) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(`${STORAGE_KEY}_${userId}`);
+  } catch (error) {
+    console.error('Error clearing cached settings:', error);
+  }
 };
 
 export const SettingsProvider = ({ children }) => {
@@ -19,10 +70,22 @@ export const SettingsProvider = ({ children }) => {
   const [availableBackgrounds, setAvailableBackgrounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
 
-  // Fetch settings when user changes
+  // Load cached settings immediately when user changes
   useEffect(() => {
     if (user) {
+      const cached = getCachedSettings(user.id);
+      if (cached) {
+        console.log('✅ Loaded settings from cache');
+        setSettings(cached.settings);
+        setDonorStatus(cached.donorStatus);
+        setAvailableBackgrounds(cached.availableBackgrounds || []);
+        setIsFromCache(true);
+        setLoading(false);
+      }
+      
+      // Always fetch fresh data in background
       fetchSettings();
     } else {
       // Clear settings when user logs out
@@ -31,6 +94,7 @@ export const SettingsProvider = ({ children }) => {
       setDonorStatus(null);
       setAvailableBackgrounds([]);
       setLoading(false);
+      setIsFromCache(false);
     }
   }, [user]);
 
@@ -38,11 +102,17 @@ export const SettingsProvider = ({ children }) => {
     if (!user) return;
 
     try {
-      setLoading(true);
+      // Don't set loading if we have cached data
+      if (!isFromCache) {
+        setLoading(true);
+      }
       
       const response = await fetch('/api/settings', {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
       });
 
       if (!response.ok) {
@@ -50,15 +120,29 @@ export const SettingsProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      
-      // Handle the nested data structure
       const responseData = data.data || data;
       
+      // Update state with fresh data
       setSettings(responseData.settings);
       setDonorStatus(responseData.donorStatus);
       setAvailableBackgrounds(responseData.availableBackgrounds || []);
+      
+      // Cache the fresh data
+      setCachedSettings(user.id, {
+        settings: responseData.settings,
+        donorStatus: responseData.donorStatus,
+        availableBackgrounds: responseData.availableBackgrounds || []
+      });
+      
+      setIsFromCache(false);
+      console.log('✅ Settings updated from API');
     } catch (error) {
       console.error('Error fetching settings:', error);
+      // If we have cached data, keep using it
+      if (!isFromCache) {
+        // Only show error if we don't have cached fallback
+        console.error('Failed to load settings and no cache available');
+      }
     } finally {
       setLoading(false);
     }
@@ -70,7 +154,6 @@ export const SettingsProvider = ({ children }) => {
     }
 
     if (isPreview) {
-      // For preview mode, just update temporary settings locally
       const newTempSettings = {
         ...settings,
         ...tempSettings,
@@ -100,11 +183,17 @@ export const SettingsProvider = ({ children }) => {
         return { success: false, error: data.error?.message || 'Failed to update settings' };
       }
 
-      // Update actual settings and clear temp settings
       const responseData = data.data || data;
       
       setSettings(responseData.settings);
       setTempSettings(null);
+      
+      // Update cache immediately
+      setCachedSettings(user.id, {
+        settings: responseData.settings,
+        donorStatus,
+        availableBackgrounds
+      });
       
       return { success: true, settings: responseData.settings };
     } catch (error) {
@@ -147,7 +236,14 @@ export const SettingsProvider = ({ children }) => {
         settingsToReset = defaultSettings;
     }
 
-    return await updateSettings(settingsToReset);
+    const result = await updateSettings(settingsToReset);
+    
+    if (result.success) {
+      // Clear cache on reset to force fresh fetch
+      clearCachedSettings(user.id);
+    }
+    
+    return result;
   };
 
   const getDefaultSettings = () => ({
@@ -166,16 +262,13 @@ export const SettingsProvider = ({ children }) => {
     donor_effects: {}
   });
 
-  // Get the currently active settings (temp if previewing, otherwise actual)
   const activeSettings = tempSettings || settings || getDefaultSettings();
 
-  // Background style function for Layout component
   const getBackgroundStyle = () => {
     if (!activeSettings.background_enabled) {
       return { backgroundColor: '#0a0a0a' };
     }
 
-    // If user has selected a background image
     if (activeSettings.background_id) {
       const selectedBackground = availableBackgrounds.find(bg => bg.id === activeSettings.background_id);
       if (selectedBackground) {
@@ -192,7 +285,6 @@ export const SettingsProvider = ({ children }) => {
       }
     }
 
-    // Fallback to color/gradient background
     if (activeSettings.background_type === 'gradient') {
       return {
         background: `linear-gradient(135deg, ${activeSettings.background_color} 0%, ${activeSettings.background_gradient_end} 100%)`,
@@ -221,6 +313,7 @@ export const SettingsProvider = ({ children }) => {
     availableBackgrounds,
     loading,
     saving,
+    isFromCache,
     updateSettings,
     cancelPreview,
     resetSettings,
