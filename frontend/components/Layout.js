@@ -7,7 +7,7 @@ import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Ho
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
   const { user, loading, isAdmin, signOut } = useAuth(); 
-  const { settings, getBackgroundStyle, loading: settingsLoading, isFromCache } = useSettings();
+  const { backgroundStyle, loading: settingsLoading, isFromCache } = useSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
@@ -21,8 +21,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
   // Mark background as ready after settings load or immediately if from cache
   useEffect(() => {
     if (!settingsLoading || isFromCache) {
-      const timer = setTimeout(() => setBgReady(true), 50);
-      return () => clearTimeout(timer);
+      setBgReady(true);
     }
   }, [settingsLoading, isFromCache]);
 
@@ -124,18 +123,8 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
       {/* Background image layer with smooth transition */}
       <div 
         className={`bg-fixed-mobile -z-20 transition-opacity duration-500 ${bgReady ? 'opacity-100' : 'opacity-0'}`}
-        style={getBackgroundStyle()}
+        style={backgroundStyle}
       />
-      
-      {/* Fallback background shown during initial load */}
-      {!bgReady && (
-        <div 
-          className="bg-fixed-mobile -z-20"
-          style={{ 
-            background: 'linear-gradient(135deg, #FF5714 0%, #1056F9 100%)'
-          }}
-        />
-      )}
       
       {/* Header with only grid pattern that fades */}
       <header className="relative z-40 overflow-visible">

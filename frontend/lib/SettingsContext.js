@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 const SettingsContext = createContext();
@@ -45,7 +45,10 @@ const setCachedSettings = (userId, data) => {
     const cacheData = {
       version: CACHE_VERSION,
       timestamp: Date.now(),
-      data
+      data: {
+        ...data,
+        timestamp: Date.now()
+      }
     };
     localStorage.setItem(`${STORAGE_KEY}_${userId}`, JSON.stringify(cacheData));
   } catch (error) {
@@ -83,10 +86,16 @@ export const SettingsProvider = ({ children }) => {
         setAvailableBackgrounds(cached.availableBackgrounds || []);
         setIsFromCache(true);
         setLoading(false);
+        
+        // Fetch fresh data in background only if cache is old (more than 5 minutes)
+        const cacheAge = Date.now() - (cached.timestamp || 0);
+        if (cacheAge > 5 * 60 * 1000) {
+          fetchSettings();
+        }
+      } else {
+        // No cache, fetch immediately
+        fetchSettings();
       }
-      
-      // Always fetch fresh data in background
-      fetchSettings();
     } else {
       // Clear settings when user logs out
       setSettings(null);
@@ -96,9 +105,9 @@ export const SettingsProvider = ({ children }) => {
       setLoading(false);
       setIsFromCache(false);
     }
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id, not the entire user object
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -134,19 +143,17 @@ export const SettingsProvider = ({ children }) => {
         availableBackgrounds: responseData.availableBackgrounds || []
       });
       
-      setIsFromCache(false);
       console.log('✅ Settings updated from API');
     } catch (error) {
       console.error('Error fetching settings:', error);
       // If we have cached data, keep using it
       if (!isFromCache) {
-        // Only show error if we don't have cached fallback
         console.error('Failed to load settings and no cache available');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isFromCache]); // Add dependencies
 
   const updateSettings = async (newSettings, isPreview = false) => {
     if (!user) {
@@ -239,7 +246,6 @@ export const SettingsProvider = ({ children }) => {
     const result = await updateSettings(settingsToReset);
     
     if (result.success) {
-      // Clear cache on reset to force fresh fetch
       clearCachedSettings(user.id);
     }
     
@@ -264,7 +270,8 @@ export const SettingsProvider = ({ children }) => {
 
   const activeSettings = tempSettings || settings || getDefaultSettings();
 
-  const getBackgroundStyle = () => {
+  // Memoize the background style to prevent unnecessary recalculations
+  const backgroundStyle = useMemo(() => {
     if (!activeSettings.background_enabled) {
       return { backgroundColor: '#0a0a0a' };
     }
@@ -304,7 +311,19 @@ export const SettingsProvider = ({ children }) => {
         `.trim()
       };
     }
-  };
+  }, [
+    activeSettings.background_enabled,
+    activeSettings.background_id,
+    activeSettings.background_type,
+    activeSettings.background_color,
+    activeSettings.background_gradient_end,
+    activeSettings.background_blur,
+    activeSettings.background_dimming,
+    activeSettings.background_saturation,
+    availableBackgrounds
+  ]);
+
+  const getBackgroundStyle = useCallback(() => backgroundStyle, [backgroundStyle]);
 
   const value = {
     settings: activeSettings,
@@ -314,6 +333,7 @@ export const SettingsProvider = ({ children }) => {
     loading,
     saving,
     isFromCache,
+    backgroundStyle,
     updateSettings,
     cancelPreview,
     resetSettings,
