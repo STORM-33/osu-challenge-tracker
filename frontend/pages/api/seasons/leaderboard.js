@@ -41,7 +41,7 @@ async function handler(req, res) {
         cache: true, 
         cacheTime: 600,
         enableETag: true,
-        req // Pass req for ETag handling
+        req
       });
     }
 
@@ -98,19 +98,19 @@ async function handler(req, res) {
       const { data: positionData, error: positionError } = await supabaseAdmin
         .rpc('get_season_leaderboard_weighted', {
           season_id_param: seasonId ? parseInt(seasonId) : null,
-          limit_count: 10000, // Get enough to find the user
+          limit_count: 10000,
           offset_count: 0
         });
 
       if (positionError) {
         console.error('Error fetching user weighted position:', positionError);
-        // Don't fail the whole request, just log the error
       } else if (positionData) {
         // Find the user in the results
         const userEntry = positionData.find(entry => entry.out_user_id === parseInt(userId));
         if (userEntry) {
+          // FIXED: Use user_rank which is returned by get_season_leaderboard_weighted
           userPosition = {
-            user_position: userEntry.user_rank,  // ← Changed from userEntry.out_rank_position
+            user_position: userEntry.user_rank,
             total_score: userEntry.out_total_score,
             average_accuracy: userEntry.out_average_accuracy,
             challenges_participated: userEntry.out_challenges_participated,
@@ -120,7 +120,7 @@ async function handler(req, res) {
             accuracy_percentile: userEntry.out_accuracy_percentile,
             streak_percentile: userEntry.out_streak_percentile,
             total_participants: userEntry.out_total_participants,
-            percentile: ((userEntry.out_total_participants - userEntry.user_rank + 1) / userEntry.out_total_participants) * 100  // ← Changed here too
+            percentile: ((userEntry.out_total_participants - userEntry.user_rank + 1) / userEntry.out_total_participants) * 100
           };
         }
       }
@@ -133,34 +133,42 @@ async function handler(req, res) {
       .eq('is_current', true)
       .single();
 
-    if (seasonError && seasonError.code !== 'PGRST116') { // PGRST116 = no rows returned
+    if (seasonError && seasonError.code !== 'PGRST116') {
       console.error('Error fetching season info:', seasonError);
     }
 
     const currentSeason = seasonError ? null : seasonData;
 
     // Transform data to match frontend expectations
-    const transformedData = data ? data.map(entry => ({
-      user_id: entry.out_user_id,
-      username: entry.out_username,
-      avatar_url: entry.out_avatar_url,
-      country: entry.out_country,
-      total_score: entry.out_total_score,
-      average_accuracy: entry.out_average_accuracy,
-      max_streak: entry.out_max_streak,
-      challenges_participated: entry.out_challenges_participated,
-      final_weighted_score: entry.out_final_weighted_score,
-      score_percentile: entry.out_score_percentile,
-      accuracy_percentile: entry.out_accuracy_percentile,
-      streak_percentile: entry.out_streak_percentile,
-      user_position: entry.user_rank,  
-      rank_position: entry.user_rank,  
-      position: entry.user_rank,       
-      total_participants: entry.out_total_participants,
-      is_target_user: entry.out_is_target_user,
-      percentile: entry.out_total_participants > 0 ? 
-        ((entry.out_total_participants - entry.user_rank + 1) / entry.out_total_participants) * 100 : 0  
-    })) : [];
+    // FIXED: Use user_rank for standard function, out_rank_position for context function
+    const transformedData = data ? data.map(entry => {
+      // The rank field name differs between the two RPC functions:
+      // - get_season_leaderboard_weighted returns: user_rank
+      // - get_season_leaderboard_weighted_with_user returns: out_rank_position
+      const rankPosition = entry.user_rank || entry.out_rank_position;
+      
+      return {
+        user_id: entry.out_user_id,
+        username: entry.out_username,
+        avatar_url: entry.out_avatar_url,
+        country: entry.out_country,
+        total_score: entry.out_total_score,
+        average_accuracy: entry.out_average_accuracy,
+        max_streak: entry.out_max_streak,
+        challenges_participated: entry.out_challenges_participated,
+        final_weighted_score: entry.out_final_weighted_score,
+        score_percentile: entry.out_score_percentile,
+        accuracy_percentile: entry.out_accuracy_percentile,
+        streak_percentile: entry.out_streak_percentile,
+        user_position: rankPosition,
+        rank_position: rankPosition,
+        position: rankPosition,
+        total_participants: entry.out_total_participants,
+        is_target_user: entry.out_is_target_user,
+        percentile: entry.out_total_participants > 0 ? 
+          ((entry.out_total_participants - rankPosition + 1) / entry.out_total_participants) * 100 : 0
+      };
+    }) : [];
 
     console.log(`Weighted season leaderboard fetched: ${transformedData?.length || 0} entries, user position: ${userPosition ? 'found' : 'none'}`);
 
@@ -179,7 +187,7 @@ async function handler(req, res) {
         offset: parseInt(offset),
         returned: transformedData?.length || 0,
         withUserContext: withUserContext === 'true',
-        weighted: true // Flag to indicate this is weighted data
+        weighted: true
       }
     };
 
@@ -190,7 +198,7 @@ async function handler(req, res) {
       cache: true, 
       cacheTime: 600,
       enableETag: true,
-      req // Pass req for ETag handling
+      req
     });
 
   } catch (error) {
