@@ -51,6 +51,23 @@ module.exports = {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
       },
+      // Add backdrop blur and filter support
+      backdropBlur: {
+        xs: '2px',
+        sm: '4px',
+        DEFAULT: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '24px',
+        '2xl': '40px',
+        '3xl': '64px',
+      },
+    },
+  },
+  // Enable backdrop filter utilities
+  variants: {
+    extend: {
+      backdropFilter: ['responsive'],
     },
   },
   plugins: [],

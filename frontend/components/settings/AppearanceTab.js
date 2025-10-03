@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useSettings } from '../../lib/SettingsContext';
 import ColorPicker from './ColorPicker';
-import { Palette, Image, Sliders, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { Palette, Sliders, RotateCcw } from 'lucide-react';
 
 export default function AppearanceTab() {
   const { settings, updateSettings, resetSettings } = useSettings();
   const [localSettings, setLocalSettings] = useState({
-    background_enabled: settings.background_enabled,
     background_type: settings.background_type,
+    background_gradient_type: settings.background_gradient_type || 'linear',
+    background_gradient_angle: settings.background_gradient_angle || 135,
     background_color: settings.background_color,
     background_gradient_end: settings.background_gradient_end,
     background_blur: settings.background_blur,
@@ -15,11 +16,11 @@ export default function AppearanceTab() {
     background_saturation: settings.background_saturation
   });
 
-  // Update local settings when global settings change
   useEffect(() => {
     setLocalSettings({
-      background_enabled: settings.background_enabled,
       background_type: settings.background_type,
+      background_gradient_type: settings.background_gradient_type || 'linear',
+      background_gradient_angle: settings.background_gradient_angle || 135,
       background_color: settings.background_color,
       background_gradient_end: settings.background_gradient_end,
       background_blur: settings.background_blur,
@@ -38,20 +39,23 @@ export default function AppearanceTab() {
     await resetSettings('appearance');
   };
 
-  // Preset themes
+  // Enhanced preset themes with different gradient types
   const presets = [
-    { name: 'Ice & Fire', type: 'gradient', color: '#FF5714', gradientEnd: '#1056F9' },
-    { name: 'Ocean Breeze', type: 'gradient', color: '#1E90FF', gradientEnd: '#00BFFF' },
-    { name: 'Purple Dream', type: 'gradient', color: '#9370DB', gradientEnd: '#BA55D3' },
-    { name: 'Forest Valley', type: 'gradient', color: '#50C878', gradientEnd: '#3B82F6' },
-    { name: 'Rose Gold', type: 'gradient', color: '#E91E63', gradientEnd: '#FF9800' },
-    { name: 'Dark Theme', type: 'gradient', color: '#121212', gradientEnd: '#563E3E' }
+    { name: 'Ice & Fire', type: 'gradient', gradientType: 'linear', angle: 135, color: '#FF5714', gradientEnd: '#1056F9' },
+    { name: 'Ocean Breeze', type: 'gradient', gradientType: 'linear', angle: 135, color: '#1E90FF', gradientEnd: '#00BFFF' },
+    { name: 'Purple Dream', type: 'gradient', gradientType: 'linear', angle: 135, color: '#9370DB', gradientEnd: '#BA55D3' },
+    { name: 'Sunset Glow', type: 'gradient', gradientType: 'radial', color: '#FF6B35', gradientEnd: '#004E89' },
+    { name: 'Magenta Burst', type: 'gradient', gradientType: 'radial', color: '#E535AB', gradientEnd: '#6366F1' },
+    { name: 'Neon Spin', type: 'gradient', gradientType: 'conic', color: '#FF00FF', gradientEnd: '#00FFFF' },
+    { name: 'Rose Gold', type: 'gradient', gradientType: 'linear', angle: 45, color: '#E91E63', gradientEnd: '#FF9800' },
+    { name: 'Dark Theme', type: 'gradient', gradientType: 'linear', angle: 135, color: '#121212', gradientEnd: '#563E3E' }
   ];
 
   const applyPreset = (preset) => {
     const newSettings = {
-      background_enabled: true, // IMPORTANT: Keep background enabled when applying presets
       background_type: preset.type,
+      background_gradient_type: preset.gradientType || 'linear',
+      background_gradient_angle: preset.angle || 135,
       background_color: preset.color,
       background_gradient_end: preset.gradientEnd || preset.color
     };
@@ -72,206 +76,228 @@ export default function AppearanceTab() {
         </p>
       </div>
 
-      {/* Background Toggle */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-white text-shadow-adaptive">Background Art</h3>
-            <p className="text-sm text-white/70 text-shadow-adaptive-sm">Enable or disable background visuals</p>
-          </div>
-          <button
-            onClick={() => handleChange('background_enabled', !localSettings.background_enabled)}
-            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-              localSettings.background_enabled ? 'bg-green-500' : 'bg-gray-600'
-            }`}
-          >
-            <span
-              className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                localSettings.background_enabled ? 'translate-x-7' : 'translate-x-1'
+      <>
+        {/* Background Type */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-white text-shadow-adaptive">Background Type</h3>
+          <div className="flex gap-3">
+            <button
+              onClick={() => handleChange('background_type', 'solid')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                localSettings.background_type === 'solid'
+                  ? 'glass-2 text-white shadow-lg'
+                  : 'glass-1 text-white/80 hover:text-white'
               }`}
-            />
-            <span className="absolute left-1.5 text-xs font-bold text-white">
-              {localSettings.background_enabled ? '' : 'OFF'}
-            </span>
-            <span className="absolute right-1.5 text-xs font-bold text-white">
-              {localSettings.background_enabled ? 'ON' : ''}
-            </span>
-          </button>
+            >
+              Solid Color
+            </button>
+            <button
+              onClick={() => handleChange('background_type', 'gradient')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                localSettings.background_type === 'gradient'
+                  ? 'glass-2 text-white shadow-lg'
+                  : 'glass-1 text-white/80 hover:text-white'
+              }`}
+            >
+              Gradient
+            </button>
+          </div>
         </div>
-      </div>
 
-      {localSettings.background_enabled && (
-        <>
-          {/* Background Type */}
+        {/* Gradient Type Selection */}
+        {localSettings.background_type === 'gradient' && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white text-shadow-adaptive">Background Type</h3>
-            <div className="flex gap-3">
+            <h3 className="text-lg font-semibold text-white text-shadow-adaptive">Gradient Style</h3>
+            <div className="grid grid-cols-3 gap-3">
               <button
-                onClick={() => handleChange('background_type', 'solid')}
+                onClick={() => handleChange('background_gradient_type', 'linear')}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  localSettings.background_type === 'solid'
+                  localSettings.background_gradient_type === 'linear'
                     ? 'glass-2 text-white shadow-lg'
                     : 'glass-1 text-white/80 hover:text-white'
                 }`}
               >
-                Solid Color
+                Linear
               </button>
               <button
-                onClick={() => handleChange('background_type', 'gradient')}
+                onClick={() => handleChange('background_gradient_type', 'radial')}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  localSettings.background_type === 'gradient'
+                  localSettings.background_gradient_type === 'radial'
                     ? 'glass-2 text-white shadow-lg'
                     : 'glass-1 text-white/80 hover:text-white'
                 }`}
               >
-                Gradient
+                Radial
+              </button>
+              <button
+                onClick={() => handleChange('background_gradient_type', 'conic')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  localSettings.background_gradient_type === 'conic'
+                    ? 'glass-2 text-white shadow-lg'
+                    : 'glass-1 text-white/80 hover:text-white'
+                }`}
+              >
+                Conic
               </button>
             </div>
           </div>
+        )}
 
-          {/* Preset Themes */}
+        {/* Gradient Angle (only for linear gradients) */}
+        {localSettings.background_type === 'gradient' && localSettings.background_gradient_type === 'linear' && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white text-shadow-adaptive">Quick Presets</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {presets.map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => applyPreset(preset)}
-                  className="glass-1 hover:glass-2 rounded-lg p-3 transition-all group"
-                >
-                  <div 
-                    className="w-full h-12 rounded-lg mb-2 shadow-inner"
-                    style={{
-                      background: preset.type === 'gradient' 
-                        ? `linear-gradient(135deg, ${preset.color} 0%, ${preset.gradientEnd} 100%)`
-                        : preset.color
-                    }}
-                  />
-                  <span className="text-sm text-white/80 group-hover:text-white text-shadow-adaptive-sm">
-                    {preset.name}
-                  </span>
-                </button>
-              ))}
+            <div className="flex justify-between mb-2">
+              <label className="text-sm font-medium text-white/90 text-shadow-adaptive-sm">Gradient Angle</label>
+              <span className="text-sm text-white/70 text-shadow-adaptive-sm">{localSettings.background_gradient_angle ?? 135}°</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="360"
+              step="1"
+              value={localSettings.background_gradient_angle ?? 135}
+              onChange={(e) => handleChange('background_gradient_angle', Number(e.target.value))}
+              className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+            />
+            <div className="flex justify-between mt-1">
+              <span className="text-xs text-white/50">1°</span>
+              <span className="text-xs text-white/50">180°</span>
+              <span className="text-xs text-white/50">360°</span>
             </div>
           </div>
+        )}
 
-          {/* Color Selection */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4 text-shadow-adaptive">Colors</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* Preset Themes */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-white text-shadow-adaptive">Quick Presets</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {presets.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => applyPreset(preset)}
+                className="glass-1 hover:glass-2 rounded-lg p-3 transition-all group"
+              >
+                <div 
+                  className="w-full h-12 rounded-lg mb-2 shadow-inner"
+                  style={{
+                    background: preset.type === 'gradient' 
+                      ? preset.gradientType === 'linear'
+                        ? `linear-gradient(${preset.angle || 135}deg, ${preset.color} 0%, ${preset.gradientEnd} 100%)`
+                        : preset.gradientType === 'radial'
+                        ? `radial-gradient(circle at center, ${preset.color} 0%, ${preset.gradientEnd} 100%)`
+                        : `conic-gradient(from 0deg at center, ${preset.color} 0%, ${preset.gradientEnd} 50%, ${preset.color} 100%)`
+                      : preset.color
+                  }}
+                />
+                <span className="text-xs text-white/80 group-hover:text-white text-shadow-adaptive-sm">
+                  {preset.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Color Selection */}
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-4 text-shadow-adaptive">Colors</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-white/90 mb-2 text-shadow-adaptive-sm">
+                  {localSettings.background_type === 'gradient' ? 'Start Color' : 'Background Color'}
+                </label>
+                <ColorPicker
+                  color={localSettings.background_color}
+                  onChange={(color) => handleChange('background_color', color)}
+                />
+              </div>
+              
+              {localSettings.background_type === 'gradient' && (
                 <div>
                   <label className="block text-sm font-medium text-white/90 mb-2 text-shadow-adaptive-sm">
-                    {localSettings.background_type === 'gradient' ? 'Start Color' : 'Background Color'}
+                    End Color
                   </label>
                   <ColorPicker
-                    color={localSettings.background_color}
-                    onChange={(color) => handleChange('background_color', color)}
+                    color={localSettings.background_gradient_end}
+                    onChange={(color) => handleChange('background_gradient_end', color)}
                   />
                 </div>
-                
-                {localSettings.background_type === 'gradient' && (
-                  <div>
-                    <label className="block text-sm font-medium text-white/90 mb-2 text-shadow-adaptive-sm">
-                      End Color
-                    </label>
-                    <ColorPicker
-                      color={localSettings.background_gradient_end}
-                      onChange={(color) => handleChange('background_gradient_end', color)}
-                    />
-                  </div>
-                )}
-              </div>
+              )}
             </div>
+          </div>
+        </div>
 
-            {/* Preview */}
-            <div>
-              <label className="block text-sm font-medium text-white/90 mb-2 text-shadow-adaptive-sm">
-                Color Preview
-              </label>
-              <div 
-                className="w-full h-24 rounded-xl shadow-lg border-3 border-white/20"
-                style={{
-                  background: localSettings.background_type === 'gradient'
-                    ? `linear-gradient(135deg, ${localSettings.background_color} 0%, ${localSettings.background_gradient_end} 100%)`
-                    : localSettings.background_color
-                }}
-              />
+        {/* Adjustment Sliders */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-white text-shadow-adaptive flex items-center gap-2">
+            <Sliders className="w-5 h-5 icon-shadow-adaptive" />
+            Adjustments
+          </h3>
+          
+          {/* Blur */}
+          <div>
+            <div className="flex justify-between mb-2">
+              <label className="text-sm font-medium text-white/90 text-shadow-adaptive-sm">Blur</label>
+              <span className="text-sm text-white/70 text-shadow-adaptive-sm">{localSettings.background_blur}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="12"
+              value={localSettings.background_blur}
+              onChange={(e) => handleChange('background_blur', parseInt(e.target.value))}
+              className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+            />
+            <div className="flex justify-between mt-1">
+              <span className="text-xs text-white/50">0%</span>
+              <span className="text-xs text-white/50">12%</span>
             </div>
           </div>
 
-          {/* Adjustment Sliders */}
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-white text-shadow-adaptive flex items-center gap-2">
-              <Sliders className="w-5 h-5 icon-shadow-adaptive" />
-              Adjustments
-            </h3>
-            
-            {/* Blur */}
-            <div>
-              <div className="flex justify-between mb-2">
-                <label className="text-sm font-medium text-white/90 text-shadow-adaptive-sm">Blur</label>
-                <span className="text-sm text-white/70 text-shadow-adaptive-sm">{localSettings.background_blur}%</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="12"
-                value={localSettings.background_blur}
-                onChange={(e) => handleChange('background_blur', parseInt(e.target.value))}
-                className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-              />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs text-white/50">0%</span>
-                <span className="text-xs text-white/50">12%</span>
-              </div>
+          {/* Dimming */}
+          <div>
+            <div className="flex justify-between mb-2">
+              <label className="text-sm font-medium text-white/90 text-shadow-adaptive-sm">Dimming</label>
+              <span className="text-sm text-white/70 text-shadow-adaptive-sm">{localSettings.background_dimming}%</span>
             </div>
-
-            {/* Dimming */}
-            <div>
-              <div className="flex justify-between mb-2">
-                <label className="text-sm font-medium text-white/90 text-shadow-adaptive-sm">Dimming</label>
-                <span className="text-sm text-white/70 text-shadow-adaptive-sm">{localSettings.background_dimming}%</span>
-              </div>
-              <input
-                type="range"
-                min="20"
-                max="70"
-                value={localSettings.background_dimming}
-                onChange={(e) => handleChange('background_dimming', parseInt(e.target.value))}
-                className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-              />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs text-white/50">20%</span>
-                <span className="text-xs text-white/50">70%</span>
-              </div>
-            </div>
-
-            {/* Saturation */}
-            <div>
-              <div className="flex justify-between mb-2">
-                <label className="text-sm font-medium text-white/90 text-shadow-adaptive-sm">Saturation</label>
-                <span className="text-sm text-white/70 text-shadow-adaptive-sm">
-                  {localSettings.background_saturation > 0 ? '+' : ''}{localSettings.background_saturation}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="-15"
-                max="15"
-                value={localSettings.background_saturation}
-                onChange={(e) => handleChange('background_saturation', parseInt(e.target.value))}
-                className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-              />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs text-white/50">-15%</span>
-                <span className="text-xs text-white/50">0%</span>
-                <span className="text-xs text-white/50">+15%</span>
-              </div>
+            <input
+              type="range"
+              min="20"
+              max="70"
+              value={localSettings.background_dimming}
+              onChange={(e) => handleChange('background_dimming', parseInt(e.target.value))}
+              className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+            />
+            <div className="flex justify-between mt-1">
+              <span className="text-xs text-white/50">20%</span>
+              <span className="text-xs text-white/50">70%</span>
             </div>
           </div>
-        </>
-      )}
+
+          {/* Saturation */}
+          <div>
+            <div className="flex justify-between mb-2">
+              <label className="text-sm font-medium text-white/90 text-shadow-adaptive-sm">Saturation</label>
+              <span className="text-sm text-white/70 text-shadow-adaptive-sm">
+                {localSettings.background_saturation > 0 ? '+' : ''}{localSettings.background_saturation}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="-15"
+              max="15"
+              value={localSettings.background_saturation}
+              onChange={(e) => handleChange('background_saturation', parseInt(e.target.value))}
+              className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+            />
+            <div className="flex justify-between mt-1">
+              <span className="text-xs text-white/50">-15%</span>
+              <span className="text-xs text-white/50">0%</span>
+              <span className="text-xs text-white/50">+15%</span>
+            </div>
+          </div>
+        </div>
+      </>
 
       {/* Reset Button */}
       <div className="pt-4 border-t border-white/10">

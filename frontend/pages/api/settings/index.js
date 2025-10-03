@@ -123,13 +123,20 @@ async function handler(req, res) {
 function validateSettings(settings) {
   const validated = {};
   
-  // Appearance settings
-  if (typeof settings.background_enabled === 'boolean') {
-    validated.background_enabled = settings.background_enabled;
-  }
-  
   if (settings.background_type === 'solid' || settings.background_type === 'gradient') {
     validated.background_type = settings.background_type;
+  }
+  
+  // Gradient type validation
+  if (settings.background_gradient_type === 'linear' || 
+      settings.background_gradient_type === 'radial' || 
+      settings.background_gradient_type === 'conic') {
+    validated.background_gradient_type = settings.background_gradient_type;
+  }
+  
+  // Gradient angle validation
+  if (typeof settings.background_gradient_angle === 'number') {
+    validated.background_gradient_angle = Math.max(0, Math.min(360, Math.round(settings.background_gradient_angle)));
   }
   
   if (settings.background_color && /^#[0-9A-F]{6}$/i.test(settings.background_color)) {

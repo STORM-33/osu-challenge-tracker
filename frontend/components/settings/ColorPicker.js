@@ -69,8 +69,14 @@ const hslToHex = (h, s, l) => {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 };
 
+const isValidHex = (hex) => {
+  return /^#?([a-f\d]{6})$/i.test(hex);
+};
+
 export default function ColorPicker({ color, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [hexInput, setHexInput] = useState('');
+  const [hexError, setHexError] = useState(false);
   const pickerRef = useRef(null);
   
   // Initialize HSL from prop only once and manage state independently
@@ -104,6 +110,8 @@ export default function ColorPicker({ color, onChange }) {
     if (!isOpen) {
       const newHSL = getInitialHSL(color);
       setHslState(newHSL);
+      setHexInput('');
+      setHexError(false);
     }
   }, [color, isOpen]);
 
@@ -128,6 +136,40 @@ export default function ColorPicker({ color, onChange }) {
     onChange(hslToHex(newHSL.h, newHSL.s, newHSL.l));
   };
 
+  const handleHexInputChange = (e) => {
+    const value = e.target.value.toUpperCase().replace('#', '');
+    setHexInput(value);
+    
+    // Only validate and apply if there's a value
+    if (value.length === 0) {
+      setHexError(false);
+      return;
+    }
+    
+    // Add # for validation
+    const hexValue = '#' + value;
+    
+    // Validate and apply if valid (6 characters)
+    if (value.length === 6 && isValidHex(hexValue)) {
+      setHexError(false);
+      const newHSL = hexToHsl(hexValue);
+      setHslState(newHSL);
+      onChange(hexValue); // Send the actual hex value typed, not the converted one
+    } else if (value.length >= 6) {
+      setHexError(true);
+    } else {
+      setHexError(false);
+    }
+  };
+
+  const handleHexInputBlur = () => {
+    // Reset to current color if invalid
+    if (hexError || (hexInput && !isValidHex('#' + hexInput.replace('#', '')))) {
+      setHexInput('');
+      setHexError(false);
+    }
+  };
+
   // Get current color for display (use prop when closed, state when open)
   const displayColor = isOpen ? hslToHex(hslState.h, hslState.s, hslState.l) : color;
 
@@ -148,12 +190,48 @@ export default function ColorPicker({ color, onChange }) {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full mt-2 w-full glass-3 rounded-xl p-4 shadow-2xl z-50 space-y-4">
+        <div className="absolute top-full mt-2 w-full rounded-xl p-4 shadow-2xl z-50 space-y-4" style={{
+          backdropFilter: 'blur(24px) brightness(0.7)',
+          WebkitBackdropFilter: 'blur(24px) brightness(0.7)',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          border: '3px solid rgba(255, 255, 255, 0.3)',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 255, 255, 0.15)'
+        }}>
           {/* Color Preview */}
           <div 
             className="w-full h-20 rounded-lg shadow-inner border-2 border-white/20"
             style={{ backgroundColor: hslToHex(hslState.h, hslState.s, hslState.l) }}
           />
+
+          {/* Hex Input */}
+          <div>
+            <label className="text-sm font-medium text-white/90 text-shadow-adaptive-sm mb-2 block">
+              Hex Code
+            </label>
+            <input
+              type="text"
+              value={hexInput}
+              onChange={handleHexInputChange}
+              onBlur={handleHexInputBlur}
+              onFocus={() => setHexInput(hslToHex(hslState.h, hslState.s, hslState.l).replace('#', ''))}
+              placeholder="FFFFFF"
+              maxLength={6}
+              className={`w-full px-3 py-2 rounded-lg font-mono text-base transition-all ${
+                hexError 
+                  ? 'glass-1 border-2 border-red-500 text-red-300 placeholder-red-300/50' 
+                  : 'glass-1 border-2 border-white/20 text-white placeholder-white/40'
+              } focus:outline-none focus:border-white/40`}
+              style={{ 
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase'
+              }}
+            />
+            {hexError && (
+              <p className="text-xs text-red-300 mt-1 text-shadow-adaptive-sm">
+                Invalid hex code (use format: FFFFFF or #FFFFFF)
+              </p>
+            )}
+          </div>
 
           {/* Hue Slider */}
           <div>

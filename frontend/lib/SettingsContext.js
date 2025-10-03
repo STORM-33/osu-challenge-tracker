@@ -24,7 +24,6 @@ const getCachedSettings = (userId) => {
     
     const parsed = JSON.parse(cached);
     
-    // Check cache version and expiry (24 hours)
     if (parsed.version !== CACHE_VERSION || 
         Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000) {
       localStorage.removeItem(`${STORAGE_KEY}_${userId}`);
@@ -75,7 +74,6 @@ export const SettingsProvider = ({ children }) => {
   const [saving, setSaving] = useState(false);
   const [isFromCache, setIsFromCache] = useState(false);
 
-  // Load cached settings immediately when user changes
   useEffect(() => {
     if (user) {
       const cached = getCachedSettings(user.id);
@@ -87,17 +85,14 @@ export const SettingsProvider = ({ children }) => {
         setIsFromCache(true);
         setLoading(false);
         
-        // Fetch fresh data in background only if cache is old (more than 5 minutes)
         const cacheAge = Date.now() - (cached.timestamp || 0);
         if (cacheAge > 5 * 60 * 1000) {
           fetchSettings();
         }
       } else {
-        // No cache, fetch immediately
         fetchSettings();
       }
     } else {
-      // Clear settings when user logs out
       setSettings(null);
       setTempSettings(null);
       setDonorStatus(null);
@@ -105,13 +100,12 @@ export const SettingsProvider = ({ children }) => {
       setLoading(false);
       setIsFromCache(false);
     }
-  }, [user?.id]); // Only depend on user.id, not the entire user object
+  }, [user?.id]);
 
   const fetchSettings = useCallback(async () => {
     if (!user) return;
 
     try {
-      // Don't set loading if we have cached data
       if (!isFromCache) {
         setLoading(true);
       }
@@ -131,12 +125,10 @@ export const SettingsProvider = ({ children }) => {
       const data = await response.json();
       const responseData = data.data || data;
       
-      // Update state with fresh data
       setSettings(responseData.settings);
       setDonorStatus(responseData.donorStatus);
       setAvailableBackgrounds(responseData.availableBackgrounds || []);
       
-      // Cache the fresh data
       setCachedSettings(user.id, {
         settings: responseData.settings,
         donorStatus: responseData.donorStatus,
@@ -146,14 +138,13 @@ export const SettingsProvider = ({ children }) => {
       console.log('✅ Settings updated from API');
     } catch (error) {
       console.error('Error fetching settings:', error);
-      // If we have cached data, keep using it
       if (!isFromCache) {
         console.error('Failed to load settings and no cache available');
       }
     } finally {
       setLoading(false);
     }
-  }, [user, isFromCache]); // Add dependencies
+  }, [user, isFromCache]);
 
   const updateSettings = async (newSettings, isPreview = false) => {
     if (!user) {
@@ -195,7 +186,6 @@ export const SettingsProvider = ({ children }) => {
       setSettings(responseData.settings);
       setTempSettings(null);
       
-      // Update cache immediately
       setCachedSettings(user.id, {
         settings: responseData.settings,
         donorStatus,
@@ -224,8 +214,9 @@ export const SettingsProvider = ({ children }) => {
     switch (category) {
       case 'appearance':
         settingsToReset = {
-          background_enabled: defaultSettings.background_enabled,
           background_type: defaultSettings.background_type,
+          background_gradient_type: defaultSettings.background_gradient_type,
+          background_gradient_angle: defaultSettings.background_gradient_angle,
           background_color: defaultSettings.background_color,
           background_gradient_end: defaultSettings.background_gradient_end,
           background_blur: defaultSettings.background_blur,
@@ -253,8 +244,9 @@ export const SettingsProvider = ({ children }) => {
   };
 
   const getDefaultSettings = () => ({
-    background_enabled: true,
     background_type: 'gradient',
+    background_gradient_type: 'linear',
+    background_gradient_angle: 135,
     background_color: '#FF5714',
     background_gradient_end: '#1056F9',
     background_blur: 50,
@@ -270,11 +262,21 @@ export const SettingsProvider = ({ children }) => {
 
   const activeSettings = tempSettings || settings || getDefaultSettings();
 
-  // Memoize the background style to prevent unnecessary recalculations
-  const backgroundStyle = useMemo(() => {
-    if (!activeSettings.background_enabled) {
-      return { backgroundColor: '#0a0a0a' };
+  // Generate gradient CSS based on type
+  const generateGradientCSS = useCallback((type, angle, startColor, endColor) => {
+    switch (type) {
+      case 'linear':
+        return `linear-gradient(${angle}deg, ${startColor} 0%, ${endColor} 100%)`;
+      case 'radial':
+        return `radial-gradient(circle at center, ${startColor} 0%, ${endColor} 100%)`;
+      case 'conic':
+        return `conic-gradient(from 0deg at center, ${startColor} 0%, ${endColor} 50%, ${startColor} 100%)`;
+      default:
+        return `linear-gradient(135deg, ${startColor} 0%, ${endColor} 100%)`;
     }
+  }, []);
+
+  const backgroundStyle = useMemo(() => {
 
     if (activeSettings.background_id) {
       const selectedBackground = availableBackgrounds.find(bg => bg.id === activeSettings.background_id);
@@ -293,8 +295,16 @@ export const SettingsProvider = ({ children }) => {
     }
 
     if (activeSettings.background_type === 'gradient') {
+      const gradientType = activeSettings.background_gradient_type || 'linear';
+      const gradientAngle = activeSettings.background_gradient_angle || 135;
+      
       return {
-        background: `linear-gradient(135deg, ${activeSettings.background_color} 0%, ${activeSettings.background_gradient_end} 100%)`,
+        background: generateGradientCSS(
+          gradientType,
+          gradientAngle,
+          activeSettings.background_color,
+          activeSettings.background_gradient_end
+        ),
         filter: `
           blur(${activeSettings.background_blur || 0}px)
           brightness(${100 - (activeSettings.background_dimming || 0)}%)
@@ -312,15 +322,17 @@ export const SettingsProvider = ({ children }) => {
       };
     }
   }, [
-    activeSettings.background_enabled,
     activeSettings.background_id,
     activeSettings.background_type,
+    activeSettings.background_gradient_type,
+    activeSettings.background_gradient_angle,
     activeSettings.background_color,
     activeSettings.background_gradient_end,
     activeSettings.background_blur,
     activeSettings.background_dimming,
     activeSettings.background_saturation,
-    availableBackgrounds
+    availableBackgrounds,
+    generateGradientCSS
   ]);
 
   const getBackgroundStyle = useCallback(() => backgroundStyle, [backgroundStyle]);
