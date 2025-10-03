@@ -296,7 +296,7 @@ export default function Partners() {
                   Contact us at:
                 </p>
                 <p className="text-white font-mono text-lg font-semibold text-shadow-adaptive">
-                  -- email will be added later --
+                  challengersnexus@gmail.com
                 </p>
               </div>
             </div>
