@@ -1,17 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import DonationForm from '../components/DonationForm';
-import { Heart, Sparkles, Shield, Zap, Trophy, Users, TrendingUp, Info } from 'lucide-react';
+import { 
+  Heart, Sparkles, Shield, Zap, Trophy, Users, 
+  Server, Code, Palette, ChevronRight
+} from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function DonatePage() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
 
   const handleDonationComplete = (paymentIntent) => {
-    // Redirect to thank you page with payment details
     router.push(`/thank-you?payment_intent=${paymentIntent.id}&amount=${paymentIntent.amount}`);
   };
 
@@ -32,32 +34,34 @@ export default function DonatePage() {
       
       <div className="min-h-screen py-4 sm:py-6 lg:py-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-          {/* Header Section */}
+          
+          {/* Hero Section - Simplified */}
           <div className="mb-8 sm:mb-12">
             <div className="text-center">
-              {/* Icon and Title */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-4">
-                <div className="relative">
-                  <Heart className="w-8 h-8 sm:w-10 sm:h-10 text-white icon-shadow-adaptive-lg" />
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 absolute -top-1 -right-1 icon-shadow-adaptive-sm" />
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative mb-6">
+                  <Heart className="w-16 h-16 sm:w-20 sm:h-20 text-white icon-shadow-adaptive-lg animate-float" />
                 </div>
                 
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white text-shadow-adaptive-lg">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white text-shadow-adaptive-lg mb-4">
                   Support osu!Challengers
                 </h1>
+                
+                <p className="text-base sm:text-lg lg:text-xl text-white/85 max-w-3xl mx-auto text-shadow-adaptive leading-relaxed px-4 sm:px-0">
+                  Help us keep the platform running and free for everyone. 
+                  Your donation directly supports server costs and development.
+                </p>
               </div>
-              
-              {/* Description */}
-              <p className="text-white/85 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto text-shadow-adaptive px-4 sm:px-0">
-                Your support helps us maintain and improve the challenge tracking platform for thousands of players worldwide
-              </p>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 lg:items-stretch">
-            {/* Left Column - Impact */}
-            <div className="flex flex-col space-y-6 sm:space-y-8">
-              {/* What Your Support Enables */}
+          {/* Main Content Grid */}
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
+            
+            {/* Left Column - Impact Information */}
+            <div className="space-y-6 sm:space-y-8">
+              
+              {/* Where Your Money Goes */}
               <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8">
                 <div className="flex items-center gap-3 mb-4 sm:mb-6">
                   <div className="p-2 sm:p-3 icon-gradient-purple rounded-lg sm:rounded-xl icon-container-purple">
@@ -68,114 +72,148 @@ export default function DonatePage() {
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Active Challenges */}
-                  <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 icon-gradient-blue rounded icon-container-blue">
-                        <Zap className="w-3 h-3 text-white icon-shadow-adaptive-sm" />
+                <div className="space-y-4">
+                  {/* Server Infrastructure */}
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-4 hover:glass-2 transition-all">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 icon-gradient-blue rounded icon-container-blue mt-0.5">
+                        <Server className="w-4 h-4 text-white icon-shadow-adaptive-sm" />
                       </div>
-                      <span className="font-semibold text-white text-shadow-adaptive-sm text-sm">24/7 Uptime</span>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-white text-shadow-adaptive mb-1">
+                          Server Infrastructure
+                        </h4>
+                        <p className="text-sm text-white/80 text-shadow-adaptive-sm">
+                          Website and database hosting, CDN, and automatic backups for 24/7 availability
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-white/80 text-shadow-adaptive-sm">
-                      Keep challenges running smoothly for all players
-                    </p>
                   </div>
 
-                  {/* Score Tracking */}
-                  <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 icon-gradient-green rounded icon-container-green">
-                        <TrendingUp className="w-3 h-3 text-white icon-shadow-adaptive-sm" />
+                  {/* Platform Maintenance */}
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-4 hover:glass-2 transition-all">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 icon-gradient-green rounded icon-container-green mt-0.5">
+                        <Code className="w-4 h-4 text-white icon-shadow-adaptive-sm" />
                       </div>
-                      <span className="font-semibold text-white text-shadow-adaptive-sm text-sm">Live Updates</span>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-white text-shadow-adaptive mb-1">
+                          Reliability & Upkeep
+                        </h4>
+                        <p className="text-sm text-white/80 text-shadow-adaptive-sm">
+                          Keeping things running, bug fixes, and maintaining functionality
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-white/80 text-shadow-adaptive-sm">
-                      Real-time score tracking and leaderboards
-                    </p>
                   </div>
 
-                  {/* New Features */}
-                  <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 icon-gradient-orange rounded icon-container-orange">
-                        <Sparkles className="w-3 h-3 text-white icon-shadow-adaptive-sm" />
+                  {/* Platform Features */}
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-4 hover:glass-2 transition-all">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 icon-gradient-orange rounded icon-container-orange mt-0.5">
+                        <Zap className="w-4 h-4 text-white icon-shadow-adaptive-sm" />
                       </div>
-                      <span className="font-semibold text-white text-shadow-adaptive-sm text-sm">New Features</span>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-white text-shadow-adaptive mb-1">
+                          Platform Features
+                        </h4>
+                        <p className="text-sm text-white/80 text-shadow-adaptive-sm">
+                          Real-time score tracking, leaderboards, seasonal competitions, and API integrations
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-white/80 text-shadow-adaptive-sm">
-                      Develop exciting updates and improvements
-                    </p>
                   </div>
 
                   {/* Community */}
-                  <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:glass-2 transition-all">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 icon-gradient-red rounded icon-container-red">
-                        <Users className="w-3 h-3 text-white icon-shadow-adaptive-sm" />
+                  <div className="glass-1 rounded-lg sm:rounded-xl p-4 hover:glass-2 transition-all">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 icon-gradient-purple rounded icon-container-red mt-0.5">
+                        <Trophy className="w-4 h-4 text-white icon-shadow-adaptive-sm" />
                       </div>
-                      <span className="font-semibold text-white text-shadow-adaptive-sm text-sm">Free Access</span>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-white text-shadow-adaptive mb-1">
+                          Supporter Prizes & Community
+                        </h4>
+                        <p className="text-sm text-white/80 text-shadow-adaptive-sm">
+                          Fund prizes for challenge winners while keeping the platform free for everyone
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-white/80 text-shadow-adaptive-sm">
-                      Keep the platform free for everyone
-                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* FAQ Section - Moved here and made smaller */}
-              <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex-1">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-1.5 icon-gradient-orange rounded icon-container-orange">
-                    <Info className="w-4 h-4 text-white icon-shadow-adaptive-sm" />
+              {/* Why Donate */}
+              <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                <h3 className="text-lg font-bold text-white mb-4 text-shadow-adaptive">
+                  Why Your Support Matters
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-white/70 icon-shadow-adaptive-sm" />
+                    <span className="text-sm text-white/90 text-shadow-adaptive-sm">
+                      We run entirely on community support with no ads or paywalls
+                    </span>
                   </div>
-                  <h3 className="text-base sm:text-lg font-semibold text-white text-shadow-adaptive">
-                    Frequently Asked Questions
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-white/70 icon-shadow-adaptive-sm" />
+                    <span className="text-sm text-white/90 text-shadow-adaptive-sm">
+                      Every dollar goes directly to platform costs and improvements
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-white/70 icon-shadow-adaptive-sm" />
+                    <span className="text-sm text-white/90 text-shadow-adaptive-sm">
+                      Your contribution helps thousands of players track their progress
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-white/70 icon-shadow-adaptive-sm" />
+                    <span className="text-sm text-white/90 text-shadow-adaptive-sm">
+                      Help maintain reliable service and platform stability
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-white/70 icon-shadow-adaptive-sm" />
+                    <span className="text-sm text-white/90 text-shadow-adaptive-sm">
+                      Help maintain fast, reliable service for all players
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Info Box */}
+              <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-1.5 icon-gradient-green rounded icon-container-green">
+                    <Sparkles className="w-4 h-4 text-white icon-shadow-adaptive-sm" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white text-shadow-adaptive">
+                    Our Commitment
                   </h3>
                 </div>
-                
-                <div className="space-y-3">
-                  <div className="glass-1 rounded-lg p-3">
-                    <h4 className="font-medium text-white mb-1 text-sm text-shadow-adaptive-sm">
-                      Question placeholder 1
-                    </h4>
-                    <p className="text-xs text-white/70 text-shadow-adaptive-sm">
-                      Content to be added later
-                    </p>
-                  </div>
-                  
-                  <div className="glass-1 rounded-lg p-3">
-                    <h4 className="font-medium text-white mb-1 text-sm text-shadow-adaptive-sm">
-                      Question placeholder 2
-                    </h4>
-                    <p className="text-xs text-white/70 text-shadow-adaptive-sm">
-                      Content to be added later
-                    </p>
-                  </div>
-
-                  <div className="glass-1 rounded-lg p-3">
-                    <h4 className="font-medium text-white mb-1 text-sm text-shadow-adaptive-sm">
-                      Question placeholder 3
-                    </h4>
-                    <p className="text-xs text-white/70 text-shadow-adaptive-sm">
-                      Content to be added later
-                    </p>
-                  </div>
-
-                  <div className="glass-1 rounded-lg p-3">
-                    <h4 className="font-medium text-white mb-1 text-sm text-shadow-adaptive-sm">
-                      Question placeholder 4
-                    </h4>
-                    <p className="text-xs text-white/70 text-shadow-adaptive-sm">
-                      Content to be added later
-                    </p>
-                  </div>
-                </div>
+                <p className="text-sm text-white/80 text-shadow-adaptive-sm leading-relaxed mb-3">
+                  We're committed to transparency and efficiency. Your donations ensure:
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-sm text-white/90 text-shadow-adaptive-sm">No ads or premium tiers</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-sm text-white/90 text-shadow-adaptive-sm">Consistent uptime and reliability</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-sm text-white/90 text-shadow-adaptive-sm">Community-driven development</span>
+                  </li>
+                </ul>
               </div>
             </div>
 
-            {/* Right Column - Payment Form */}
-            <div className="flex-1 space-y-6 sm:space-y-8">
+            {/* Right Column - Donation Form */}
+            <div className="lg:sticky lg:top-6 lg:h-fit">
               <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8">
                 <div className="flex items-center gap-3 mb-4 sm:mb-6">
                   <Shield className="w-5 h-5 text-green-400 icon-shadow-adaptive-sm" />
@@ -184,13 +222,29 @@ export default function DonatePage() {
                   </h3>
                 </div>
 
-                {/* Let DonationForm handle all the form logic */}
                 <DonationForm
                   user={user}
                   onSuccess={handleDonationComplete}
                   onError={handleDonationError}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Thank You Section */}
+          <div className="mt-12 sm:mt-16 text-center">
+            <div className="glass-2 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 max-w-3xl mx-auto">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive animate-pulse-soft" />
+                <h3 className="text-xl sm:text-2xl font-bold text-white text-shadow-adaptive">
+                  Thank You
+                </h3>
+                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive animate-pulse-soft" />
+              </div>
+              <p className="text-sm sm:text-lg text-white/85 text-shadow-adaptive-sm leading-relaxed">
+                Every donation helps keep osu!Challengers running and growing. 
+                We're grateful for your support in building this community platform.
+              </p>
             </div>
           </div>
         </div>

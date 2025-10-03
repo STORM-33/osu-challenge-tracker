@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { CreditCard, Lock, AlertCircle, Loader2, Mail, MessageSquare, Eye, EyeOff, Gift } from 'lucide-react';
+import { 
+  CreditCard, Lock, AlertCircle, Loader2, Mail, 
+  MessageSquare, Eye, EyeOff, Gift, Sparkles,
+  Heart, Check, ChevronRight, Shield
+} from 'lucide-react';
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
@@ -15,6 +19,7 @@ export default function DonationForm({ user, selectedAmount, onSuccess, onError 
   const [customAmount, setCustomAmount] = useState('');
   const [activeAmount, setActiveAmount] = useState(20);
   const [formErrors, setFormErrors] = useState({});
+  const [focusedInput, setFocusedInput] = useState(null);
 
   const predefinedAmounts = [5, 10, 20, 50, 100];
 
@@ -22,6 +27,7 @@ export default function DonationForm({ user, selectedAmount, onSuccess, onError 
     if (selectedAmount) {
       setAmount(selectedAmount.toString());
       setActiveAmount(selectedAmount);
+      setCustomAmount('');
     }
   }, [selectedAmount]);
 
@@ -70,12 +76,11 @@ export default function DonationForm({ user, selectedAmount, onSuccess, onError 
     try {
       const finalAmount = customAmount || amount;
       
-      // Create payment intent
       const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: Math.round(parseInt(finalAmount) * 100), // Convert to cents
+          amount: Math.round(parseInt(finalAmount) * 100),
           currency: 'usd',
           isRecurring,
           email: user?.email || email,
@@ -95,7 +100,6 @@ export default function DonationForm({ user, selectedAmount, onSuccess, onError 
         throw new Error(data.error || 'Failed to create payment intent');
       }
 
-      // Redirect to Stripe Checkout
       const stripe = await stripePromise;
       const { error } = await stripe.redirectToCheckout({
         sessionId: data.sessionId
@@ -116,217 +120,311 @@ export default function DonationForm({ user, selectedAmount, onSuccess, onError 
     return customAmount || amount;
   };
 
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    handleSubmit(e);
-  };
-
   return (
-    <div className="space-y-6"
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
-          e.preventDefault();
-          handleFormSubmit(e);
-        }
-      }}>
-      {/* Donation Type Toggle */}
-      <div className="view-mode-slider">
-        <div className="slider-track">
-          <div className={`slider-thumb-two-option ${isRecurring ? 'slider-thumb-two-option-right' : ''}`} />
+    <div className="space-y-6">
+      {/* Donation Type Selector - Redesigned */}
+      <div>
+        <label className="block text-sm font-bold text-white mb-3 text-shadow-adaptive flex items-center gap-2">
+          <Gift className="w-4 h-4 icon-shadow-adaptive-sm" />
+          Donation Type
+        </label>
+        <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setIsRecurring(false)}
-            className={`slider-option ${!isRecurring ? 'slider-option-active' : ''}`}
+            className={`
+              relative p-4 rounded-xl font-semibold text-white transition-all duration-300
+              ${!isRecurring 
+                ? 'glass-2 border-2 border-primary-500 shadow-lg scale-[1.02]' 
+                : 'glass-1 border-2 border-transparent hover:glass-2'
+              }
+            `}
           >
-            One-time
+            <div className="flex items-center justify-center gap-2">
+              <Heart className="w-5 h-5 icon-shadow-adaptive-sm" />
+              <span className="text-shadow-adaptive">One-time</span>
+            </div>
+            {!isRecurring && (
+              <div className="absolute -top-2 -right-2">
+                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            )}
           </button>
+
           <button
             type="button"
             onClick={() => setIsRecurring(true)}
-            className={`slider-option ${isRecurring ? 'slider-option-active' : ''}`}
+            className={`
+              relative p-4 rounded-xl font-semibold text-white transition-all duration-300
+              ${isRecurring 
+                ? 'glass-2 border-2 border-primary-500 shadow-lg scale-[1.02]' 
+                : 'glass-1 border-2 border-transparent hover:glass-2'
+              }
+            `}
           >
-            Monthly
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="w-5 h-5 icon-shadow-adaptive-sm" />
+              <span className="text-shadow-adaptive">Monthly</span>
+            </div>
+            {isRecurring && (
+              <div className="absolute -top-2 -right-2">
+                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Amount Selection */}
+      {/* Amount Selection - Redesigned */}
       <div>
-        <label className="block text-sm font-medium text-white mb-3 text-shadow-adaptive-sm">
+        <label className="block text-sm font-bold text-white mb-3 text-shadow-adaptive flex items-center gap-2">
+          <CreditCard className="w-4 h-4 icon-shadow-adaptive-sm" />
           Select Amount (USD)
         </label>
         
-        {/* Predefined Amounts - Single Row Mobile Layout */}
-        <div className="grid grid-cols-5 gap-1 sm:gap-3 mb-4">
-          {predefinedAmounts.map((value) => (
+        {/* Quick Select Amounts - Better mobile layout */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+          {predefinedAmounts.slice(0, 3).map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => handleAmountSelect(value)}
               className={`
-                relative p-2 sm:p-4 rounded-lg sm:rounded-xl font-bold text-white transition-all
-                touch-manipulation min-h-[44px] flex items-center justify-center text-xs sm:text-lg
+                relative p-3 sm:p-4 rounded-xl font-bold text-white transition-all duration-300
                 ${activeAmount === value && !customAmount
-                  ? 'glass-3 scale-105' 
-                  : 'glass-1 hover:glass-2 active:glass-3 active:scale-95'
+                  ? 'glass-3 scale-105 border-2 border-primary-500' 
+                  : 'glass-1 border-2 border-transparent hover:glass-2 hover:border-white/30'
                 }
               `}
-              style={{
-                border: activeAmount === value && !customAmount 
-                  ? '2px solid rgba(244, 114, 182, 1)' 
-                  : '2px solid transparent',
-                WebkitTapHighlightColor: 'transparent'
-              }}
             >
-              <span className="text-xs sm:text-xl text-shadow-adaptive leading-none">
-                ${value}
-              </span>
+              <div className="text-xl sm:text-2xl text-shadow-adaptive">${value}</div>
               {activeAmount === value && !customAmount && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-primary-500 rounded-full flex items-center justify-center">
-                  <svg className="w-2 h-2 sm:w-3 sm:h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+                <div className="absolute -top-1.5 -right-1.5">
+                  <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
                 </div>
               )}
             </button>
           ))}
         </div>
 
-        {/* Custom Amount - Enhanced Mobile */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
+          {predefinedAmounts.slice(3).map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => handleAmountSelect(value)}
+              className={`
+                relative p-3 sm:p-4 rounded-xl font-bold text-white transition-all duration-300
+                ${activeAmount === value && !customAmount
+                  ? 'glass-3 scale-105 border-2 border-primary-500' 
+                  : 'glass-1 border-2 border-transparent hover:glass-2 hover:border-white/30'
+                }
+              `}
+            >
+              <div className="text-xl sm:text-2xl text-shadow-adaptive">${value}</div>
+              {activeAmount === value && !customAmount && (
+                <div className="absolute -top-1.5 -right-1.5">
+                  <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Amount - Improved design */}
         <div className="relative">
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={customAmount}
-            onChange={handleCustomAmountChange}
-            placeholder="Enter custom amount"
-            className={`
-              w-full pl-8 pr-4 py-3 xs:py-4 rounded-xl font-medium text-white placeholder-white/70
-              glass-2 border-2 xs:border-3 transition-all text-shadow-adaptive-sm text-base xs:text-lg
-              focus:outline-none focus:ring-2 focus:ring-white/70 min-h-[44px]
-              ${customAmount ? 'border-primary-500' : 'border-transparent'}
-            `}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          />
-          <span className="absolute left-3 xs:left-4 top-1/2 -translate-y-1/2 text-white/50 font-bold pointer-events-none text-base xs:text-lg">
-            $
-          </span>
+          <div className={`
+            relative overflow-hidden rounded-xl transition-all duration-300
+            ${focusedInput === 'custom' ? 'ring-2 ring-primary-500' : ''}
+            ${customAmount ? 'glass-3 border-2 border-primary-500' : 'glass-2 border-2 border-transparent'}
+          `}>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white text-xl font-bold pointer-events-none text-shadow-adaptive">
+              $
+            </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={customAmount}
+              onChange={handleCustomAmountChange}
+              onFocus={() => setFocusedInput('custom')}
+              onBlur={() => setFocusedInput(null)}
+              placeholder="Enter custom amount"
+              className="w-full pl-10 pr-4 py-4 bg-transparent font-bold text-white placeholder-white/50 text-lg focus:outline-none text-shadow-adaptive"
+            />
+            {customAmount && (
+              <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         
         {formErrors.amount && (
-          <p className="mt-2 text-sm text-red-300 flex items-center gap-1 text-shadow-adaptive-sm">
-            <AlertCircle className="w-4 h-4 icon-shadow-adaptive-sm flex-shrink-0" />
-            <span className="break-words">{formErrors.amount}</span>
-          </p>
+          <div className="mt-2 flex items-center gap-2 text-red-300">
+            <AlertCircle className="w-4 h-4 icon-shadow-adaptive-sm" />
+            <span className="text-sm text-shadow-adaptive-sm">{formErrors.amount}</span>
+          </div>
         )}
       </div>
-      
-      {/* Email for guests */}
+
+      {/* Email for Guests - Redesigned */}
       {!user && (
         <div>
-          <label className="block text-sm font-medium text-white mb-2 text-shadow-adaptive-sm">
-            <Mail className="w-4 h-4 inline mr-1 icon-shadow-adaptive-sm" />
-            Email address
+          <label className="block text-sm font-bold text-white mb-3 text-shadow-adaptive flex items-center gap-2">
+            <Mail className="w-4 h-4 icon-shadow-adaptive-sm" />
+            Email Address
           </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="your@email.com"
-            className={`
-              w-full px-4 py-3 rounded-xl font-medium text-white placeholder-white/50
-              glass-2 border-3 transition-all text-shadow-adaptive-sm
-              focus:outline-none focus:ring-2 focus:ring-white/50
-              ${formErrors.email ? 'border-red-400' : 'border-transparent'}
-            `}
-          />
+          <div className={`
+            relative rounded-xl overflow-hidden transition-all duration-300
+            ${focusedInput === 'email' ? 'ring-2 ring-primary-500' : ''}
+            ${formErrors.email ? 'glass-2 border-2 border-red-400' : 'glass-2 border-2 border-transparent'}
+          `}>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setFocusedInput('email')}
+              onBlur={() => setFocusedInput(null)}
+              placeholder="your@email.com"
+              className="w-full px-4 py-3 bg-transparent font-medium text-white placeholder-white/50 focus:outline-none text-shadow-adaptive"
+            />
+          </div>
           {formErrors.email && (
-            <p className="mt-2 text-sm text-red-300 flex items-center gap-1 text-shadow-adaptive-sm">
+            <div className="mt-2 flex items-center gap-2 text-red-300">
               <AlertCircle className="w-4 h-4 icon-shadow-adaptive-sm" />
-              {formErrors.email}
-            </p>
+              <span className="text-sm text-shadow-adaptive-sm">{formErrors.email}</span>
+            </div>
           )}
-          <p className="mt-1 text-xs text-white/70 text-shadow-adaptive-sm">
-            We'll send your receipt to this email
+          <p className="mt-2 text-xs text-white/60 text-shadow-adaptive-sm">
+            We'll send your receipt here
           </p>
         </div>
       )}
 
-      {/* Message (optional) */}
+      {/* Message - Redesigned */}
       <div>
-        <label className="block text-sm font-medium text-white mb-2 text-shadow-adaptive-sm">
-          <MessageSquare className="w-4 h-4 inline mr-1 icon-shadow-adaptive-sm" />
-          Message (optional)
+        <label className="block text-sm font-bold text-white mb-3 text-shadow-adaptive flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 icon-shadow-adaptive-sm" />
+          Support Message (optional)
         </label>
-        <textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Leave a message with your donation..."
-          rows={3}
-          className="w-full px-4 py-3 rounded-xl font-medium text-white placeholder-white/70 glass-2 border-3 border-transparent transition-all text-shadow-adaptive-sm focus:outline-none focus:ring-2 focus:ring-white/50 resize-none"
-        />
+        <div className={`
+          relative rounded-xl overflow-hidden transition-all duration-300
+          ${focusedInput === 'message' ? 'ring-2 ring-primary-500' : ''}
+          glass-2 border-2 border-transparent
+        `}>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onFocus={() => setFocusedInput('message')}
+            onBlur={() => setFocusedInput(null)}
+            placeholder="Share why you're supporting osu!Challengers..."
+            rows={3}
+            className="w-full px-4 py-3 bg-transparent font-medium text-white placeholder-white/50 focus:outline-none resize-none text-shadow-adaptive"
+          />
+        </div>
       </div>
 
-      {/* Anonymous toggle */}
-      <div className="flex items-center justify-between glass-1 rounded-xl p-4">
-        <label className="flex items-center gap-3 text-sm font-medium text-white cursor-pointer text-shadow-adaptive-sm">
-          {isAnonymous ? <EyeOff className="w-4 h-4 icon-shadow-adaptive-sm" /> : <Eye className="w-4 h-4 icon-shadow-adaptive-sm" />}
-          <span>Make donation anonymous</span>
-        </label>
+      {/* Privacy Options - Redesigned */}
+      <div className="space-y-3">
         <button
           type="button"
           onClick={() => setIsAnonymous(!isAnonymous)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            isAnonymous ? 'bg-primary-500' : 'glass-2'
-          }`}
-          style={{
-            border: '3px solid rgba(255, 255, 255, 0.3)'
-          }}
+          className={`
+            w-full p-4 rounded-xl transition-all duration-300 group
+            ${isAnonymous ? 'glass-2 border-2 border-primary-500' : 'glass-1 border-2 border-transparent hover:glass-2'}
+          `}
         >
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            isAnonymous ? 'translate-x-6' : 'translate-x-1'
-          }`} />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isAnonymous ? (
+                <EyeOff className="w-5 h-5 text-white icon-shadow-adaptive-sm" />
+              ) : (
+                <Eye className="w-5 h-5 text-white/70 icon-shadow-adaptive-sm group-hover:text-white" />
+              )}
+              <div className="text-left">
+                <div className="font-semibold text-white text-shadow-adaptive">
+                  Anonymous Donation
+                </div>
+                <div className="text-xs text-white/60 text-shadow-adaptive-sm">
+                  Your name won't be displayed publicly
+                </div>
+              </div>
+            </div>
+            <div className={`
+              w-6 h-6 rounded-full flex items-center justify-center transition-all
+              ${isAnonymous ? 'bg-primary-500' : 'glass-2'}
+            `}>
+              {isAnonymous && <Check className="w-4 h-4 text-white" />}
+            </div>
+          </div>
         </button>
       </div>
 
-      {/* Payment info */}
-      <div className="glass-1 rounded-xl p-4">
+      {/* Payment Security Notice - Redesigned */}
+      <div className="glass-1 rounded-xl p-4 border-2 border-green-400/30">
         <div className="flex items-start gap-3">
-          <Lock className="w-5 h-5 text-green-400 mt-0.5 icon-shadow-adaptive-sm" />
-          <div className="text-sm text-white/90">
-            <p className="font-medium mb-1 text-shadow-adaptive-sm">Secure payment</p>
-            <p className="text-white/80 text-shadow-adaptive-sm">Your payment info is encrypted and processed securely through Stripe.</p>
+          <div className="p-2 icon-gradient-green rounded icon-container-green">
+            <Shield className="w-4 h-4 text-white icon-shadow-adaptive-sm" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold text-white mb-1 text-shadow-adaptive">
+              Secure Payment Processing
+            </h4>
+            <p className="text-xs text-white/80 text-shadow-adaptive-sm">
+              Your payment is encrypted and processed securely through Stripe. 
+              We never store your payment information.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Submit button */}
+      {/* Submit Button - Redesigned */}
       <button
-        onClick={handleFormSubmit}
+        onClick={handleSubmit}
         disabled={processing || !getFinalAmount()}
-        className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-3 text-shadow-adaptive ${
-          processing || !getFinalAmount()
-            ? 'glass-1 text-white/50 cursor-not-allowed'
-            : 'bg-gradient-to-r from-primary-500 to-pink-500 text-white transform hover:scale-105 hover:shadow-lg'
-        }`}
+        className={`
+          w-full py-5 rounded-xl font-bold text-lg transition-all duration-300 relative overflow-hidden
+          ${processing || !getFinalAmount()
+            ? 'glass-1 text-white/30 cursor-not-allowed'
+            : 'bg-gradient-to-r from-primary-500 to-pink-500 text-white transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]'
+          }
+        `}
       >
         {processing ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin icon-shadow-adaptive-sm" />
-            Processing...
-          </>
+          <div className="flex items-center justify-center gap-3">
+            <Loader2 className="w-6 h-6 animate-spin icon-shadow-adaptive" />
+            <span className="text-shadow-adaptive">Processing Payment...</span>
+          </div>
         ) : (
-          <>
-            <Gift className="w-5 h-5 icon-shadow-adaptive-sm" />
-            Donate ${getFinalAmount() || '0'} {isRecurring ? 'Monthly' : 'Now'}
-          </>
+          <div className="flex items-center justify-center gap-3">
+            <Heart className="w-6 h-6 icon-shadow-adaptive" />
+            <span className="text-shadow-adaptive">
+              Donate ${getFinalAmount() || '0'} {isRecurring ? 'Monthly' : 'Now'}
+            </span>
+            <ChevronRight className="w-6 h-6 icon-shadow-adaptive" />
+          </div>
+        )}
+        
+        {/* Animated gradient overlay */}
+        {!processing && getFinalAmount() && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-1000 ease-in-out" />
         )}
       </button>
 
-      {/* Legal text */}
+      {/* Legal Notice - Simplified */}
       <p className="text-xs text-white/50 text-center text-shadow-adaptive-sm">
-        By donating, you agree that your donation is non-refundable and given freely to support osu!Challengers.
+        Donations are non-refundable and support the osu!Challengers platform
       </p>
     </div>
   );
