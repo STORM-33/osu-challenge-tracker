@@ -24,6 +24,7 @@ export default function ChallengesPage() {
   const [currentSeason, setCurrentSeason] = useState(null);
   const [historicalChallenges, setHistoricalChallenges] = useState([]);
   const [loadingHistorical, setLoadingHistorical] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Fetch active challenges with simple SWR
   const {
@@ -99,6 +100,15 @@ export default function ChallengesPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshActiveChallenges();
+    // Keep animation visible for at least 600ms for smooth UX
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 600);
+  };
+
   const getChallengeType = (challenge) => {
     const mapCount = challenge.playlists?.length || 0;
     return mapCount === 1 ? 'weekly' : 'monthly';
@@ -166,18 +176,32 @@ export default function ChallengesPage() {
                   </span>
                 </div>
                 <button
-                  onClick={refreshActiveChallenges}
-                  disabled={isValidating}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/70 hover:text-white transition-colors glass-1 rounded-full disabled:opacity-50"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing || isValidating}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/70 hover:text-white transition-all glass-1 rounded-full disabled:opacity-50 hover:scale-105 active:scale-95"
                 >
-                  <RefreshCw className={`w-4 h-4 icon-shadow-adaptive-sm ${isValidating ? 'animate-spin' : ''}`} />
-                  {isValidating ? 'Refreshing...' : 'Refresh'}
+                  <RefreshCw className={`w-4 h-4 icon-shadow-adaptive-sm transition-transform duration-500 ${isRefreshing || isValidating ? 'animate-spin' : ''}`} />
+                  <span className="transition-opacity duration-200">
+                    {isRefreshing || isValidating ? 'Refreshing...' : 'Refresh'}
+                  </span>
                 </button>
               </div>
             )}
 
             {/* Challenges Display */}
             <div className="relative">
+              {/* Refresh Overlay */}
+              {isRefreshing && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-3xl transition-all duration-300">
+                  <div className="glass-1 px-6 py-4 rounded-2xl shadow-2xl animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw className="w-5 h-5 text-white animate-spin" />
+                      <span className="text-white font-medium text-shadow-adaptive">Updating challenges...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {error ? (
                 <div className="glass-1 rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center shadow-xl">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
@@ -187,11 +211,11 @@ export default function ChallengesPage() {
                     Failed to load challenges: {error.message}
                   </p>
                   <button 
-                    onClick={refreshActiveChallenges}
-                    disabled={isValidating}
-                    className="px-4 py-2 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-all hover:shadow-lg transform hover:scale-105 text-sm sm:text-base"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing || isValidating}
+                    className="px-4 py-2 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-all hover:shadow-lg transform hover:scale-105 active:scale-95 text-sm sm:text-base"
                   >
-                    {isValidating ? 'Retrying...' : 'Try Again'}
+                    {isRefreshing || isValidating ? 'Retrying...' : 'Try Again'}
                   </button>
                 </div>
               ) : activeChallenges.length === 0 ? (
@@ -207,10 +231,10 @@ export default function ChallengesPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-4 sm:gap-6 lg:gap-8">
+                <div className={`grid gap-4 sm:gap-6 lg:gap-8 transition-opacity duration-300 ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
                   {activeChallenges.map(challenge => (
                     <Link key={challenge.id} href={`/challenges/${challenge.room_id}`}>
-                      <div className="transform transition-all duration-300">
+                      <div className="transition-opacity duration-200">
                         <ChallengeCard 
                           challenge={challenge} 
                           size="large"
@@ -389,7 +413,7 @@ export default function ChallengesPage() {
           {/* Footer */}
           <div className="mt-12 sm:mt-16 lg:mt-20 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-3 sm:px-6 sm:py-3 glass-1 rounded-xl sm:rounded-2xl shadow-lg">
-              <div className="w-2 h-2 rounded-full bg-green-400"></div>
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
               <p className="text-xs sm:text-sm text-white/80 font-medium text-shadow-adaptive-sm">
                 Data updates automatically every 5 minutes
               </p>
