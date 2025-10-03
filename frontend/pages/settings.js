@@ -59,7 +59,7 @@ export default function SettingsPage() {
   // Only appearance and donor tabs remain
   const tabs = [
     { id: 'appearance', name: 'Appearance', icon: Palette },
-    { id: 'donor', name: 'Donor Perks', icon: Gift }
+    // { id: 'donor', name: 'Donor Perks', icon: Gift }
   ];
 
   return (
