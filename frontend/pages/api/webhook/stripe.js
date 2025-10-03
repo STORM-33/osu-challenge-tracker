@@ -4,7 +4,6 @@ import { supabaseAdmin } from '../../../lib/supabase-admin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Disable body parsing, need raw body for webhook signature verification
 export const config = {
   api: {
     bodyParser: false,
@@ -47,6 +46,7 @@ export default async function handler(req, res) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  // Check for duplicate webhook events
   const { data: existingEvent, error: checkError } = await supabaseAdmin
     .from('processed_webhook_events')
     .select('id')
@@ -62,21 +62,17 @@ export default async function handler(req, res) {
     });
   }
 
-  if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = not found, which is expected
+  if (checkError && checkError.code !== 'PGRST116') {
     console.error('Error checking webhook event:', checkError);
-    // Continue processing - don't block on check failure
   }
 
   // Handle the event
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        // Need to retrieve the full session object with expanded data
         const fullSession = await stripe.checkout.sessions.retrieve(
           event.data.object.id,
-          {
-            expand: ['subscription']
-          }
+          { expand: ['subscription'] }
         );
         await handleCheckoutSessionCompleted(fullSession);
         break;
@@ -93,6 +89,10 @@ export default async function handler(req, res) {
         await handleSubscriptionDeleted(event.data.object);
         break;
         
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event.data.object);
+        break;
+        
       case 'invoice.payment_succeeded':
         await handleInvoicePaymentSucceeded(event.data.object);
         break;
@@ -101,6 +101,7 @@ export default async function handler(req, res) {
         console.log(`Unhandled event type ${event.type}`);
     }
 
+    // Record that we processed this event
     const { error: insertError } = await supabaseAdmin
       .from('processed_webhook_events')
       .insert({
@@ -109,9 +110,8 @@ export default async function handler(req, res) {
         processed_at: new Date().toISOString()
       });
 
-    if (insertError && insertError.code !== '23505') { // 23505 = unique constraint violation
+    if (insertError && insertError.code !== '23505') {
       console.error('Error recording processed webhook event:', insertError);
-      // Don't fail the webhook - event was processed successfully
     }
 
     res.status(200).json({ received: true });
@@ -124,23 +124,18 @@ export default async function handler(req, res) {
 async function handleCheckoutSessionCompleted(session) {
   console.log('Checkout session completed:', session.id);
   console.log('Session mode:', session.mode);
-  console.log('Payment intent:', session.payment_intent);
-  console.log('Subscription:', session.subscription);
   
   if (!supabaseAdmin) {
     console.error('Supabase admin client not available');
     return;
   }
 
-  // For subscriptions, we might need to wait a moment for the subscription to be ready
   let subscriptionId = session.subscription;
   
-  // If subscription is an object, extract the ID
   if (subscriptionId && typeof subscriptionId === 'object' && subscriptionId.id) {
     subscriptionId = subscriptionId.id;
   }
   
-  // If it's a subscription but we don't have the ID yet, try to retrieve it
   if (session.mode === 'subscription' && !subscriptionId) {
     console.log('Subscription ID not found, retrieving full session...');
     try {
@@ -154,7 +149,6 @@ async function handleCheckoutSessionCompleted(session) {
     }
   }
 
-  // Create the donation record
   const donationData = {
     user_id: parseUserId(session.metadata?.userId),
     amount: session.amount_total / 100,
@@ -182,23 +176,19 @@ async function handleCheckoutSessionCompleted(session) {
 
 async function handlePaymentIntentSucceeded(paymentIntent) {
   console.log('Payment intent succeeded:', paymentIntent.id);
-  
-  // Additional processing if needed
 }
 
 async function handleSubscriptionCreated(subscription) {
   console.log('Subscription created:', subscription.id);
-  
-  // Skip - we'll record the subscription in checkout.session.completed
-  // This prevents duplicate entries
+  // Skip - we record the subscription in checkout.session.completed
 }
 
 async function handleSubscriptionDeleted(subscription) {
-  console.log('Subscription cancelled:', subscription.id);
+  console.log('Subscription cancelled/deleted:', subscription.id);
   
   if (!supabaseAdmin) return;
 
-  // Update subscription status
+  // Update subscription status to cancelled
   const { error } = await supabaseAdmin
     .from('donations')
     .update({
@@ -209,17 +199,53 @@ async function handleSubscriptionDeleted(subscription) {
 
   if (error) {
     console.error('Error updating subscription status:', error);
+  } else {
+    console.log('Successfully updated subscription to cancelled');
+  }
+}
+
+async function handleSubscriptionUpdated(subscription) {
+  console.log('Subscription updated:', subscription.id);
+  
+  if (!supabaseAdmin) return;
+
+  // Handle cancel_at_period_end flag
+  if (subscription.cancel_at_period_end) {
+    console.log('Subscription set to cancel at period end:', subscription.id);
+    
+    const { error } = await supabaseAdmin
+      .from('donations')
+      .update({
+        status: 'cancelling',
+        updated_at: new Date().toISOString()
+      })
+      .eq('stripe_subscription_id', subscription.id);
+
+    if (error) {
+      console.error('Error updating subscription to cancelling:', error);
+    }
+  } else if (subscription.status === 'active') {
+    // Subscription was reactivated or cancel was undone
+    const { error } = await supabaseAdmin
+      .from('donations')
+      .update({
+        status: 'completed',
+        updated_at: new Date().toISOString()
+      })
+      .eq('stripe_subscription_id', subscription.id);
+
+    if (error) {
+      console.error('Error updating subscription to active:', error);
+    }
   }
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {
   console.log('Invoice payment succeeded:', invoice.id);
   
-  // Only record recurring payments after the first one
   if (!invoice.subscription || !supabaseAdmin) return;
   
-  // Check if this is the first invoice (subscription creation)
-  // Skip it because we already recorded it in checkout.session.completed
+  // Skip initial subscription invoice (already recorded in checkout.session.completed)
   if (invoice.billing_reason === 'subscription_create') {
     console.log('Skipping initial subscription invoice - already recorded');
     return;
@@ -241,5 +267,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
 
   if (error) {
     console.error('Error recording recurring payment:', error);
+  } else {
+    console.log('Successfully recorded recurring payment');
   }
 }

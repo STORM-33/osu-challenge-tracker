@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import DonationForm from '../components/DonationForm';
+import SubscriptionManager from '../components/SubscriptionManager';
 import { 
   Heart, Sparkles, Shield, Zap, Trophy, Users, 
   Server, Code, Palette, ChevronRight
@@ -35,7 +36,7 @@ export default function DonatePage() {
       <div className="min-h-screen py-4 sm:py-6 lg:py-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           
-          {/* Hero Section - Simplified */}
+          {/* Hero Section */}
           <div className="mb-8 sm:mb-12">
             <div className="text-center">
               <div className="flex flex-col items-center mb-6">
@@ -54,6 +55,13 @@ export default function DonatePage() {
               </div>
             </div>
           </div>
+
+          {/* Subscription Manager (only shows if user has subscriptions) */}
+          {user && (
+            <div className="mb-8">
+              <SubscriptionManager user={user} />
+            </div>
+          )}
 
           {/* Main Content Grid */}
           <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">

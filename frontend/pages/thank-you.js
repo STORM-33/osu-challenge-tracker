@@ -105,7 +105,7 @@ export default function ThankYouPage() {
 
               {/* Impact Cards */}
               <div className="grid sm:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
-                <div className="glass-1 rounded-xl p-4 sm:p-6 hover:glass-2 transition-all transform hover:scale-105">
+                <div className="glass-1 rounded-xl p-4 sm:p-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2 icon-gradient-purple rounded-lg icon-container-purple">
                       <Trophy className="w-5 h-5 text-white icon-shadow-adaptive-sm" />
@@ -117,7 +117,7 @@ export default function ThankYouPage() {
                   </p>
                 </div>
 
-                <div className="glass-1 rounded-xl p-4 sm:p-6 hover:glass-2 transition-all transform hover:scale-105">
+                <div className="glass-1 rounded-xl p-4 sm:p-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2 icon-gradient-orange rounded-lg icon-container-orange">
                       <Gift className="w-5 h-5 text-white icon-shadow-adaptive-sm" />
