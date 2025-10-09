@@ -9,7 +9,7 @@ import {
   Trophy, Target, Calendar, User, Award, BarChart3, 
   Sparkles, Flame, Zap, ArrowLeft, ExternalLink, TrendingUp,
   Star, Clock, MapPin, Music, ChevronRight, Activity,
-  Crown, Medal, Loader2
+  Crown, Medal, Loader2, Download, Image
 } from 'lucide-react';
 
 export default function UserProfile() {
@@ -23,18 +23,18 @@ export default function UserProfile() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('recent');
   const [tabLoading, setTabLoading] = useState(false);
+  const [downloadingCard, setDownloadingCard] = useState(null);
   const router = useRouter();
   const { userId } = router.query;
 
   const STAFF_MEMBERS = {
-  35: { type: 'designer', label: 'o!C Staff - Graphic Designer' },
-  268: { type: 'developer', label: 'o!C Staff - Developer' },
-  671: { type: 'lead', label: 'o!C Staff - Project Lead' },
-  3: { type: 'qa', label: 'o!C Staff - QA Tester' },
-  20186: { type: 'developer', label: 'o!C Staff - Developer' },
-  20186: { type: 'strategist', label: 'o!C Staff - Strategist' },
-  1: { type: 'developer', label: 'o!C Staff - Developer' },
-};
+    35: { type: 'designer', label: 'o!C Staff - Graphic Designer' },
+    268: { type: 'developer', label: 'o!C Staff - Developer' },
+    671: { type: 'lead', label: 'o!C Staff - Project Lead' },
+    3: { type: 'qa', label: 'o!C Staff - QA Tester' },
+    20186: { type: 'developer', label: 'o!C Staff - Developer' },
+    1: { type: 'developer', label: 'o!C Staff - Developer' },
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -64,7 +64,6 @@ export default function UserProfile() {
         return;
       }
 
-      // Handle both old and new API formats
       const responseData = profileData.data || profileData;
       setProfileUser(responseData.user);
       setAllScores(responseData.scores || []);
@@ -77,6 +76,45 @@ export default function UserProfile() {
       setError('Failed to load user profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadCard = async (variant = 'main') => {
+    if (!profileUser?.osu_id) {
+      alert('Unable to generate card: User osu! ID not found');
+      return;
+    }
+
+    try {
+      setDownloadingCard(variant);
+      
+      // Fetch the SVG from the card API
+      const response = await fetch(`/api/card?id=${profileUser.osu_id}&option=${variant}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate card');
+      }
+
+      const svgContent = await response.text();
+      
+      // Create a blob from the SVG content
+      const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${profileUser.username}_card_${variant}.svg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error downloading card:', error);
+      alert('Failed to download card. Please try again.');
+    } finally {
+      setDownloadingCard(null);
     }
   };
 
@@ -124,7 +162,6 @@ export default function UserProfile() {
     return 'from-blue-400 to-indigo-500';
   };
 
-
   const getStreakEmoji = (streak) => {
     if (streak >= 30) return '🔥';
     if (streak >= 14) return '⚡';
@@ -171,7 +208,6 @@ export default function UserProfile() {
   };
 
   const StaffBadge = ({ user }) => {
-    // Check if user is staff by user id
     const staffRole = STAFF_MEMBERS[user.id];
     
     if (!staffRole) return null;
@@ -190,9 +226,7 @@ export default function UserProfile() {
       <Layout>
         <div className="min-h-screen py-4 sm:py-8">
           <div className="max-w-7xl mx-auto px-3 sm:px-4">
-            {/* Mobile-First Loading Skeleton */}
             <div className="space-y-4 sm:space-y-6">
-              {/* Header Skeleton */}
               <div className="glass-1 rounded-2xl sm:rounded-3xl p-4 sm:p-8 animate-pulse">
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                   <div className="w-20 h-20 sm:w-32 sm:h-32 bg-white/20 rounded-xl sm:rounded-2xl"></div>
@@ -207,7 +241,6 @@ export default function UserProfile() {
                 </div>
               </div>
               
-              {/* Stats Skeleton */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 animate-pulse">
@@ -217,7 +250,6 @@ export default function UserProfile() {
                 ))}
               </div>
 
-              {/* Content Skeleton */}
               <div className="glass-1 rounded-xl sm:rounded-2xl p-4 sm:p-8 animate-pulse">
                 <div className="space-y-3 sm:space-y-4">
                   {[...Array(5)].map((_, i) => (
@@ -276,7 +308,7 @@ export default function UserProfile() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           
           {/* Compact Header */}
-          <div className="mb-4 sm:mb-8">
+          <div className="mb-4 sm:mb-8 flex items-center justify-between">
             <button
               onClick={() => router.back()}
               className="group flex items-center gap-2 text-white/70 hover:text-white/90 font-medium text-shadow-adaptive-sm transition-all text-sm sm:text-base"
@@ -284,6 +316,41 @@ export default function UserProfile() {
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform icon-shadow-adaptive-sm" />
               Back
             </button>
+
+            {/* Download Card Button */}
+            {profileUser?.osu_id && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDownloadCard('main')}
+                  disabled={downloadingCard === 'main'}
+                  className="px-3 py-2 sm:px-4 sm:py-2 glass-2 hover:glass-3 text-white font-medium rounded-full transition-all flex items-center gap-2 text-shadow-adaptive-sm text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Download Main Card"
+                >
+                  {downloadingCard === 'main' ? (
+                    <Loader2 className="w-4 h-4 animate-spin icon-shadow-adaptive-sm" />
+                  ) : (
+                    <Download className="w-4 h-4 icon-shadow-adaptive-sm" />
+                  )}
+                  <span className="hidden sm:inline">Main Card</span>
+                  <span className="sm:hidden">Main</span>
+                </button>
+                
+                <button
+                  onClick={() => handleDownloadCard('mini')}
+                  disabled={downloadingCard === 'mini'}
+                  className="px-3 py-2 sm:px-4 sm:py-2 glass-2 hover:glass-3 text-white font-medium rounded-full transition-all flex items-center gap-2 text-shadow-adaptive-sm text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Download Mini Card"
+                >
+                  {downloadingCard === 'mini' ? (
+                    <Loader2 className="w-4 h-4 animate-spin icon-shadow-adaptive-sm" />
+                  ) : (
+                    <Image className="w-4 h-4 icon-shadow-adaptive-sm" />
+                  )}
+                  <span className="hidden sm:inline">Mini Card</span>
+                  <span className="sm:hidden">Mini</span>
+                </button>
+              </div>
+            )}
           </div>
 
          {/* Profile Hero Section */}
@@ -309,7 +376,6 @@ export default function UserProfile() {
                         <span className="text-2xl sm:text-5xl font-bold text-white text-shadow-adaptive">{profileUser.username[0]}</span>
                       </div>
                     )}
-                    {/* Status indicator */}
                     <div className="absolute -bottom-1 -right-1 sm:-bottom-3 sm:-right-3 w-6 h-6 sm:w-10 sm:h-10 bg-green-400 rounded-full border-2 sm:border-4 border-white flex items-center justify-center shadow-lg">
                       <div className="w-2 h-2 sm:w-4 sm:h-4 bg-green-600 rounded-full animate-pulse"></div>
                     </div>
