@@ -22,12 +22,10 @@ export function AuthProvider({ children }) {
 
     // Listen for auth changes in other tabs
     const handleStorageChange = (e) => {
-      // FIXED: Only respond to actual auth state changes, not our own notifications
       if (e.key === 'auth_state_changed' && e.newValue) {
         console.log('🔄 AuthContext: Cross-tab auth change detected');
         const authData = JSON.parse(e.newValue);
         
-        // FIXED: Don't call checkUser(), just update state directly from other tab
         if (authData.user) {
           console.log('✅ AuthContext: User synced from other tab:', authData.user.username);
           setUser(authData.user);

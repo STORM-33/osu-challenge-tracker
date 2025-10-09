@@ -14,6 +14,7 @@
         "@supabase/supabase-js": "^2.39.0",
         "autoprefixer": "^10.4.16",
         "canvas-confetti": "^1.9.2",
+        "cheerio": "^1.1.2",
         "lucide-react": "^0.303.0",
         "micro": "^10.0.1",
         "next": "^14.2.29",
@@ -25,7 +26,8 @@
         "react-hot-toast": "^2.4.1",
         "stripe": "^14.17.0",
         "swr": "^2.2.4",
-        "tailwindcss": "^3.4.0"
+        "tailwindcss": "^3.4.0",
+        "text-to-svg": "^3.1.5"
     },
     "devDependencies": {
         "eslint": "^8.56.0",
