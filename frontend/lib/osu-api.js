@@ -248,6 +248,283 @@ class TrackedOsuAPI {
     const usage = this.getCurrentUsage();
     console.log(`📊 ${context ? context + ' - ' : ''}API Usage: ${usage.percentage}% (${usage.current}/${usage.limit}), External: ${usage.external}`);
   }
+
+  /**
+   * Refresh a user's osu! token using their refresh token
+   * @param {string} refreshToken - User's refresh token
+   * @returns {Promise<Object>} { access_token, expires_in, refresh_token }
+   */
+  async refreshUserToken(refreshToken) {
+    console.log('🔄 Refreshing user token...');
+    
+    const response = await trackedFetch('https://osu.ppy.sh/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: process.env.OSU_CLIENT_ID,
+        client_secret: process.env.OSU_CLIENT_SECRET,
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        scope: '*'
+      })
+    }, 'osu-user-token-refresh');
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Token refresh failed:', response.status, errorText);
+      throw new Error(`Failed to refresh user token: ${response.status}`);
+    }
+
+    const tokenData = await response.json();
+    console.log('✅ User token refreshed successfully');
+    
+    return {
+      access_token: tokenData.access_token,
+      expires_in: tokenData.expires_in,
+      refresh_token: tokenData.refresh_token
+    };
+  }
+
+  /**
+   * Create a multiplayer room using a user's access token
+   * @param {Object} roomData - Room configuration object
+   * @param {string} userAccessToken - User's access token (not client credentials)
+   * @returns {Promise<Object>} Created room object
+   */
+  async createRoomWithUserToken(roomData, userAccessToken) {
+    const startTime = Date.now();
+    
+    try {
+      console.log('🎮 Creating multiplayer room with user token:', {
+        name: roomData.name,
+        type: roomData.type,
+        playlist_items: roomData.playlist?.length || 0
+      });
+      
+      const response = await trackedFetch(`${this.baseURL}/rooms`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${userAccessToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'osu!'
+        },
+        body: JSON.stringify(roomData)
+      }, 'osu-api-create-room');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Room creation failed:', response.status, errorText);
+        throw new Error(`Failed to create room: ${response.status} - ${errorText}`);
+      }
+
+      const room = await response.json();
+      const duration = Date.now() - startTime;
+      
+      console.log('✅ Room created successfully:', {
+        room_id: room.id,
+        name: room.name,
+        duration: `${duration}ms`
+      });
+      
+      return room;
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ createRoomWithUserToken failed (${duration}ms):`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Send chat messages to a multiplayer room
+   * Temporarily adds the user to the room, sends messages, then removes them
+   * @param {number} roomId - osu! room ID
+   * @param {number} userId - osu! user ID (the bot user)
+   * @param {string[]} messages - Array of message strings to send
+   * @param {string} userAccessToken - User's access token
+   */
+  async sendChatToRoom(roomId, userId, messages, userAccessToken) {
+    const startTime = Date.now();
+    
+    if (!messages || messages.length === 0) {
+      console.log('ℹ️ No chat messages to send');
+      return;
+    }
+
+    console.log(`💬 Sending ${messages.length} chat messages to room ${roomId}`);
+
+    try {
+      // Step 1: Put user in the room
+      console.log(`Adding user ${userId} to room ${roomId}...`);
+      const joinResponse = await trackedFetch(
+        `${this.baseURL}/rooms/${roomId}/users/${userId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${userAccessToken}`,
+            'User-Agent': 'osu!'
+          }
+        },
+        'osu-api-join-room'
+      );
+
+      if (!joinResponse.ok) {
+        throw new Error(`Failed to join room: ${joinResponse.status}`);
+      }
+
+      const roomInfo = await joinResponse.json();
+      const channelId = roomInfo.channel_id;
+
+      if (!channelId) {
+        throw new Error('Room has no channel_id');
+      }
+
+      console.log(`✅ User joined room, channel_id: ${channelId}`);
+
+      // Step 2: Send messages (with retry logic)
+      try {
+        for (let i = 0; i < messages.length; i++) {
+          const message = messages[i];
+          console.log(`Sending message ${i + 1}/${messages.length}: "${message.substring(0, 50)}..."`);
+
+          let sent = false;
+          let lastError = null;
+
+          // Retry up to 3 times per message
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              const msgResponse = await trackedFetch(
+                `${this.baseURL}/chat/channels/${channelId}/messages`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${userAccessToken}`,
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'osu!'
+                  },
+                  body: JSON.stringify({
+                    message: message,
+                    is_action: false
+                  })
+                },
+                'osu-api-send-message'
+              );
+
+              if (msgResponse.ok) {
+                console.log(`✅ Message ${i + 1} sent successfully`);
+                sent = true;
+                break;
+              } else {
+                const errorText = await msgResponse.text();
+                lastError = new Error(`HTTP ${msgResponse.status}: ${errorText}`);
+                console.warn(`⚠️ Attempt ${attempt}/3 failed:`, lastError.message);
+              }
+            } catch (err) {
+              lastError = err;
+              console.warn(`⚠️ Attempt ${attempt}/3 failed:`, err.message);
+            }
+
+            // Wait before retry (exponential backoff)
+            if (attempt < 3) {
+              const delay = Math.pow(2, attempt) * 500; // 1s, 2s
+              console.log(`Waiting ${delay}ms before retry...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+
+          if (!sent) {
+            console.error(`❌ Failed to send message ${i + 1} after 3 attempts`);
+            throw lastError || new Error('Failed to send message');
+          }
+
+          // Small delay between messages to avoid rate limiting
+          if (i < messages.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+
+        console.log('✅ All messages sent successfully');
+
+      } finally {
+        // Step 3: Remove user from room (always try this, even if sending failed)
+        console.log(`3️⃣ Removing user ${userId} from room ${roomId}...`);
+        
+        let removed = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const leaveResponse = await trackedFetch(
+              `${this.baseURL}/rooms/${roomId}/users/${userId}`,
+              {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${userAccessToken}`,
+                  'User-Agent': 'osu!'
+                }
+              },
+              'osu-api-leave-room'
+            );
+
+            if (leaveResponse.ok || leaveResponse.status === 404) {
+              console.log('✅ User removed from room');
+              removed = true;
+              break;
+            } else {
+              console.warn(`⚠️ Leave attempt ${attempt}/3 failed: ${leaveResponse.status}`);
+            }
+          } catch (err) {
+            console.warn(`⚠️ Leave attempt ${attempt}/3 failed:`, err.message);
+          }
+
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+
+        if (!removed) {
+          console.error('⚠️ Failed to remove user from room after 3 attempts (non-critical)');
+          // Don't throw - user being stuck in room is not critical
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`✅ Chat operations complete (${duration}ms)`);
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ sendChatToRoom failed (${duration}ms):`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Helper: Get user info with user token (for verification)
+   * @param {string} userAccessToken 
+   * @returns {Promise<Object>} User object
+   */
+  async getUserWithToken(userAccessToken) {
+    console.log('👤 Getting user info with provided token...');
+    
+    const response = await trackedFetch(`${this.baseURL}/me`, {
+      headers: {
+        'Authorization': `Bearer ${userAccessToken}`,
+        'User-Agent': 'osu!'
+      }
+    }, 'osu-api-get-me');
+
+    if (!response.ok) {
+      throw new Error(`Failed to get user info: ${response.status}`);
+    }
+
+    const user = await response.json();
+    console.log('✅ User info retrieved:', {
+      id: user.id,
+      username: user.username
+    });
+    
+    return user;
+  }
 }
 
 // Export singleton instance

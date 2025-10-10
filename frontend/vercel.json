@@ -2,6 +2,10 @@
   "crons": [{
     "path": "/api/cron/update-challenges",
     "schedule": "*/5 * * * *"
+  },
+  {
+      "path": "/api/cron/process-scheduled-challenges",
+      "schedule": "*/5 * * * *"
   }],
   "redirects": [
     {
