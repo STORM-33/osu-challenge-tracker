@@ -536,109 +536,232 @@ export default function AboutChallengers() {
           </div>
 
           {/* Browser Extensions Section */}
-<div className="mt-8 sm:mt-10 lg:mt-12 mb-8 sm:mb-10">
-  <div className="text-center mb-6 sm:mb-8">
-    <div className="flex items-center justify-center gap-3 mb-4">
-      <div className="p-2 sm:p-3 icon-gradient-blue rounded-lg sm:rounded-xl icon-container-blue">
-        <Download className="w-5 h-5 sm:w-6 sm:h-6 text-white icon-shadow-adaptive" />
-      </div>
-      <h2 className="text-2xl sm:text-3xl font-bold text-white text-shadow-adaptive">
-        Quick Access Tools
-      </h2>
-    </div>
-    
-    <p className="text-white/85 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto text-shadow-adaptive px-4 sm:px-0">
-      View your osu!Challengers stats directly on the osu! website with our browser extension!
-    </p>
-  </div>
+          <div className="mt-8 sm:mt-10 lg:mt-12 mb-8 sm:mb-10">
+            <div className="text-center mb-6 sm:mb-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="p-2 sm:p-3 icon-gradient-blue rounded-lg sm:rounded-xl icon-container-blue">
+                  <Download className="w-5 h-5 sm:w-6 sm:h-6 text-white icon-shadow-adaptive" />
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white text-shadow-adaptive">
+                  Quick Access Tools
+                </h2>
+              </div>
+              
+              <p className="text-white/85 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto text-shadow-adaptive px-4 sm:px-0">
+                View your osu!Challengers stats directly on the osu! website with our browser extension!
+              </p>
+            </div>
 
-  {/* Extension Preview Card */}
-  <div className="glass-1 rounded-xl sm:rounded-2xl overflow-hidden mb-6 sm:mb-8 max-w-5xl mx-auto">
-    <div className="flex flex-col lg:flex-row h-auto lg:h-96">
-      {/* Screenshot Side - Fixed square on desktop */}
-      <div className="relative w-full lg:w-96 h-64 sm:h-80 lg:h-96 flex-shrink-0 overflow-hidden">
-        <img 
-          src="/extension-preview.png" 
-          alt="osu!Challengers Extension Preview"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      
-      {/* Text Side */}
-      <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center items-center text-center flex-grow">
-        <div className="max-w-lg">
-          <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 text-shadow-adaptive">
-            Stats on Your Profile
-          </h3>
-          <ul className="space-y-3 mb-6 text-left">
-            <li className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 icon-shadow-adaptive-sm" />
-              <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
-                View your osu!Challengers performance directly on osu! profiles
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 icon-shadow-adaptive-sm" />
-              <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
-                Track your seasonal rank, total score, and top performances
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 icon-shadow-adaptive-sm" />
-              <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
-                Integrated directly into the osu! website design
-              </span>
-            </li>
-          </ul>
-          <p className="text-xs sm:text-sm text-white/70 text-shadow-adaptive-sm">
-            Developed by Paraliyzed_evo & Thunderbirdo
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
+            {/* Extension Preview Card */}
+            <div className="glass-1 rounded-xl sm:rounded-2xl overflow-hidden mb-6 sm:mb-8 max-w-5xl mx-auto">
+              <div className="flex flex-col lg:flex-row h-auto lg:h-96">
+                {/* Screenshot Side - Fixed square on desktop */}
+                <div className="relative w-full lg:w-96 h-64 sm:h-80 lg:h-96 flex-shrink-0 overflow-hidden">
+                  <img 
+                    src="/extension-preview.png" 
+                    alt="osu!Challengers Extension Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                
+                {/* Text Side */}
+                <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center items-center text-center flex-grow">
+                  <div className="max-w-lg">
+                    <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 text-shadow-adaptive">
+                      Stats on Your Profile
+                    </h3>
+                    <ul className="space-y-3 mb-6 text-left">
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 icon-shadow-adaptive-sm" />
+                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
+                          View your osu!Challengers performance directly on osu! profiles
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 icon-shadow-adaptive-sm" />
+                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
+                          Track your seasonal rank, total score, and top performances
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 icon-shadow-adaptive-sm" />
+                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
+                          Integrated directly into the osu! website design
+                        </span>
+                      </li>
+                    </ul>
+                    <p className="text-xs sm:text-sm text-white/70 text-shadow-adaptive-sm">
+                      Developed by Paraliyzed_evo & Thunderbirdo
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-  {/* Download Buttons */}
-  <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-    <a
-      href="https://addons.mozilla.org/en-US/firefox/addon/osu-challengers/"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-3 px-6 py-4 sm:px-8 sm:py-5 glass-2 rounded-xl sm:rounded-2xl hover:glass-3 transition-all duration-300 text-white text-shadow-adaptive transform hover:scale-105 hover:shadow-xl group"
-    >
-      <div className="p-2.5 sm:p-3 bg-gradient-to-b from-orange-500 to-orange-600 rounded-lg group-hover:from-orange-400 group-hover:to-orange-500 transition-all">
-        <Download className="w-5 h-5 sm:w-6 sm:h-6 icon-shadow-adaptive-sm" />
-      </div>
-      <div className="text-left">
-        <div className="font-bold text-base sm:text-lg">Firefox Extension</div>
-        <div className="text-xs sm:text-sm text-white/70">For Firefox Browser</div>
-      </div>
-    </a>
-    
-    <a
-      href="https://chromewebstore.google.com/detail/osuchallengers/ghfcjealgjkjpndjlicmcabbgakphien"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-3 px-6 py-4 sm:px-8 sm:py-5 glass-2 rounded-xl sm:rounded-2xl hover:glass-3 transition-all duration-300 text-white text-shadow-adaptive transform hover:scale-105 hover:shadow-xl group"
-    >
-      <div className="p-2.5 sm:p-3 bg-gradient-to-b from-blue-500 to-blue-600 rounded-lg group-hover:from-blue-400 group-hover:to-blue-500 transition-all">
-        <Download className="w-5 h-5 sm:w-6 sm:h-6 icon-shadow-adaptive-sm" />
-      </div>
-      <div className="text-left">
-        <div className="font-bold text-base sm:text-lg">Chrome Extension</div>
-        <div className="text-xs sm:text-sm text-white/70">For Chrome & Edge</div>
-      </div>
-    </a>
-  </div>
-</div>
+            {/* Download Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+              <a
+                href="https://addons.mozilla.org/en-US/firefox/addon/osu-challengers/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-6 py-4 sm:px-8 sm:py-5 glass-2 rounded-xl sm:rounded-2xl hover:glass-3 transition-all duration-300 text-white text-shadow-adaptive transform hover:scale-105 hover:shadow-xl group"
+              >
+                <div className="p-2.5 sm:p-3 bg-gradient-to-b from-orange-500 to-orange-600 rounded-lg group-hover:from-orange-400 group-hover:to-orange-500 transition-all">
+                  <Download className="w-5 h-5 sm:w-6 sm:h-6 icon-shadow-adaptive-sm" />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-base sm:text-lg">Firefox Extension</div>
+                  <div className="text-xs sm:text-sm text-white/70">For Firefox Browser</div>
+                </div>
+              </a>
+              
+              <a
+                href="https://chromewebstore.google.com/detail/osuchallengers/ghfcjealgjkjpndjlicmcabbgakphien"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-6 py-4 sm:px-8 sm:py-5 glass-2 rounded-xl sm:rounded-2xl hover:glass-3 transition-all duration-300 text-white text-shadow-adaptive transform hover:scale-105 hover:shadow-xl group"
+              >
+                <div className="p-2.5 sm:p-3 bg-gradient-to-b from-blue-500 to-blue-600 rounded-lg group-hover:from-blue-400 group-hover:to-blue-500 transition-all">
+                  <Download className="w-5 h-5 sm:w-6 sm:h-6 icon-shadow-adaptive-sm" />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-base sm:text-lg">Chrome Extension</div>
+                  <div className="text-xs sm:text-sm text-white/70">For Chrome & Edge</div>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          {/* Ruleset Integration Section */}
+          <div className="mt-8 sm:mt-10 lg:mt-12 mb-8 sm:mb-10">
+            <div className="text-center mb-6 sm:mb-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-b from-purple-400 to-purple-600 rounded-lg sm:rounded-xl shadow-lg">
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-lg" />
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
+                  osu! lazer Ruleset
+                </h2>
+              </div>
+              
+              <p className="text-white/85 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto drop-shadow px-4 sm:px-0">
+                Access osu!Challengers directly from osu! lazer with our custom ruleset integration!
+              </p>
+            </div>
+
+            {/* Main Ruleset Card - Vertical Layout */}
+            <div className="bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl overflow-hidden mb-6 sm:mb-8 max-w-5xl mx-auto shadow-2xl">
+              {/* Screenshot at top - full width */}
+              <div className="relative w-full bg-gradient-to-br from-gray-900 to-gray-800 p-4 sm:p-6">
+                <img 
+                  src="/ruleset-dropdown.png" 
+                  alt="osu!Challengers Ruleset Dropdown Menu"
+                  className="w-full h-auto rounded-lg"
+                />
+              </div>
+              
+              {/* Text content below */}
+              <div className="p-6 sm:p-8 lg:p-10">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-6 text-center drop-shadow-lg">
+                  Quick Access In-Game
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 drop-shadow" />
+                    <span className="text-sm sm:text-base text-white/90 drop-shadow">
+                      Launch the latest challenge directly from osu! lazer
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 drop-shadow" />
+                    <span className="text-sm sm:text-base text-white/90 drop-shadow">
+                      Check your osu!Challengers profile
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 drop-shadow" />
+                    <span className="text-sm sm:text-base text-white/90 drop-shadow">
+                      Get notifications when new playlists go live
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 drop-shadow" />
+                    <span className="text-sm sm:text-base text-white/90 drop-shadow">
+                      One-click installer handles everything automatically
+                    </span>
+                  </div>
+                </div>
+                
+                <p className="text-xs sm:text-sm text-white/70 text-center drop-shadow">
+                  Developed by fuyukiS
+                </p>
+              </div>
+            </div>
+
+            {/* Notification Feature Highlight - Full Width Image */}
+            <div className="bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl overflow-hidden mb-6 sm:mb-8 max-w-5xl mx-auto shadow-2xl">
+              {/* Header */}
+              <div className="p-4 sm:p-6 border-b border-white/10">
+                <div className="flex items-center gap-3 justify-center">
+                  <div className="p-2 bg-gradient-to-b from-blue-400 to-blue-600 rounded-lg shadow-lg">
+                    <AlertCircle className="w-5 h-5 text-white drop-shadow" />
+                  </div>
+                  <h4 className="text-lg sm:text-xl font-bold text-white drop-shadow-lg">
+                    Never Miss a Challenge
+                  </h4>
+                </div>
+              </div>
+              
+              {/* Image - Full Width */}
+              <div className="relative w-full bg-gradient-to-br from-gray-900 to-gray-800 p-4 sm:p-6">
+                <img 
+                  src="/ruleset-notifications.png" 
+                  alt="osu!Challengers Notifications and Settings"
+                  className="w-full h-auto rounded-lg"
+                />
+              </div>
+              
+              {/* Description */}
+              <div className="p-4 sm:p-6">
+                <p className="text-sm sm:text-base text-white/90 leading-relaxed text-center drop-shadow">
+                  Enable in-game notifications to get alerted when new osu!Challengers playlists go live. 
+                  Customize your notification preferences in the ruleset settings panel.
+                </p>
+              </div>
+            </div>
+
+            {/* Download Button */}
+            <div className="flex flex-col items-center justify-center gap-4">
+              <a
+                href="https://github.com/fuyukiSmkw/osu-challengers-ruleset/releases/latest/download/oCrs-installer.bat"
+                className="flex items-center gap-3 px-6 py-4 sm:px-8 sm:py-5 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl hover:bg-white/20 transition-all duration-300 text-white drop-shadow transform hover:scale-105 hover:shadow-xl group"
+              >
+                <div className="p-2.5 sm:p-3 bg-gradient-to-b from-purple-500 to-purple-600 rounded-lg group-hover:from-purple-400 group-hover:to-purple-500 transition-all shadow-lg">
+                  <Download className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow" />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-base sm:text-lg">Download Ruleset Installer</div>
+                  <div className="text-xs sm:text-sm text-white/70">For Windows (Automatic Installation)</div>
+                </div>
+              </a>
+              
+              <a
+                href="https://github.com/fuyukiSmkw/osu-challengers-ruleset"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-white/70 hover:text-white/90 transition-colors drop-shadow underline"
+              >
+                View on GitHub for manual installation
+              </a>
+            </div>
+          </div>
 
           {/* Footer CTA */}
           <div className="mt-8 sm:mt-10 text-center">
             <div className="inline-flex flex-col items-center gap-4 sm:gap-6 px-6 py-6 sm:px-10 sm:py-8 glass-2 rounded-2xl sm:rounded-3xl shadow-2xl">
               <div className="flex items-center gap-4">
-                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive animate-pulse-soft" />
                 <h3 className="text-xl sm:text-2xl font-bold text-white text-shadow-adaptive">Ready to Compete?</h3>
-                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white icon-shadow-adaptive animate-pulse-soft" />
               </div>
               <p className="text-sm sm:text-lg text-white/80 max-w-2xl leading-relaxed text-shadow-adaptive-sm">
                 Jump into the current challenge and show what you've got! Every map is an opportunity to prove your skills and win amazing prizes.
