@@ -136,3 +136,14 @@ export function testEncryption() {
     console.error('❌ Encryption test failed:', error.message);
   }
 }
+
+/**
+ * Create token string from components
+ * @param {string} accessToken 
+ * @param {number} expiresTimestamp - Unix timestamp in seconds
+ * @param {string} refreshToken 
+ * @returns {string} Format: "access_token|expires_timestamp|refresh_token"
+ */
+export function createTokenString(accessToken, expiresTimestamp, refreshToken) {
+  return `${accessToken}|${expiresTimestamp}|${refreshToken}`;
+}
