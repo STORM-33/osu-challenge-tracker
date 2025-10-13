@@ -239,107 +239,126 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm sm:text-base font-bold text-white text-shadow-adaptive flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
-                Performance Breakdown
+                Points Breakdown
               </h4>
               <div className="flex items-center gap-1 text-xs text-white/60">
-                <Percent className="w-3 h-3" />
-                <span>Percentile Ranking</span>
+                <Award className="w-3 h-3" />
+                <span>Out of 100 pts</span>
               </div>
             </div>
             
+            <div className="mb-3 text-xs text-white/70 text-shadow-adaptive-sm">
+              See how many points you earned from each category
+            </div>
+            
             <div className="space-y-4">
-              {/* Score Percentile */}
+              {/* Score Points */}
               <div className="relative">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400"></div>
                     <span className="text-xs sm:text-sm font-medium text-white/90">Total Score</span>
                   </div>
-                  <span className={`text-sm sm:text-base font-bold ${getPercentileColor(userPosition.score_percentile || 0)} drop-shadow-sm`}>
-                    {userPosition.score_percentile ? `${userPosition.score_percentile.toFixed(0)}%` : 'N/A'}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className={`text-lg sm:text-xl font-black ${getPercentileColor(userPosition.score_percentile || 0)} drop-shadow-sm`}>
+                      {((userPosition.score_percentile || 0) * 0.7).toFixed(1)}
+                    </span>
+                    <span className="text-sm sm:text-base text-white/60 font-medium">/ 70</span>
+                  </div>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
                   <div 
                     className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${userPosition.score_percentile || 0}%` }}
+                    style={{ width: `${((userPosition.score_percentile || 0) * 0.7 / 70) * 100}%` }}
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs text-white/50 mt-1">
-                  <span>0%</span>
-                  <span>100%</span>
+                  <span>0 pts</span>
+                  <span className="text-white/70">{userPosition.score_percentile ? `${userPosition.score_percentile.toFixed(0)}% placement` : 'N/A'}</span>
+                  <span>70 pts</span>
                 </div>
               </div>
 
-              {/* Accuracy Percentile */}
+              {/* Accuracy Points */}
               <div className="relative">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-green-400 to-emerald-400"></div>
                     <span className="text-xs sm:text-sm font-medium text-white/90">Accuracy</span>
                   </div>
-                  <span className={`text-sm sm:text-base font-bold ${getPercentileColor(userPosition.accuracy_percentile || 0)} drop-shadow-sm`}>
-                    {userPosition.accuracy_percentile ? `${userPosition.accuracy_percentile.toFixed(0)}%` : 'N/A'}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className={`text-lg sm:text-xl font-black ${getPercentileColor(userPosition.accuracy_percentile || 0)} drop-shadow-sm`}>
+                      {((userPosition.accuracy_percentile || 0) * 0.15).toFixed(1)}
+                    </span>
+                    <span className="text-sm sm:text-base text-white/60 font-medium">/ 15</span>
+                  </div>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
                   <div 
                     className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${userPosition.accuracy_percentile || 0}%` }}
+                    style={{ width: `${((userPosition.accuracy_percentile || 0) * 0.15 / 15) * 100}%` }}
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs text-white/50 mt-1">
-                  <span>0%</span>
-                  <span>100%</span>
+                  <span>0 pts</span>
+                  <span className="text-white/70">{userPosition.accuracy_percentile ? `${userPosition.accuracy_percentile.toFixed(0)}% placement` : 'N/A'}</span>
+                  <span>15 pts</span>
                 </div>
               </div>
 
-              {/* Streak Percentile */}
+              {/* Streak Points */}
               <div className="relative">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-red-400"></div>
-                    <span className="text-xs sm:text-sm font-medium text-white/90">Max Streak</span>
+                    <span className="text-xs sm:text-sm font-medium text-white/90">Participation Streak</span>
                   </div>
-                  <span className={`text-sm sm:text-base font-bold ${getPercentileColor(userPosition.streak_percentile || 0)} drop-shadow-sm`}>
-                    {userPosition.streak_percentile ? `${userPosition.streak_percentile.toFixed(0)}%` : 'N/A'}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className={`text-lg sm:text-xl font-black ${getPercentileColor(userPosition.streak_percentile || 0)} drop-shadow-sm`}>
+                      {((userPosition.streak_percentile || 0) * 0.15).toFixed(1)}
+                    </span>
+                    <span className="text-sm sm:text-base text-white/60 font-medium">/ 15</span>
+                  </div>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
                   <div 
                     className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${userPosition.streak_percentile || 0}%` }}
+                    style={{ width: `${((userPosition.streak_percentile || 0) * 0.15 / 15) * 100}%` }}
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs text-white/50 mt-1">
-                  <span>0%</span>
-                  <span>100%</span>
+                  <span>0 pts</span>
+                  <span className="text-white/70">{userPosition.streak_percentile ? `${userPosition.streak_percentile.toFixed(0)}% placement` : 'N/A'}</span>
+                  <span>15 pts</span>
                 </div>
               </div>
             </div>
 
-            {/* Overall Performance Indicator */}
+            {/* Overall Performance Indicator - UPDATED WITH CONSISTENT SIZING */}
             <div className="mt-4 pt-4 border-t border-white/10">
               <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm text-white/70">Overall Performance</span>
+                <span className="text-sm sm:text-base text-white/70 font-medium">Total Points</span>
                 <div className="flex items-center gap-2">
                   {(() => {
-                    const avgPercentile = ((userPosition.score_percentile || 0) + (userPosition.accuracy_percentile || 0) + (userPosition.streak_percentile || 0)) / 3;
+                    const totalPoints = ((userPosition.score_percentile || 0) * 0.7) + 
+                                      ((userPosition.accuracy_percentile || 0) * 0.15) + 
+                                      ((userPosition.streak_percentile || 0) * 0.15);
+                    
                     let indicator, color, bgColor;
                     
-                    if (avgPercentile >= 90) {
+                    if (totalPoints >= 90) {
                       indicator = "Exceptional";
                       color = "text-purple-300";
                       bgColor = "bg-purple-500/20";
-                    } else if (avgPercentile >= 75) {
+                    } else if (totalPoints >= 75) {
                       indicator = "Strong";
                       color = "text-green-300";
                       bgColor = "bg-green-500/20";
-                    } else if (avgPercentile >= 50) {
+                    } else if (totalPoints >= 50) {
                       indicator = "Good";
                       color = "text-blue-300";
                       bgColor = "bg-blue-500/20";
-                    } else if (avgPercentile >= 25) {
+                    } else if (totalPoints >= 25) {
                       indicator = "Developing";
                       color = "text-yellow-300";
                       bgColor = "bg-yellow-500/20";
@@ -351,10 +370,11 @@ const SeasonLeaderboard = ({ currentUser, selectedSeason }) => {
                     
                     return (
                       <>
-                        <span className={`text-xs sm:text-sm font-bold ${color}`}>
-                          {avgPercentile.toFixed(0)} percentile
+                        <span className={`text-xl sm:text-2xl font-black ${color}`}>
+                          {totalPoints.toFixed(1)}
                         </span>
-                        <span className={`px-2 py-1 text-xs font-medium ${color} ${bgColor} rounded-full`}>
+                        <span className="text-sm sm:text-base text-white/60 font-medium">/ 100</span>
+                        <span className={`px-2 py-1 text-xs font-medium ${color} ${bgColor} rounded-full ml-1`}>
                           {indicator}
                         </span>
                       </>
