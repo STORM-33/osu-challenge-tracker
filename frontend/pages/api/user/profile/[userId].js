@@ -57,7 +57,6 @@ async function handler(req, res) {
     // TRY MEMORY CACHE FIRST
     const cached = memoryCache.get(cacheKey);
     if (cached) {
-      console.log(`👤 Serving user profile from memory cache: ${cacheKey}`);
       const etag = generateETag(cached);
       if (checkETag(req, etag)) {
         return res.status(304).end();
@@ -65,13 +64,11 @@ async function handler(req, res) {
       
       return handleAPIResponse(res, cached, { 
         cache: true, 
-        cacheTime: 600, // 10 minute cache for profiles
+        cacheTime: 600,
         enableETag: true,
         req 
       });
     }
-
-    console.log(`👤 Loading user profile for ${targetUserId} (tab: ${tab}, limit: ${scoreLimit})`);
 
     // Get the target user's basic info
     const { data: profileUser, error: userError } = await supabase
@@ -97,15 +94,13 @@ async function handler(req, res) {
       challengeQueries.getUserStreaks(targetUserId)
     ]);
 
-    // Use batch function to get ranks for user scores (same as original profile logic)
+    // Use batch function to get ranks for user scores
     let scoresWithCalculatedRanks = userScores;
     
     if (userScores && userScores.length > 0) {
       try {
-        // Extract playlist IDs for batch ranking
         const playlistIds = userScores.map(score => score.playlist_id);
         
-        // Single database call to get all ranks
         const { data: rankData, error: rankError } = await supabase
           .rpc('get_user_ranks_batch', {
             p_user_id: targetUserId,
@@ -113,7 +108,6 @@ async function handler(req, res) {
           });
 
         if (!rankError && rankData) {
-          // Create a map for quick lookup
           const rankMap = new Map();
           rankData.forEach(rank => {
             rankMap.set(rank.playlist_id, {
@@ -122,7 +116,6 @@ async function handler(req, res) {
             });
           });
 
-          // Apply ranks to scores
           scoresWithCalculatedRanks = userScores.map(score => {
             const rankInfo = rankMap.get(score.playlist_id);
             return {
@@ -132,8 +125,6 @@ async function handler(req, res) {
             };
           });
         } else {
-          console.warn('Batch rank calculation failed, using fallback ranks:', rankError);
-          // Fallback to original ranks
           scoresWithCalculatedRanks = userScores.map(score => ({
             ...score,
             calculated_rank: score.rank_position
@@ -141,7 +132,6 @@ async function handler(req, res) {
         }
       } catch (batchError) {
         console.error('Error in batch rank calculation:', batchError);
-        // Fallback to original ranks
         scoresWithCalculatedRanks = userScores.map(score => ({
           ...score,
           calculated_rank: score.rank_position
@@ -154,13 +144,9 @@ async function handler(req, res) {
     let bestPerformances = null;
     
     if (tab === 'best') {
-      // For best tab, we need ALL scores first, then filter for top 10 finishes
-      console.log('🏆 Processing best tab - loading ALL user scores for filtering...');
-      
-      // Get ALL user scores for best tab processing
+      // For best tab, filter for top 10 finishes
       const allUserScores = await challengeQueries.getUserScores(targetUserId);
       
-      // Apply rank calculation to ALL scores
       let allScoresWithRanks = allUserScores;
       if (allUserScores && allUserScores.length > 0) {
         try {
@@ -190,7 +176,7 @@ async function handler(req, res) {
             });
           }
         } catch (error) {
-          console.error('Error calculating ranks for all scores:', error);
+          console.error('Error calculating ranks for best tab:', error);
         }
       }
       
@@ -203,10 +189,9 @@ async function handler(req, res) {
         .sort((a, b) => {
           const rankA = a.calculated_rank || a.rank_position;
           const rankB = b.calculated_rank || b.rank_position;
-          return rankA - rankB; // Sort by rank (1st place first)
+          return rankA - rankB;
         });
-      
-      console.log(`🏆 Found ${bestPerformances.length} top 10 finishes out of ${allScoresWithRanks.length} total scores`);
+
       finalScores = bestPerformances;
     } else {
       // For other tabs, apply limit if specified
@@ -227,26 +212,16 @@ async function handler(req, res) {
         total: scoresWithCalculatedRanks.length,
         hasMore: scoreLimit ? scoresWithCalculatedRanks.length > scoreLimit : false,
         tab: tab || 'recent'
-      },
-      debug: {
-        tab,
-        requestedLimit: scoreLimit,
-        finalScoresCount: finalScores?.length || 0,
-        bestPerformancesCount: bestPerformances?.length || 0,
-        enhancedStatsTop10: enhancedUserStats?.top10Count || 0
       }
     };
 
     // CACHE THE RESULT
-    // Cache for 10 minutes - user profiles don't change that frequently
     memoryCache.set(cacheKey, responseData, CACHE_DURATIONS.USER_PROFILE);
 
-    console.log(`👤 User profile loaded for ${targetUserId} and cached`);
-
-    // Return successful response with enhanced stats
+    // Return successful response
     return handleAPIResponse(res, responseData, { 
       cache: true, 
-      cacheTime: 600, // 10 minute cache
+      cacheTime: 600,
       enableETag: true,
       req 
     });
@@ -259,14 +234,12 @@ async function handler(req, res) {
 
 async function getEnhancedUserStats(userId) {
   try {
-    // *** KEY FIX: Get the SAME user scores that the frontend will see ***
     const allUserScores = await challengeQueries.getUserScores(userId);
     
     if (!allUserScores || allUserScores.length === 0) {
       return getDefaultStats();
     }
 
-    // Get calculated ranks for ALL scores (same logic as main endpoint)
     const playlistIds = allUserScores.map(score => score.playlist_id);
     const { data: rankData, error: rankError } = await supabase
       .rpc('get_user_ranks_batch', {
@@ -298,7 +271,6 @@ async function getEnhancedUserStats(userId) {
       ranksArray = rankData;
     }
 
-    // *** Calculate ALL stats from the SAME dataset ***
     const stats = calculateStatsFromSameData(scoresWithRanks, ranksArray);
     
     return stats;
@@ -321,7 +293,7 @@ function calculateStatsFromSameData(scoresWithRanks, ranksArray) {
   const avgScore = Math.round(totalScorePoints / totalScores);
   const avgAccuracy = (scoresWithRanks.reduce((sum, score) => sum + (score.accuracy || 0), 0) / totalScores).toFixed(2);
   
-  // Rank-based stats (from calculated ranks)
+  // Rank-based stats
   const validRanks = ranksArray.filter(rank => rank.user_rank > 0);
   const avgRank = validRanks.length > 0 ? Math.round(validRanks.reduce((sum, rank) => sum + rank.user_rank, 0) / validRanks.length) : null;
   
@@ -362,8 +334,7 @@ function calculateStatsFromSameData(scoresWithRanks, ranksArray) {
     .sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at))[0]?.submitted_at || null;
 
   return {
-    // Basic stats - using ALL-TIME data to match frontend
-    totalChallenges: 0, // You can calculate this if needed
+    totalChallenges: 0,
     totalScores,
     avgAccuracy,
     avgScore,
@@ -375,8 +346,6 @@ function calculateStatsFromSameData(scoresWithRanks, ranksArray) {
     participationRate: 0,
     improvementTrend: 'stable',
     lastSubmission,
-    
-    // Enhanced stats
     firstPlaceCount,
     perfectScoreCount,
     rankDistribution,

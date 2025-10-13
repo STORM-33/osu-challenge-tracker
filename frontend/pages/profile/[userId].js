@@ -38,15 +38,16 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (!userId) return;
-    loadUserData();
+    loadUserData('recent'); // Always load with 'recent' initially
   }, [userId]);
 
-  const loadUserData = async () => {
+  const loadUserData = async (tab = 'recent') => {
     try {
       setLoading(true);
       setError(null);
       
-      const profileResponse = await fetch(`/api/user/profile/${userId}`);
+      // Pass the tab parameter to the API
+      const profileResponse = await fetch(`/api/user/profile/${userId}?tab=${tab}`);
       
       if (!profileResponse.ok) {
         if (profileResponse.status === 404) {
@@ -118,11 +119,32 @@ export default function UserProfile() {
     }
   };
 
-  const handleTabChange = (newTab) => {
+  const handleTabChange = async (newTab) => {
     if (newTab === activeTab) return;
+    
+    // Set tab loading state (not full page loading)
     setTabLoading(true);
     setActiveTab(newTab);
-    setTimeout(() => setTabLoading(false), 300);
+    
+    try {
+      // Fetch data for new tab
+      const profileResponse = await fetch(`/api/user/profile/${userId}?tab=${newTab}`);
+      
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        
+        if (profileData.success) {
+          const responseData = profileData.data || profileData;
+          // Only update scores and bestPerformances, keep other data
+          setAllScores(responseData.scores || []);
+          setAllBestPerformances(responseData.bestPerformances || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading tab data:', error);
+    } finally {
+      setTabLoading(false);
+    }
   };
 
   // Helper functions
@@ -197,12 +219,22 @@ export default function UserProfile() {
 
   const getScoresForTab = () => {
     if (activeTab === 'recent') {
-      return allScores;
+      return allScores.slice(0, 5); // Show only 10 recent scores
     } else if (activeTab === 'best') {
-      return allBestPerformances.length > 0 ? allBestPerformances : 
-        allScores.filter(score => (score.calculated_rank) <= 10)
-          .sort((a, b) => a.calculated_rank - b.calculated_rank)
-          .slice(0, 5);
+      // Show top 50 best performances, or fallback to filtering from allScores
+      if (allBestPerformances && allBestPerformances.length > 0) {
+        return allBestPerformances.slice(0, 5); // Limit to 50 best scores
+      }
+      
+      // Fallback: filter from allScores
+      return allScores
+        .filter(score => (score.calculated_rank || score.rank_position) <= 10)
+        .sort((a, b) => {
+          const rankA = a.calculated_rank || a.rank_position;
+          const rankB = b.calculated_rank || b.rank_position;
+          return rankA - rankB;
+        })
+        .slice(0, 50); // Limit to 50
     }
     return [];
   };
