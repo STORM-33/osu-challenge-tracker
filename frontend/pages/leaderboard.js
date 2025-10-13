@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import SeasonLeaderboard from '../components/SeasonLeaderboard';
 import SeasonSelector from '../components/SeasonSelector';
-import { Trophy, Info, BookOpen, TrendingUp, Zap, Target, BarChart3, Percent, Award, Scale } from 'lucide-react';
+import { Trophy, Info, BookOpen, TrendingUp, Target, BarChart3, Scale, Award } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 
 export default function SeasonLeaderboardPage() {
@@ -70,7 +70,7 @@ export default function SeasonLeaderboardPage() {
                 
                 {/* Description - Mobile optimized */}
                 <p className="text-white text-sm sm:text-base lg:text-lg max-w-none sm:max-w-3xl text-shadow-adaptive px-4 sm:px-0">
-                  Weighted rankings combining total score, accuracy, and participation streak across all challenges in the season.
+                  Rankings based on your placement in three categories: total score, accuracy, and participation streak.
                 </p>
               </div>
             </div>
@@ -108,7 +108,7 @@ export default function SeasonLeaderboardPage() {
                 </p>
               </div>
 
-              {/* Weighted Scoring Card */}
+              {/* Points System Card */}
               <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <div className="p-1.5 sm:p-3 icon-gradient-purple rounded-md sm:rounded-xl icon-container-purple">
@@ -116,18 +116,18 @@ export default function SeasonLeaderboardPage() {
                   </div>
                 </div>
                 <h3 className="text-sm sm:text-lg font-semibold text-white mb-1 sm:mb-2 text-shadow-adaptive-sm">
-                  Weighted Scoring
+                  Points System
                 </h3>
                 <div className="text-xs sm:text-sm text-white/85 leading-relaxed text-shadow-adaptive-sm">
                   <div className="space-y-1">
-                    <div>70% Total Score</div>
-                    <div>15% Accuracy</div>
-                    <div>15% Participation Streak</div>
+                    <div>Up to 70 pts from Score Placement</div>
+                    <div>Up to 15 pts from Accuracy Placement</div>
+                    <div>Up to 15 pts from Streak Placement</div>
                   </div>
                 </div>
               </div>
 
-              {/* How Rankings Work Card */}
+              {/* How It Works Card */}
               <div className="glass-1 rounded-lg sm:rounded-2xl p-3 sm:p-6 sm:col-span-2 lg:col-span-1">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <div className="p-1.5 sm:p-3 icon-gradient-blue rounded-md sm:rounded-xl icon-container-blue">
@@ -135,10 +135,10 @@ export default function SeasonLeaderboardPage() {
                   </div>
                 </div>
                 <h3 className="text-sm sm:text-lg font-semibold text-white mb-1 sm:mb-2 text-shadow-adaptive-sm">
-                  How Rankings Work
+                  How It Works
                 </h3>
                 <p className="text-xs sm:text-sm text-white/85 leading-relaxed text-shadow-adaptive-sm">
-                  Rankings use percentile-based weighted scoring to reward consistent participation, high accuracy, and strong total performance.
+                  Your placement in each category (compared to all players) determines how many points you earn. Higher placement = more points!
                 </p>
               </div>
             </div>
@@ -151,72 +151,76 @@ export default function SeasonLeaderboardPage() {
             selectedSeason={selectedSeason}
           />
 
-          {/* Additional Info - Updated for Weighted System */}
+          {/* Additional Info - Updated for Points System */}
           <div className="mt-8 sm:mt-10 lg:mt-12 glass-1 rounded-xl sm:rounded-2xl p-3 sm:p-6 lg:p-8">
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-6">
               <div className="p-1.5 sm:p-3 icon-gradient-orange rounded-lg sm:rounded-xl icon-container-orange">
                 <Info className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
               <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-white text-shadow-adaptive">
-                About Weighted Season Rankings
+                About the Points System
               </h3>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 lg:gap-8">
-              {/* Weighted Scoring System */}
+              {/* How Points Are Earned */}
               <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-6 shadow-lg">
                 <h4 className="font-bold text-white mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2 text-shadow-adaptive text-sm sm:text-base">
-                  <Scale className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
-                  Weighted Scoring Formula
+                  <BarChart3 className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
+                  How Points Are Earned
                 </h4>
                 <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-white/90">
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm"><strong>70% Total Score:</strong> Sum of all your scores across season challenges</span>
+                    <span className="text-shadow-adaptive-sm"><strong>Total Score:</strong> Earn up to 70 points based on your placement among all players</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm"><strong>15% Accuracy:</strong> Average accuracy across all your plays</span>
+                    <span className="text-shadow-adaptive-sm"><strong>Accuracy:</strong> Earn up to 15 points based on your placement in accuracy rankings</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm"><strong>15% Participation Streak:</strong> Maximum consecutive challenges participated in</span>
+                    <span className="text-shadow-adaptive-sm"><strong>Streak:</strong> Earn up to 15 points based on your placement in consecutive challenge streaks</span>
+                  </li>
+                  <li className="flex items-start gap-1.5 sm:gap-2">
+                    <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
+                    <span className="text-shadow-adaptive-sm">Higher placement = more points. All three categories combine for your final score out of 100.</span>
                   </li>
                 </ul>
               </div>
               
-              {/* Percentile-Based Rankings */}
+              {/* Scoring Example */}
               <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-6 shadow-lg">
                 <h4 className="font-bold text-white mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2 text-shadow-adaptive text-sm sm:text-base">
-                  <Percent className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
-                  Percentile System
+                  <BookOpen className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
+                  Scoring Example
                 </h4>
-                <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-white/90">
-                  <li className="flex items-start gap-1.5 sm:gap-2">
-                    <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm">Each metric is ranked by percentile among all participants</span>
-                  </li>
-                  <li className="flex items-start gap-1.5 sm:gap-2">
-                    <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm">Percentiles are weighted and combined for final score</span>
-                  </li>
-                  <li className="flex items-start gap-1.5 sm:gap-2">
-                    <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm">Higher percentile = better ranking within that metric</span>
-                  </li>
-                </ul>
+                <div className="text-xs sm:text-sm text-white/90 space-y-2">
+                  <p className="text-shadow-adaptive-sm">
+                    <strong>Example:</strong> If you rank in the top 80% for score, top 90% for accuracy, and top 70% for streak:
+                  </p>
+                  <div className="ml-4 space-y-1">
+                    <div className="text-shadow-adaptive-sm">• Total Score: 80% placement → 56 points (out of 70)</div>
+                    <div className="text-shadow-adaptive-sm">• Accuracy: 90% placement → 13.5 points (out of 15)</div>
+                    <div className="text-shadow-adaptive-sm">• Streak: 70% placement → 10.5 points (out of 15)</div>
+                    <div className="text-shadow-adaptive-sm font-bold border-t border-white/20 pt-1 mt-1">= <strong>80.0 total points</strong> (out of 100)</div>
+                  </div>
+                  <p className="text-shadow-adaptive-sm mt-2 text-white/70">
+                    The better you rank in each category, the more points you earn. Your placement is calculated relative to all other players in the season.
+                  </p>
+                </div>
               </div>
               
               {/* Strategy Tips */}
               <div className="glass-1 rounded-lg sm:rounded-xl p-3 sm:p-6 shadow-lg">
                 <h4 className="font-bold text-white mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2 text-shadow-adaptive text-sm sm:text-base">
                   <TrendingUp className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white icon-shadow-adaptive-sm" />
-                  Ranking Strategy
+                  Strategy Tips
                 </h4>
                 <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-white/90">
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm">Participate in every challenge to build streak</span>
+                    <span className="text-shadow-adaptive-sm">Participate in every challenge to build your streak</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
@@ -224,7 +228,11 @@ export default function SeasonLeaderboardPage() {
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm">Consistency across all metrics is key</span>
+                    <span className="text-shadow-adaptive-sm">Consistency across all metrics is key to climbing the leaderboard</span>
+                  </li>
+                  <li className="flex items-start gap-1.5 sm:gap-2">
+                    <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
+                    <span className="text-shadow-adaptive-sm">Even with lower raw scores, strong accuracy and streak can boost your ranking</span>
                   </li>
                 </ul>
               </div>
@@ -238,15 +246,19 @@ export default function SeasonLeaderboardPage() {
                 <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-white/90">
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm">Real-time as scores are submitted</span>
+                    <span className="text-shadow-adaptive-sm">Updates in real-time as scores are submitted</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm">Percentiles recalculated with each update</span>
+                    <span className="text-shadow-adaptive-sm">Your placement is recalculated with each update</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
                     <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
-                    <span className="text-shadow-adaptive-sm">New participants affect everyone's percentile</span>
+                    <span className="text-shadow-adaptive-sm">New participants affect everyone's placement and points</span>
+                  </li>
+                  <li className="flex items-start gap-1.5 sm:gap-2">
+                    <span className="text-white text-shadow-adaptive-sm mt-0.5">•</span>
+                    <span className="text-shadow-adaptive-sm">Check back often to see how you compare!</span>
                   </li>
                 </ul>
               </div>
