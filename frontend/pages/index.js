@@ -5,6 +5,7 @@ import { Trophy, Calendar, Gift, Zap, Users, Music, Sparkles, Info, ChevronRight
 export default function AboutChallengers() {
   const [activeTab, setActiveTab] = useState('weekly');
   const [clickCount, setClickCount] = useState(0);
+  const [detectedOS, setDetectedOS] = useState({ os: 'unknown', link: '#' });
   const [isFalling, setIsFalling] = useState(false);
   const [hasFallen, setHasFallen] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
@@ -41,6 +42,31 @@ export default function AboutChallengers() {
       }, 1000);
     }
   };
+
+  useEffect(() => {
+    const links = {
+      windows: "https://github.com/fuyukiSmkw/osu-challengers-ruleset/releases/latest/download/oCrs-installer.bat",
+      linux: "https://github.com/fuyukiSmkw/osu-challengers-ruleset/releases/latest/download/oCrs-installer.sh",
+      mac: "https://github.com/fuyukiSmkw/osu-challengers-ruleset/releases/latest/download/oCrs-installer.sh"
+    };
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    let os = "unknown";
+    let link = "#";
+
+    if (userAgent.includes("win")) {
+      os = "Windows";
+      link = links.windows;
+    } else if (userAgent.includes("mac")) {
+      os = "macOS";
+      link = links.mac;
+    } else if (userAgent.includes("linux")) {
+      os = "Linux";
+      link = links.linux;
+    }
+
+    setDetectedOS({ os, link });
+  }, []);
 
   // Clean up timeout on unmount
   useEffect(() => {
@@ -733,28 +759,61 @@ export default function AboutChallengers() {
 
             {/* Download Button */}
             <div className="flex flex-col items-center justify-center gap-4">
-              <a
-                href="https://github.com/fuyukiSmkw/osu-challengers-ruleset/releases/latest/download/oCrs-installer.bat"
-                className="flex items-center gap-3 px-6 py-4 sm:px-8 sm:py-5 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl hover:bg-white/20 transition-all duration-300 text-white drop-shadow transform hover:scale-105 hover:shadow-xl group"
-              >
-                <div className="p-2.5 sm:p-3 bg-gradient-to-b from-purple-500 to-purple-600 rounded-lg group-hover:from-purple-400 group-hover:to-purple-500 transition-all shadow-lg">
-                  <Download className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow" />
+  
+            <a href={detectedOS.link}
+              className="flex items-center gap-3 px-6 py-4 sm:px-8 sm:py-5 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl hover:bg-white/20 transition-all duration-300 text-white drop-shadow transform hover:scale-105 hover:shadow-xl group"
+            >
+              <div className="p-2.5 sm:p-3 bg-gradient-to-b from-purple-500 to-purple-600 rounded-lg group-hover:from-purple-400 group-hover:to-purple-500 transition-all shadow-lg">
+                <Download className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow" />
+              </div>
+              <div className="text-left">
+                <div className="font-bold text-base sm:text-lg">
+                  {detectedOS.os === 'unknown' 
+                    ? 'Download Ruleset Installer' 
+                    : `Download for ${detectedOS.os}`}
                 </div>
-                <div className="text-left">
-                  <div className="font-bold text-base sm:text-lg">Download Ruleset Installer</div>
-                  <div className="text-xs sm:text-sm text-white/70">For Windows (Automatic Installation)</div>
+                <div className="text-xs sm:text-sm text-white/70">
+                  {detectedOS.os === 'unknown' 
+                    ? 'OS could not be detected - Choose manually below'
+                    : detectedOS.os === 'Windows' 
+                      ? 'Automatic Installation' 
+                      : 'Manual Installation Required'}
                 </div>
-              </a>
-              
-              <a
-                href="https://github.com/fuyukiSmkw/osu-challengers-ruleset"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-white/70 hover:text-white/90 transition-colors drop-shadow underline"
-              >
-                View on GitHub for manual installation
-              </a>
-            </div>
+              </div>
+            </a>
+            
+            {detectedOS.os === 'unknown' && (
+              <div className="flex flex-wrap gap-3 justify-center">
+                
+                <a  href="https://github.com/fuyukiSmkw/osu-challengers-ruleset/releases/latest/download/oCrs-installer.bat"
+                  className="text-sm px-4 py-2 glass-1 rounded-lg hover:glass-2 transition-all text-white/90"
+                >
+                  Windows
+                </a>
+                
+                <a  href="https://github.com/fuyukiSmkw/osu-challengers-ruleset/releases/latest/download/oCrs-installer.sh"
+                  className="text-sm px-4 py-2 glass-1 rounded-lg hover:glass-2 transition-all text-white/90"
+                >
+                  macOS
+                </a>
+                
+                <a  href="https://github.com/fuyukiSmkw/osu-challengers-ruleset/releases/latest/download/oCrs-installer.sh"
+                  className="text-sm px-4 py-2 glass-1 rounded-lg hover:glass-2 transition-all text-white/90"
+                >
+                  Linux
+                </a>
+              </div>
+            )}
+            
+            
+            <a  href="https://github.com/fuyukiSmkw/osu-challengers-ruleset"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-white/70 hover:text-white/90 transition-colors drop-shadow underline"
+            >
+              View on GitHub for manual installation
+            </a>
+          </div>
           </div>
 
           {/* Footer CTA */}
