@@ -151,7 +151,10 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
 
   // Render social links
   const socialLinks = useMemo(() => {
-    if (!member?.social_links || Object.keys(member.social_links).length === 0) {
+    const hasSocialLinks = member?.social_links && Object.keys(member.social_links).length > 0;
+    const hasOsuProfile = member?.osu_username;
+    
+    if (!hasSocialLinks && !hasOsuProfile) {
       return null;
     }
 
@@ -186,6 +189,28 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
               {member.social_links.discord}
             </span>
           </div>
+        )}
+        {member?.social_links?.website && (
+          <a 
+            href={member.social_links.website.startsWith('http') ? member.social_links.website : `https://${member.social_links.website}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-2 glass-2 rounded-lg hover:glass-3 transition-all duration-200"
+          >
+            <ExternalLink className="w-4 h-4 text-white/90" />
+            <span className="text-sm text-white/90 text-shadow-adaptive-sm">Website</span>
+          </a>
+        )}
+        {member?.social_links?.youtube && (
+          <a 
+            href={member.social_links.youtube}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-2 glass-2 rounded-lg hover:glass-3 transition-all duration-200"
+          >
+            <span className="text-sm">▶</span>
+            <span className="text-sm text-white/90 text-shadow-adaptive-sm">YouTube</span>
+          </a>
         )}
         {member.osu_username && (
           <a 
