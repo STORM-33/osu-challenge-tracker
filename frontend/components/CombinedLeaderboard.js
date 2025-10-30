@@ -176,18 +176,18 @@ export default function CombinedLeaderboard({ leaderboard = [], loading = false,
 
   const getParticipationGradient = (mapsPlayed) => {
     const percentage = (mapsPlayed / totalMaps) * 100;
-    if (percentage === 100) return 'from-purple-500 to-pink-500';
-    if (percentage >= 80) return 'from-blue-500 to-cyan-500';
-    if (percentage >= 60) return 'from-emerald-500 to-green-500';
+    if (percentage === 100) return 'from-pink-500 to-purple-500';
+    if (percentage >= 80) return 'from-green-500 to-emerald-500';
+    if (percentage >= 60) return 'from-cyan-500 to-blue-500';
     if (percentage >= 40) return 'from-yellow-500 to-orange-500';
-    return 'from-red-500 to-pink-500';
+    return 'from-pink-500 to-red-500';
   };
 
   const getParticipationBorder = (mapsPlayed) => {
     const percentage = (mapsPlayed / totalMaps) * 100;
     if (percentage === 100) return 'acc-badge-purple';
-    if (percentage >= 80) return 'acc-badge-blue';
-    if (percentage >= 60) return 'acc-badge-green';
+    if (percentage >= 80) return 'acc-badge-green';
+    if (percentage >= 60) return 'acc-badge-blue';
     if (percentage >= 40) return 'acc-badge-yellow';
     return 'acc-badge-red';
   };
