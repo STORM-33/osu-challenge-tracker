@@ -742,7 +742,7 @@ export default function AboutChallengers() {
               {/* Image - Full Width */}
               <div className="relative w-full bg-gradient-to-br from-gray-900 to-gray-800 p-4 sm:p-6">
                 <img 
-                  src="/ruleset-notifications.png" 
+                  src="/ruleset-notifications-2.png" 
                   alt="osu!Challengers Notifications and Settings"
                   className="w-full h-auto rounded-lg"
                 />
