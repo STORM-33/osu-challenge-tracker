@@ -44,6 +44,12 @@ function adjustFontSizePx(text, maxChars, basePx) {
   return text.length > maxChars ? (basePx * maxChars) / text.length : basePx;
 }
 
+function getCharacterOffset(text, baseChars, offsetPerChar) {
+  if (!text) return 0;
+  const extraChars = Math.max(0, text.length - baseChars);
+  return extraChars * offsetPerChar;
+}
+
 const pct = (v) => (typeof v === "number" ? v.toFixed(2) + "%" : "-");
 
 function parseStyle(styleAttr = "") {
@@ -79,6 +85,8 @@ function xWithAnchor(x, anchor, width) {
   return x;
 }
 
+const dynamicOffsets = {};
+
 function convertAllTextToPaths($, variant = "main") {
   $("text").each((_, el) => {
     const $text = $(el);
@@ -107,22 +115,25 @@ function convertAllTextToPaths($, variant = "main") {
       const font = pickFontById(id) || fontRegular;
       switch (id) {
         case "username":
-          x -= 5;
+          x -= 0.6;
           y -= 0.2;
+          x += dynamicOffsets.username || 0;
           break;
         case "current_streak":
-          x += 3.3;
+          x += 3.1;
           y += 3;
           if (variant === "mini") {
             x += 2;
           }
+          x += dynamicOffsets.current_streak || 0;
           break;
         case "best_streak":
-          x += 3.5;
+          x += 3.3;
           y += 3;
           if (variant === "mini") {
-            x += 2.3;
+            x += 2.2;
           }
+          x += dynamicOffsets.best_streak || 0;
           break;
         case "text9":
           x += 0.1;
@@ -190,7 +201,7 @@ async function generateSvgGeneric(svgFile, profile, stats, streaks, leaderboard,
   if ($nameSpan.length) {
     const username = profile?.username ?? "name";
     const basePx = parseFloat(parseStyle($nameSpan.attr("style"))["font-size"] || "16");
-    const newPx = adjustFontSizePx(username, 13, basePx);
+    const newPx = adjustFontSizePx(username, 11, basePx);
     $nameSpan.text(username);
     const ns = parseStyle($nameSpan.attr("style"));
     ns["font-size"] = `${newPx}px`;
@@ -198,7 +209,19 @@ async function generateSvgGeneric(svgFile, profile, stats, streaks, leaderboard,
       .map(([k, v]) => `${k}:${v}`)
       .join(";");
     $nameSpan.attr("style", styleStr);
+    if ($nameSpan.length !== 3) {
+      dynamicOffsets.username = getCharacterOffset(username, username.length / 2, -0.67);
+    } else if (username.length > 10); {
+      dynamicOffsets.username = getCharacterOffset(username, username.length / 2, -0.5);
+    }
+    
   }
+
+  const currentStreakText = String(streaks?.currentStreak ?? "-");
+  dynamicOffsets.current_streak = getCharacterOffset(currentStreakText, 1, -1.1);
+
+  const bestStreakText = String(streaks?.longestStreak ?? "-");
+  dynamicOffsets.best_streak = getCharacterOffset(bestStreakText, 1, -1.3);
 
   if ($("#pfp").length) {
     async function getOsuAvatar(osuUsername) {
@@ -263,9 +286,8 @@ async function generateSvgGeneric(svgFile, profile, stats, streaks, leaderboard,
   setText("#plays", stats?.totalScores ?? "-");
   setText("#top1", stats?.firstPlaceCount ?? "-");
   setText("#top", pct(100 - (me.percentile ?? 0)));
-  setText("#current_streak", streaks?.currentStreak ?? "-");
-  setText("#best_streak", streaks?.longestStreak ?? "-");
-
+  setText("#current_streak", currentStreakText);
+  setText("#best_streak", bestStreakText);
   convertAllTextToPaths($, variant);
 
   return $.xml();
