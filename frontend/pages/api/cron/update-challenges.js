@@ -14,9 +14,22 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Support multiple authentication methods for flexibility
     const authHeader = req.headers.authorization;
-    if (!authHeader || authHeader !== `Bearer ${syncConfig.CRON_SECRET}`) {
-      console.warn('🚨 Unauthorized cron request attempt');
+    const cronSecret = req.headers['x-cron-secret'];
+    
+    // Check both Bearer token and custom header
+    const isAuthorized = 
+      (authHeader && authHeader === `Bearer ${syncConfig.CRON_SECRET}`) ||
+      (cronSecret && cronSecret === process.env.CRON_SECRET);
+
+    if (!isAuthorized) {
+      console.warn('🚨 Unauthorized cron request attempt', {
+        hasAuth: !!authHeader,
+        hasCronSecret: !!cronSecret,
+        ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
       return res.status(401).json({ error: 'Unauthorized' });
     }
 

@@ -16,12 +16,23 @@ export default async function handler(req, res) {
   console.log('⏰ === SCHEDULED CHALLENGES CRON START ===');
   console.log('📅 Time:', new Date().toISOString());
 
-  // Verify cron secret
+  // Verify cron secret - support multiple authentication methods
   const authHeader = req.headers.authorization;
+  const cronSecret = req.headers['x-cron-secret'];
   const providedSecret = authHeader?.replace('Bearer ', '');
 
-  if (!providedSecret || providedSecret !== CRON_SECRET) {
-    console.log('❌ Unauthorized cron request');
+  // Check both Bearer token and custom header
+  const isAuthorized = 
+    (providedSecret && providedSecret === CRON_SECRET) ||
+    (cronSecret && cronSecret === CRON_SECRET);
+
+  if (!isAuthorized) {
+    console.log('❌ Unauthorized cron request', {
+      hasAuth: !!authHeader,
+      hasCronSecret: !!cronSecret,
+      ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent']
+    });
     return res.status(401).json({
       success: false,
       error: 'Unauthorized'
