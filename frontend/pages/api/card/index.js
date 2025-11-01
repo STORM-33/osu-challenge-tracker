@@ -335,7 +335,7 @@ export default async function handler(req, res) {
       season_id_param: SEASON_ID,
     });
 
-    const templateFile = path.join(__dirname, "..", option === "mini" ? "mini.svg" : "main.svg");
+    const templateFile = path.join(process.cwd(), "public/card-templates/", option === "mini" ? "mini.svg" : "main.svg");
 
     const outSvg = await generateSvgGeneric(
 	  templateFile,
