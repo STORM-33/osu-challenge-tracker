@@ -1,168 +1,160 @@
-# 🎮 osu! Challenge Tracker
+# 🎮 osu!Challengers Nexus
 
-A modern web application for tracking osu! multiplayer challenges with automatic updates and personal score history.
+![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat&logo=next.js)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green?style=flat&logo=supabase)
+![Stripe](https://img.shields.io/badge/Stripe-Payments-635bff?style=flat&logo=stripe)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38bdf8?style=flat&logo=tailwindcss)
+![License](https://img.shields.io/badge/License-MIT-blue?style=flat)
 
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
-![Supabase](https://img.shields.io/badge/Supabase-Database-green)
-![Vercel](https://img.shields.io/badge/Vercel-Hosting-black)
-![License](https://img.shields.io/badge/License-MIT-blue)
-
-## ✨ Features
-
-- 🏆 **Live Challenge Tracking** - Automatically updates when you visit
-- 📊 **Detailed Leaderboards** - See top 50 scores for each beatmap
-- 🔐 **osu! Login** - Track your personal scores across challenges
-- 📈 **Performance Stats** - View your average accuracy and best ranks
-- 🎨 **Modern UI** - Dark theme with smooth animations
-- 💰 **100% Free** - Runs entirely on free hosting tiers
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+
-- Git
-- Accounts on: Vercel, Supabase, osu!
-
-### 1. Clone & Setup
-```bash
-git clone https://github.com/yourusername/osu-challenge-tracker.git
-cd osu-challenge-tracker/frontend
-npm install
-```
-
-### 2. Configure Environment
-```bash
-cp .env.local.example .env.local
-# Edit .env.local with your credentials
-```
-
-### 3. Run Development Server
-```bash
-npm run dev
-# Visit http://localhost:3000
-```
-
-### 4. Deploy to Production
-```bash
-vercel
-# Follow prompts and add environment variables
-```
-
-## 🏗️ How It Works
-
-Unlike traditional trackers that run 24/7, this app updates **on-demand**:
-
-1. **User visits a page** → App checks if data is fresh
-2. **If data is >2 minutes old** → Fetches latest from osu! API
-3. **Updates database** → Serves fresh data to user
-4. **Smart caching** → Prevents API rate limit issues
-
-This approach means:
-- ✅ No backend servers needed
-- ✅ No scheduled jobs or cron
-- ✅ Updates only when someone's looking
-- ✅ Runs 100% free forever
-
-## 📋 Tech Stack
-
-- **Frontend**: Next.js 14, React, Tailwind CSS
-- **Database**: Supabase (PostgreSQL)
-- **Hosting**: Vercel
-- **Auth**: osu! OAuth 2.0
-- **APIs**: osu! API v2
-
-## 🔧 Configuration
-
-### Environment Variables
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_KEY=your-service-key
-
-# osu! OAuth
-OSU_CLIENT_ID=your-client-id
-OSU_CLIENT_SECRET=your-client-secret
-OSU_REDIRECT_URI=your-callback-url
-
-# App
-NEXT_PUBLIC_APP_URL=your-app-url
-```
-
-### Update Frequency
-By default, data is considered stale after 2 minutes. To change:
-```javascript
-// In API routes
-const STALE_TIME = 2 * 60 * 1000; // milliseconds
-```
-
-## 📁 Project Structure
-```
-frontend/
-├── components/     # React components
-├── hooks/         # Custom React hooks
-├── lib/           # Utilities and clients
-├── pages/         # Next.js pages and API routes
-│   ├── api/       # Backend API endpoints
-│   └── ...        # Frontend pages
-└── styles/        # CSS files
-```
-
-## 🚀 Deployment
-
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
-
-**TL;DR:**
-1. Create Supabase project and run schema
-2. Set up osu! OAuth application
-3. Deploy to Vercel with environment variables
-4. Visit your site - it just works!
-
-## 📊 API Endpoints
-
-- `GET /api/challenges` - List all challenges
-- `GET /api/challenges/[roomId]` - Get challenge details
-- `POST /api/update-challenge` - Force update a challenge
-- `GET /api/user/scores` - Get user's scores (auth required)
-- `GET /api/health` - System health check
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
-
-## 📝 License
-
-MIT License - see [LICENSE](./LICENSE) for details
-
-## 🙏 Acknowledgments
-
-- [osu!](https://osu.ppy.sh) for the amazing game and API
-- [Vercel](https://vercel.com) for free hosting
-- [Supabase](https://supabase.com) for free database
-- The osu! community for inspiration
-
-## 🐛 Troubleshooting
-
-### Data not updating?
-- Check Vercel function logs
-- Verify API credentials
-- Ensure room is public on osu!
-
-### Can't login?
-- Check OAuth redirect URLs match exactly
-- Ensure cookies are enabled
-- Verify environment variables
-
-### Need help?
-- Check [Issues](https://github.com/yourusername/osu-challenge-tracker/issues)
-- Join our [Discord](#)
-- Read the [docs](./docs)
+A comprehensive web platform designed to track, manage, and gamify multiplayer challenges within the osu! community. Features live tracking, seasonal leaderboards with weighted scoring, custom ruleset validation.
 
 ---
 
-Made with ❤️ for the osu! community
+## 🏗️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 14 (Pages Router), React 18 |
+| **Styling** | Tailwind CSS with custom glassmorphism design |
+| **Database** | Supabase (PostgreSQL) |
+| **Authentication** | Supabase Auth + osu! OAuth 2.0 |
+| **Payments** | Stripe API |
+| **Deployment** | Docker-ready, Vercel-optimized |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18 or higher
+- npm or yarn
+- Supabase project
+- osu! API Client (OAuth)
+- Stripe account (for donation features)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/osu-challenge-tracker.git
+   cd osu-challenge-tracker/frontend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment variables**
+   
+   Create a `.env.local` file in the `frontend` directory (use `.env.local.example` as reference):
+
+   ```bash
+   # App Configuration
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+   # Supabase
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_SERVICE_KEY=your-service-role-key
+
+   # osu! OAuth
+   OSU_CLIENT_ID=your-osu-client-id
+   OSU_CLIENT_SECRET=your-osu-client-secret
+   OSU_REDIRECT_URI=http://localhost:3000/api/auth/callback
+
+   # Security
+   # Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   TOKEN_ENCRYPTION_KEY=base64-encoded-32-byte-key
+   SESSION_SECRET=your-session-secret
+   SCHEDULER_SHARED_SECRET=long-random-string-for-cron-auth
+
+   # Stripe
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+   ```
+
+4. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+### 🐳 Docker Deployment
+
+Build and run the production container:
+
+```bash
+# Build
+docker build -t osu-challengers ./frontend
+
+# Run
+docker run -p 3000:3000 --env-file .env.local osu-challengers
+```
+
+---
+
+## 📁 Project Structure
+
+```
+frontend/
+├── components/              # React components
+│   ├── settings/           # Settings-specific components
+│   └── ...                 # UI components, cards, modals
+├── lib/                    # Utilities and business logic
+│   ├── api-utils.js        # API response handling & validation
+│   ├── auth-middleware.js  # Security middleware
+│   ├── osu-api.js          # osu! API wrapper
+│   ├── seasons.js          # Season logic and rotation
+│   ├── stripe.js           # Payment processing
+│   └── supabase.js         # Database clients
+├── pages/
+│   ├── api/                # Backend API routes
+│   │   ├── admin/          # Protected admin endpoints
+│   │   ├── auth/           # OAuth flow
+│   │   ├── challenges/     # Challenge CRUD operations
+│   │   ├── cron/           # Scheduled tasks
+│   │   └── webhook/        # Stripe webhooks
+│   ├── admin.js            # Admin dashboard
+│   ├── challenges.js       # Challenge listing
+│   ├── leaderboard.js      # Seasonal leaderboard
+│   └── ...
+└── public/                 # Static assets and fonts
+```
+
+---
+
+## 🔄 Data Syncing Strategy
+
+The platform uses a hybrid update strategy to respect osu! API rate limits while maintaining fresh data:
+
+- **On-Demand Caching** — Checks data freshness when users view challenges (default threshold: 5 minutes)
+- **Background Cron Jobs** — Scheduled tasks at `/api/cron/update-challenges` refresh active challenges periodically
+- **Smart Caching** — In-memory caching via `memory-cache.js` reduces database load
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how to get started:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## ⚠️ Disclaimer
+
+This project is not affiliated with, endorsed, or sponsored by ppy Pty Ltd or osu!.
+
+---
+
+## 📞 Support
+
+For issues, questions, or feature requests, please [open an issue](https://github.com/yourusername/osu-challenge-tracker/issues) on GitHub.

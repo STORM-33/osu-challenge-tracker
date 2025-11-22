@@ -363,8 +363,40 @@ async function handler(req, res) {
       participant_count: roomData.participant_count || 0,
       is_active: roomData.active || false,
       background_image_url: backgroundImageUrl,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      custom_name: null 
     };
+
+    // Auto-rename inactive challenges based on type (set custom_name)
+    if (challengeData.is_active === false && roomData.playlist && roomData.playlist.length > 0) {
+      try {
+        let customName = null;
+        
+        if (roomData.playlist.length === 1) {
+          // Weekly challenge: rename to [song title] - [artist]
+          const firstMap = roomData.playlist[0];
+          const metadata = firstMap.beatmap?.beatmapset;
+
+          if (metadata && metadata.title && metadata.artist) {
+            customName = `${metadata.title} - ${metadata.artist}`;
+            console.log(`Request ${requestId}: Weekly challenge ended. Setting custom name: "${customName}"`);
+          }
+        } else {
+          // Cycle End challenge: rename to "osu!Challengers CE - [month]"
+          const startDate = new Date(roomData.starts_at || challengeData.start_date);
+          const monthName = startDate.toLocaleString('en-US', { month: 'long' });
+          customName = `osu!Challengers CE - ${monthName}`;
+          console.log(`Request ${requestId}: Cycle End challenge ended. Setting custom name: "${customName}"`);
+        }
+        
+        // Add custom_name to challengeData
+        if (customName) {
+          challengeData.custom_name = customName;
+        }
+      } catch (err) {
+        console.warn(`Request ${requestId}: Failed to generate custom name:`, err.message);
+      }
+    }
 
     // 3. Process playlists and scores
     const {
