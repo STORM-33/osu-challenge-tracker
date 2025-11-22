@@ -1,6 +1,5 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { validateRequest, handleAPIError, handleAPIResponse } from '../../../lib/api-utils';
-import { encryptToken, maskToken } from '../../../lib/token-encryption';
 
 const SCHEDULER_SECRET = process.env.SCHEDULER_SHARED_SECRET;
 
@@ -67,40 +66,43 @@ export default async function handler(req, res) {
 
 /**
  * POST - Create a new scheduled challenge
+ * NOTE: No longer requires osu_token in request body
  */
 async function handleCreate(req, res) {
   console.log('Creating scheduled challenge');
 
   try {
-    // Validate request
+    // Validate request - osu_token is now OPTIONAL for backward compatibility
     validateRequest(req, {
-    method: 'POST',
-    body: {
+      method: 'POST',
+      body: {
         osu_id: { required: true, type: 'number' },
         scheduled_time: { required: true, type: 'string' },
         room_data: { required: true, type: 'object' },
-        osu_token: { required: true, type: 'string' },
+        // osu_token is now optional (for backward compatibility)
+        osu_token: { required: false, type: 'string' },
         // Optional fields
         chat_messages: { required: false, type: 'array' },
         season_id: { required: false, type: 'number' }
-    }
+      }
     });
 
     const {
-    osu_id,
-    scheduled_time,
-    room_data,
-    osu_token,
-    chat_messages,
-    season_id
+      osu_id,
+      scheduled_time,
+      room_data,
+      osu_token, // Optional - legacy support
+      chat_messages,
+      season_id
     } = req.body;
 
     console.log(`Schedule request from osu_id ${osu_id}:`, {
-        room_name: room_data.name,
-        scheduled_time,
-        playlist_items: room_data.playlist.length,
-        has_chat_messages: !!chat_messages?.length
-        });
+      room_name: room_data.name,
+      scheduled_time,
+      playlist_items: room_data.playlist.length,
+      has_chat_messages: !!chat_messages?.length,
+      uses_stored_token: !osu_token // New workflow if no token provided
+    });
 
     // Verify user exists and is admin
     const { data: user, error: userError } = await supabaseAdmin
@@ -134,24 +136,51 @@ async function handleCreate(req, res) {
       });
     }
 
-    // Encrypt the osu! token
-    console.log('Encrypting osu! token:', maskToken(osu_token));
-    const encrypted_token = encryptToken(osu_token);
+    // NEW: If no token provided, check if user has stored token
+    if (!osu_token) {
+      console.log('ℹ️ No token provided, checking for stored token...');
+      
+      const { data: storedToken, error: tokenError } = await supabaseAdmin
+        .from('user_osu_tokens')
+        .select('id')
+        .eq('osu_id', osu_id)
+        .single();
+
+      if (tokenError || !storedToken) {
+        console.log('❌ User has no stored token');
+        return res.status(400).json({
+          success: false,
+          error: 'No stored token found. Please set your osu! token first using POST /api/admin/user-token',
+          code: 'NO_STORED_TOKEN'
+        });
+      }
+
+      console.log('✅ User has stored token, will use it at execution time');
+    }
+
+    // Legacy encryption handling (only if token provided)
+    let encrypted_token = null;
+    if (osu_token) {
+      console.log('⚠️ Using legacy token workflow (token provided in request)');
+      const { encryptToken, maskToken } = require('../../../lib/token-encryption');
+      console.log('Encrypting provided token:', maskToken(osu_token));
+      encrypted_token = encryptToken(osu_token);
+    }
 
     // Insert into database
     const { data: schedule, error: insertError } = await supabaseAdmin
-    .from('scheduled_challenges')
-    .insert({
+      .from('scheduled_challenges')
+      .insert({
         osu_id,
         scheduled_time: scheduledDate.toISOString(),
         room_data,
-        encrypted_token,
+        encrypted_token, // NULL for new workflow, encrypted for legacy
         chat_messages: chat_messages || [],
         season_id: season_id || null,
         status: 'pending'
-    })
-    .select()
-    .single();
+      })
+      .select()
+      .single();
 
     if (insertError) {
       console.error('❌ Database insert error:', insertError);
@@ -160,7 +189,8 @@ async function handleCreate(req, res) {
 
     console.log('✅ Schedule created:', {
       id: schedule.id,
-      scheduled_for: schedule.scheduled_time
+      scheduled_for: schedule.scheduled_time,
+      workflow: encrypted_token ? 'legacy' : 'new'
     });
 
     // Return response (without encrypted token)
@@ -270,7 +300,8 @@ async function handleUpdate(req, res) {
         // At least one field must be provided
         scheduled_time: { required: false, type: 'string' },
         room_data: { required: false, type: 'object' },
-        chat_messages: { required: false, type: 'array' }
+        chat_messages: { required: false, type: 'array' },
+        season_id: { required: false, type: 'number' } // NEW: Now supported
       }
     });
 

@@ -258,7 +258,7 @@ async function generateSvgGeneric(svgFile, profile, stats, streaks, leaderboard,
 		const base64 = buffer.toString("base64");
 		return `data:${contentType};base64,${base64}`;
 	  } catch (err) {
-		console.error("Failed to fetch osu avatar:", err);
+		console.error("Failed to fetch osu avatar:", err.message);
 
 		try {
 		  const fallbackRes = await fetch("https://paraliyzed.net/img/lara.png");
@@ -273,7 +273,9 @@ async function generateSvgGeneric(svgFile, profile, stats, streaks, leaderboard,
 	}
 
     const osuAvatar = await getOsuAvatar(profile?.username);
-    $("#pfp").attr("xlink:href", osuAvatar);
+    if (osuAvatar) {
+      $("#pfp").attr("xlink:href", osuAvatar);
+    }
   }
 
   const setText = (sel, val) => {
@@ -303,8 +305,12 @@ export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).send("Method not allowed");
 
   try {
-    const osuId = req.query.id || String(testOsuId);
+    const osuId = req.query.id;
     const option = req.query.option || "main";
+
+    if (!osuId) {
+      return res.status(400).send("osu ID is required");
+    }
 
     const rawInt = await callRpc("get_user_id_from_osu_id", { p_osu_id: osuId });
     const internalId =
@@ -321,13 +327,35 @@ export default async function handler(req, res) {
     }
 
     const profileRes = await fetch(
-      `https://www.challengersnexus.com/api/user/profile/${internalId}`
+      `https://www.challengersnexus.com/api/user/profile/${internalId}`,
+      {
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
     );
-    if (!profileRes.ok) throw new Error("Failed to fetch profile");
+    
+    if (!profileRes.ok) {
+      const errorText = await profileRes.text();
+      console.error('Profile fetch failed:', profileRes.status, errorText);
+      throw new Error(`Failed to fetch profile: ${profileRes.status}`);
+    }
+
     const profileData = await profileRes.json();
-    const profile = profileData?.data?.user || {};
-    const stats = profileData?.data?.stats || {};
-    const streaks = profileData?.data?.streaks || {};
+    
+    if (!profileData || !profileData.success || !profileData.data) {
+      console.error('Invalid profile data structure:', profileData);
+      throw new Error('Invalid profile data received');
+    }
+
+    const profile = profileData.data.user;
+    const stats = profileData.data.stats;
+    const streaks = profileData.data.streaks;
+
+    if (!profile || !profile.username) {
+      console.error('Profile missing required fields:', profile);
+      throw new Error('Profile data incomplete');
+    }
 
     const SEASON_ID = await callRpc("get_current_season_id", {});
     const leaderboard = await callRpc("get_season_leaderboard_with_user", {
@@ -347,10 +375,13 @@ export default async function handler(req, res) {
 	);
 
     res.setHeader("Content-Type", "image/svg+xml");
-    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Cache-Control", "public, max-age=300");
     res.send(outSvg);
   } catch (err) {
-    console.error(err);
+    console.error('Card API error:', err.message);
+    if (err.stack) {
+      console.error('Stack trace:', err.stack);
+    }
     res.status(500).send("Error: " + err.message);
   }
 }

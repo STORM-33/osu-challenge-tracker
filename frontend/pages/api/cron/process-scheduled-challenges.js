@@ -144,11 +144,54 @@ async function processSchedule(schedule) {
       };
     }
 
-    // Step 1: Decrypt and refresh token if needed
-    console.log('🔐 Step 1: Decrypting token...');
-    const tokenString = decryptToken(schedule.encrypted_token);
+    // Step 1: Get user's token (NEW WORKFLOW vs LEGACY)
+    console.log('🔐 Step 1: Retrieving user token...');
+    
+    let tokenString;
+    let tokenSource;
+    
+    // Check if schedule has embedded encrypted token (legacy)
+    if (schedule.encrypted_token) {
+      console.log('   Using legacy embedded token');
+      tokenString = decryptToken(schedule.encrypted_token);
+      tokenSource = 'embedded';
+    } else {
+      // NEW: Fetch from user_osu_tokens table
+      console.log(`   Fetching stored token for osu_id: ${schedule.osu_id}`);
+      
+      const { data: userToken, error: tokenError } = await supabaseAdmin
+        .from('user_osu_tokens')
+        .select('encrypted_token')
+        .eq('osu_id', schedule.osu_id)
+        .single();
+
+      if (tokenError || !userToken) {
+        console.error('❌ No stored token found for user');
+        
+        await supabaseAdmin
+          .from('scheduled_challenges')
+          .update({
+            status: 'failed',
+            error_message: 'No stored token found for user. User must set token via POST /api/admin/user-token',
+            executed_at: new Date().toISOString()
+          })
+          .eq('id', scheduleId);
+
+        return {
+          success: false,
+          scheduleId,
+          error: 'No stored token found'
+        };
+      }
+
+      tokenString = decryptToken(userToken.encrypted_token);
+      tokenSource = 'stored';
+      console.log('✅ Retrieved stored token');
+    }
+
     const { accessToken: originalAccessToken, refreshToken, expiresAt } = parseToken(tokenString);
     
+    console.log(`   Token source: ${tokenSource}`);
     console.log(`   Token expires: ${expiresAt.toISOString()}`);
     console.log(`   Token masked: ${maskToken(tokenString)}`);
 
@@ -156,6 +199,7 @@ async function processSchedule(schedule) {
     let newRefreshToken = refreshToken;
     let tokenRefreshed = false;
 
+    // Step 2: Refresh token if needed
     if (isTokenExpired(tokenString, 300)) { // 5 min buffer
       console.log('🔄 Token expired or expiring soon, refreshing...');
       
@@ -167,21 +211,34 @@ async function processSchedule(schedule) {
 
         // Calculate new expiry (convert seconds to timestamp)
         const newExpiresAt = Math.floor(Date.now() / 1000) + newTokens.expires_in;
-
-        // Update encrypted token in database for future use
         const newTokenString = createTokenString(accessToken, newExpiresAt, newRefreshToken);
         const newEncryptedToken = encryptToken(newTokenString);
 
-        await supabaseAdmin
-          .from('scheduled_challenges')
-          .update({ encrypted_token: newEncryptedToken })
-          .eq('id', scheduleId);
+        // Update token in appropriate location
+        if (tokenSource === 'embedded') {
+          // Legacy: update in scheduled_challenges table
+          await supabaseAdmin
+            .from('scheduled_challenges')
+            .update({ encrypted_token: newEncryptedToken })
+            .eq('id', scheduleId);
+          
+          console.log('✅ Token refreshed and updated in schedule (legacy)');
+        } else {
+          // NEW: update in user_osu_tokens table
+          await supabaseAdmin
+            .from('user_osu_tokens')
+            .update({ 
+              encrypted_token: newEncryptedToken,
+              updated_at: new Date().toISOString()
+            })
+            .eq('osu_id', schedule.osu_id);
+          
+          console.log('✅ Token refreshed and updated in user token storage');
+        }
 
-        console.log('✅ Token refreshed and updated in database');
       } catch (refreshError) {
         console.error('❌ Token refresh failed:', refreshError.message);
         
-        // Mark as failed
         await supabaseAdmin
           .from('scheduled_challenges')
           .update({
@@ -203,8 +260,8 @@ async function processSchedule(schedule) {
       console.log('✅ Token is still valid');
     }
 
-    // Step 2: Verify user is still admin
-    console.log('👤 Step 2: Verifying admin status...');
+    // Step 3: Verify user is still admin
+    console.log('👤 Step 3: Verifying admin status...');
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, osu_id, username, admin')
@@ -251,8 +308,8 @@ async function processSchedule(schedule) {
 
     console.log(`✅ User ${user.username} is still an admin`);
 
-    // Step 3: Create the room with retry logic
-    console.log('🎮 Step 3: Creating multiplayer room...');
+    // Step 4: Create the room with retry logic
+    console.log('🎮 Step 4: Creating multiplayer room...');
     
     let room = null;
     let lastError = null;
@@ -304,10 +361,10 @@ async function processSchedule(schedule) {
       };
     }
 
-    // Step 4: Send chat messages (if any)
+    // Step 5: Send chat messages (if any)
     let chatSent = true;
     if (schedule.chat_messages && schedule.chat_messages.length > 0) {
-      console.log('💬 Step 4: Sending chat messages...');
+      console.log('💬 Step 5: Sending chat messages...');
       
       try {
         await trackedOsuAPI.sendChatToRoom(
@@ -326,8 +383,8 @@ async function processSchedule(schedule) {
       console.log('ℹ️ No chat messages to send');
     }
 
-    // Step 5: Mark as completed
-    console.log('✅ Step 5: Marking as completed...');
+    // Step 6: Mark as completed
+    console.log('✅ Step 6: Marking as completed...');
     
     await supabaseAdmin
       .from('scheduled_challenges')
@@ -350,6 +407,7 @@ async function processSchedule(schedule) {
       roomName: room.name,
       chatSent,
       tokenRefreshed,
+      tokenSource,
       delaySeconds: Math.round(delay / 1000)
     };
 
