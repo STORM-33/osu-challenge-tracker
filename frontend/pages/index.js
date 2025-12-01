@@ -412,19 +412,15 @@ export default function AboutChallengers() {
                     <ul className="space-y-2 sm:space-y-3">
                       <li className="flex items-start gap-2 sm:gap-3">
                         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 text-white/70 icon-shadow-adaptive-sm" />
-                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">Each top score on a map = 1 raffle entry</span>
+                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">Entry requires completing each map</span>
                       </li>
                       <li className="flex items-start gap-2 sm:gap-3">
                         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 text-white/70 icon-shadow-adaptive-sm" />
-                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">Maximum entries = number of maps in the Playlist</span>
+                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">3 winners will be drawn</span>
                       </li>
                       <li className="flex items-start gap-2 sm:gap-3">
                         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 text-white/70 icon-shadow-adaptive-sm" />
-                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">3 winners drawn, all entries for a winner removed after selection</span>
-                      </li>
-                      <li className="flex items-start gap-2 sm:gap-3">
-                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 text-white/70 icon-shadow-adaptive-sm" />
-                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">More top scores = better odds, but still 1 month prize</span>
+                        <span className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">Names are removed once drawn</span>
                       </li>
                     </ul>
                   </div>
@@ -461,7 +457,7 @@ export default function AboutChallengers() {
                           6 Months of osu!supporter
                         </h5>
                         <p className="text-sm sm:text-base text-white/90 text-shadow-adaptive-sm">
-                          Plus your choice of official osu! merchandise!
+                          Plus your choice of official osu! merchandise up to 80USD total!
                         </p>
                       </div>
                     </div>
