@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     const gracePeriodAgo = new Date(now.getTime() - GRACE_PERIOD_MINUTES * 60 * 1000);
 
     console.log('🔍 Looking for pending schedules...');
-    console.log(`   Due between: ${gracePeriodAgo.toISOString()} and ${now.toISOString()}`);
+    console.log(`    Due between: ${gracePeriodAgo.toISOString()} and ${now.toISOString()}`);
 
     const { data: schedules, error: fetchError } = await supabaseAdmin
       .from('scheduled_challenges')
@@ -122,9 +122,9 @@ async function processSchedule(schedule) {
   const delay = Date.now() - scheduledFor.getTime();
   
   console.log(`\n🎯 Processing schedule #${scheduleId}:`);
-  console.log(`   Room: ${schedule.room_data?.name}`);
-  console.log(`   Scheduled for: ${scheduledFor.toISOString()}`);
-  console.log(`   Delay: ${Math.round(delay / 1000)}s`);
+  console.log(`    Room: ${schedule.room_data?.name}`);
+  console.log(`    Scheduled for: ${scheduledFor.toISOString()}`);
+  console.log(`    Delay: ${Math.round(delay / 1000)}s`);
 
   try {
     // Check if already being processed (race condition protection)
@@ -152,12 +152,12 @@ async function processSchedule(schedule) {
     
     // Check if schedule has embedded encrypted token (legacy)
     if (schedule.encrypted_token) {
-      console.log('   Using legacy embedded token');
+      console.log('    Using legacy embedded token');
       tokenString = decryptToken(schedule.encrypted_token);
       tokenSource = 'embedded';
     } else {
       // NEW: Fetch from user_osu_tokens table
-      console.log(`   Fetching stored token for osu_id: ${schedule.osu_id}`);
+      console.log(`    Fetching stored token for osu_id: ${schedule.osu_id}`);
       
       const { data: userToken, error: tokenError } = await supabaseAdmin
         .from('user_osu_tokens')
@@ -191,9 +191,9 @@ async function processSchedule(schedule) {
 
     const { accessToken: originalAccessToken, refreshToken, expiresAt } = parseToken(tokenString);
     
-    console.log(`   Token source: ${tokenSource}`);
-    console.log(`   Token expires: ${expiresAt.toISOString()}`);
-    console.log(`   Token masked: ${maskToken(tokenString)}`);
+    console.log(`    Token source: ${tokenSource}`);
+    console.log(`    Token expires: ${expiresAt.toISOString()}`);
+    console.log(`    Token masked: ${maskToken(tokenString)}`);
 
     let accessToken = originalAccessToken;
     let newRefreshToken = refreshToken;
@@ -317,7 +317,7 @@ async function processSchedule(schedule) {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`   Attempt ${attempt}/${maxRetries}...`);
+        console.log(`    Attempt ${attempt}/${maxRetries}...`);
         
         room = await trackedOsuAPI.createRoomWithUserToken(
           schedule.room_data,
@@ -383,6 +383,18 @@ async function processSchedule(schedule) {
       console.log('ℹ️ No chat messages to send');
     }
 
+    // Step 5.5: Immediately add to tracker (Call update-challenge logic)
+    console.log('📝 Step 5.5: Initializing tracker for new room...');
+    let trackerInitialized = false;
+    try {
+      await triggerImmediateUpdate(room.id);
+      trackerInitialized = true;
+      console.log('✅ Tracker initialized successfully');
+    } catch (trackError) {
+      console.error('⚠️ Failed to initialize tracker (non-fatal):', trackError.message);
+      // We log but don't fail, as the room exists on osu! now
+    }
+
     // Step 6: Mark as completed
     console.log('✅ Step 6: Marking as completed...');
     
@@ -397,8 +409,8 @@ async function processSchedule(schedule) {
       .eq('id', scheduleId);
 
     console.log(`🎉 Schedule #${scheduleId} completed successfully!`);
-    console.log(`   Room ID: ${room.id}`);
-    console.log(`   Room URL: https://osu.ppy.sh/multiplayer/rooms/${room.id}`);
+    console.log(`    Room ID: ${room.id}`);
+    console.log(`    Room URL: https://osu.ppy.sh/multiplayer/rooms/${room.id}`);
 
     return {
       success: true,
@@ -406,6 +418,7 @@ async function processSchedule(schedule) {
       roomId: room.id,
       roomName: room.name,
       chatSent,
+      trackerInitialized,
       tokenRefreshed,
       tokenSource,
       delaySeconds: Math.round(delay / 1000)
@@ -435,4 +448,41 @@ async function processSchedule(schedule) {
       error: error.message || 'Unknown error'
     };
   }
+}
+
+// Helper: Reuse the update-challenge logic via mock request
+// This ensures the room is added to the DB with all correct relations (season, scores, etc)
+async function triggerImmediateUpdate(roomId) {
+  // Dynamic import to allow running in cron context
+  const updateChallengeModule = await import('../update-challenge');
+  const updateHandler = updateChallengeModule.default;
+  
+  const mockReq = {
+    method: 'POST',
+    body: { roomId: parseInt(roomId) },
+    headers: { 'x-internal-call': 'true' }
+  };
+  
+  let responseData = null;
+  let responseStatus = 200;
+  
+  const mockRes = {
+    status: (code) => {
+      responseStatus = code;
+      return mockRes;
+    },
+    json: (data) => {
+      responseData = data;
+      return mockRes;
+    },
+    setHeader: () => mockRes
+  };
+  
+  await updateHandler(mockReq, mockRes);
+  
+  if (responseStatus >= 400) {
+    throw new Error(responseData?.error || 'Update handler returned error status');
+  }
+  
+  return responseData;
 }
