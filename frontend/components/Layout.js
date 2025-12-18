@@ -5,7 +5,6 @@ import { useAuth } from '../lib/AuthContext';
 import ChristmasSnowfall from './ChristmasSnowfall';
 import { useSettings } from '../lib/SettingsContext';
 import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Home, Settings, ChevronDown, MessageCircle } from 'lucide-react';
-import ChristmasTree from './ChristmasTree';
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
   const { user, loading, isAdmin, signOut } = useAuth(); 
@@ -19,6 +18,42 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
   const [bgReady, setBgReady] = useState(false);
   const dropdownRef = useRef(null);
   const router = useRouter();
+
+  // DEBUG LOGGING
+  useEffect(() => {
+    console.log('[Layout] Component mounted');
+    console.log('[Layout] Browser:', navigator.userAgent);
+    console.log('[Layout] Window size:', window.innerWidth, 'x', window.innerHeight);
+    
+    // Check if nav exists after render
+    setTimeout(() => {
+      const nav = document.querySelector('nav.hidden.md\\:flex');
+      const navLinks = document.querySelectorAll('nav.hidden.md\\:flex a, nav.hidden.md\\:flex button');
+      
+      console.log('[Layout] Nav element exists:', !!nav);
+      console.log('[Layout] Nav links found:', navLinks.length);
+      
+      if (nav) {
+        const rect = nav.getBoundingClientRect();
+        const styles = window.getComputedStyle(nav);
+        console.log('[Layout] Nav dimensions:', rect.width, 'x', rect.height);
+        console.log('[Layout] Nav position:', rect.left, rect.top);
+        console.log('[Layout] Nav display:', styles.display);
+        console.log('[Layout] Nav visibility:', styles.visibility);
+        console.log('[Layout] Nav opacity:', styles.opacity);
+      }
+    }, 500);
+  }, []);
+
+  // Log auth state changes
+  useEffect(() => {
+    console.log('[Layout] Auth state - loading:', loading, 'user:', !!user, 'isAdmin:', isAdmin);
+  }, [loading, user, isAdmin]);
+
+  // Log settings state
+  useEffect(() => {
+    console.log('[Layout] Settings - loading:', settingsLoading, 'isFromCache:', isFromCache, 'bgReady:', bgReady);
+  }, [settingsLoading, isFromCache, bgReady]);
 
   // Mark background as ready after settings load or immediately if from cache
   useEffect(() => {
@@ -283,7 +318,9 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-2 relative">
-              {navItems.map((item) => (
+              {navItems.map((item) => {
+              console.log('[Layout] Rendering nav item:', item.label);
+              return (
                 item.external ? (
                   <a 
                     key={item.href}
@@ -344,7 +381,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                     )}
                   </Link>
                 )
-              ))}
+              )})}
               {/* Auth Section */}
               {loading ? (
                 <div className="px-5 py-2.5 text-white/50 text-shadow-adaptive-sm">Loading...</div>
