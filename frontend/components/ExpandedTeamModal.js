@@ -2,6 +2,7 @@ import FormattedDescription from '../lib/text-formatting';
 import { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
 import { X, Github, Twitter, ExternalLink } from 'lucide-react';
 import ChristmasTree from './ChristmasTree';
+import { createPortal } from 'react-dom';
 
 const ExpandedTeamModal = memo(function ExpandedTeamModal({ 
   member, 
@@ -12,12 +13,17 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
   const modalRef = useRef(null);
   const [animationPhase, setAnimationPhase] = useState('entering');
   const [isMobile, setIsMobile] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   
   // ))) state 
   const [clickCount, setClickCount] = useState(0);
   const [joke, setJoke] = useState(null);
   const [showJokeModal, setShowJokeModal] = useState(false);
   const [jokeAnimating, setJokeAnimating] = useState(false);
+
+  useEffect(() => {  // <-- Move here, inside component
+    setIsMounted(true);
+  }, []);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -425,16 +431,16 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
       )}
 
       {/* ))) Panel */}
-      {showJokeModal && (
+      {showJokeModal && createPortal(
         <div 
-          className="fixed top-0 left-0 right-0 z-[60] p-4"
+          className="fixed top-0 left-0 right-0 z-[100] p-4"
           style={{
             animation: jokeAnimating 
               ? 'slideUpSlow 4s ease-in forwards' 
               : 'slideDownSlow 4s ease-out forwards'
           }}
         >
-          <style jsx>{`
+                <style jsx>{`
             @keyframes slideDownSlow {
               from {
                 transform: translateY(-100%);
@@ -464,7 +470,8 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
               {joke}
             </p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
