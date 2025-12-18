@@ -73,9 +73,6 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
 
   // ))) click handler
   const handleAvatarClick = useCallback(async () => {
-    if (member?.id !== 2 && member?.name !== 'Storm') {
-      return;
-    }
 
     const newCount = clickCount + 1;
     setClickCount(newCount);
@@ -366,7 +363,7 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
                 className={`
                   rounded-3xl overflow-hidden bg-white shadow-lg avatar-border
                   ${isMobile ? 'w-20 h-20 rounded-2xl' : 'w-24 h-24'}
-                  ${member?.id === 2 || member?.name === 'Storm' ? 'cursor-pointer' : ''}
+                  cursor-pointer
                 `}
               >
                 <img
