@@ -75,18 +75,18 @@
   }
   
   .nav-pill-active {
-    @apply nav-pill backdrop-blur-md bg-white/35 text-white;
+    @apply nav-pill backdrop-blur-sm bg-white/35 text-white;
     border: 3px solid rgba(255, 255, 255, 0.6);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   
   .nav-pill-inactive {
-    @apply nav-pill backdrop-blur-md bg-white/15 text-white/90;
+    @apply nav-pill backdrop-blur-sm bg-white/15 text-white/90;
     border: 3px solid transparent;
   }
   
   .nav-pill-inactive:hover {
-    @apply backdrop-blur-md bg-white/35 text-white;
+    @apply backdrop-blur-sm bg-white/35 text-white;
     border: 3px solid rgba(255, 255, 255, 0.8);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }

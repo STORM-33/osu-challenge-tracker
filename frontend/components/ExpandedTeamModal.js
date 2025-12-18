@@ -1,6 +1,7 @@
 import FormattedDescription from '../lib/text-formatting';
 import { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
 import { X, Github, Twitter, ExternalLink } from 'lucide-react';
+import ChristmasTree from './ChristmasTree';
 
 const ExpandedTeamModal = memo(function ExpandedTeamModal({ 
   member, 
@@ -84,7 +85,7 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
         setClickCount(0);
       } catch (error) {
         console.error('Error fetching joke:', error);
-        setJoke("Why did the programmer quit his job? Because he didn't get arrays! 🎮");
+        setJoke("Why did the programmer quit his job? Because he didn't get arrays!");
         setShowJokeModal(true);
         setClickCount(0);
       }
@@ -417,6 +418,11 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
           </div>
         </div>
       </div>
+
+      {/* Christmas Tree */}
+      {(member?.id === 2 || member?.name === 'Storm') && (
+        <ChristmasTree position="absolute" />
+      )}
 
       {/* ))) Panel */}
       {showJokeModal && (
