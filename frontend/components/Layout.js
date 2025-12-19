@@ -4,19 +4,21 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../lib/AuthContext';
 import ChristmasSnowfall from './ChristmasSnowfall';
 import { useSettings } from '../lib/SettingsContext';
-import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Home, Settings, ChevronDown, MessageCircle } from 'lucide-react';
+import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Home, Settings, ChevronDown, MessageCircle, MoreHorizontal } from 'lucide-react';
 
 export default function Layout({ children, backgroundImage = '/default-bg.png' }) {
   const { user, loading, isAdmin, signOut } = useAuth(); 
   const { backgroundStyle, loading: settingsLoading, isFromCache } = useSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [hoverTimeout, setHoverTimeout] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [bgReady, setBgReady] = useState(false);
   const dropdownRef = useRef(null);
+  const moreDropdownRef = useRef(null);
   const router = useRouter();
 
   // DEBUG LOGGING
@@ -65,13 +67,17 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
   // Close mobile menu when route changes
   useEffect(() => {
     setMobileMenuOpen(false);
+    setMoreDropdownOpen(false);
   }, [router.pathname]);
 
-  // Close profile dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setProfileDropdownOpen(false);
+      }
+      if (moreDropdownRef.current && !moreDropdownRef.current.contains(event.target)) {
+        setMoreDropdownOpen(false);
       }
     }
 
@@ -145,15 +151,124 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
     }
   };
 
-  // Navigation items configuration
-  const navItems = [
+  // Primary navigation items
+  const primaryNavItems = [
     { href: '/', label: 'home', icon: Home },
     { href: '/challenges', label: 'challenges', icon: Trophy },
     { href: '/leaderboard', label: 'leaderboard', icon: BarChart3 },
+  ];
+
+  // Secondary navigation items
+  const secondaryNavItems = [
     { href: '/donate', label: 'donate', icon: Heart },
     { href: '/partners', label: 'partners', icon: Link2 },
     { href: 'https://discord.com/invite/FbXx6uZpUg', label: 'discord', icon: MessageCircle, external: true },
   ];
+
+  // All navigation items combined
+  const allNavItems = [...primaryNavItems, ...secondaryNavItems];
+
+  // Render a single nav item
+  const renderNavItem = (item, inDropdown = false) => {
+    const isActive = router.pathname === item.href;
+    
+    if (inDropdown) {
+      // Dropdown item styling
+      if (item.external) {
+        return (
+          <a
+            key={item.href}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full px-5 py-3 text-left hover:bg-white/10 transition-colors flex items-center gap-3 text-white/90 hover:text-white"
+            onClick={() => setMoreDropdownOpen(false)}
+          >
+            <item.icon className="w-4 h-4" />
+            <span className="font-medium text-sm text-shadow-adaptive-lg">{item.label}</span>
+          </a>
+        );
+      }
+      return (
+        <Link
+          key={item.href}
+          href={item.href}
+          prefetch={false}
+          className="w-full px-5 py-3 text-left hover:bg-white/10 transition-colors flex items-center gap-3 text-white/90 hover:text-white"
+          onClick={() => setMoreDropdownOpen(false)}
+        >
+          <item.icon className="w-4 h-4" />
+          <span className="font-medium text-sm text-shadow-adaptive-lg">{item.label}</span>
+        </Link>
+      );
+    }
+
+    // Inline nav pill styling
+    if (item.external) {
+      return (
+        <a 
+          key={item.href}
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="nav-pill-inactive text-shadow-adaptive-sm hover:nav-pill-active relative"
+          onMouseEnter={() => handleMouseEnter(item.href)}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div className="flex items-center gap-2">
+            <item.icon className="w-4 h-4 icon-shadow-adaptive-sm" />
+            {item.label}
+          </div>
+          
+          {/* Tooltip */}
+          {hoveredItem === item.href && showTooltip && (
+            <div 
+              className={`absolute top-full mt-2 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-out ${
+                tooltipVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+              }`}
+            >
+              <div className="glass-3 rounded-lg px-3 py-2 text-sm text-white font-medium text-shadow-adaptive-sm whitespace-nowrap">
+                Just click bro
+                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 glass-3 rotate-45"></div>
+              </div>
+            </div>
+          )}
+        </a>
+      );
+    }
+
+    return (
+      <Link 
+        key={item.href}
+        href={item.href}
+        prefetch={false}
+        className={
+          isActive 
+            ? 'nav-pill-active text-shadow-adaptive-sm relative'
+            : 'nav-pill-inactive text-shadow-adaptive-sm relative'
+        }
+        onMouseEnter={() => handleMouseEnter(item.href)}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className="flex items-center gap-2">
+          <item.icon className="w-4 h-4 icon-shadow-adaptive-sm" />
+          {item.label}
+        </div>
+        
+        {/* Tooltip */}
+        {hoveredItem === item.href && showTooltip && (
+          <div className={`absolute top-full mt-2 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-out ${
+              tooltipVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}>
+            <div className="glass-3 rounded-lg px-3 py-2 text-sm text-white font-medium text-shadow-adaptive-sm whitespace-nowrap">
+              Just click bro
+              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 glass-3 rotate-45"></div>
+            </div>
+          </div>
+        )}
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-screen relative">
@@ -301,7 +416,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
               <img 
                 src="/logo.png" 
                 alt="osu!Challengers Nexus"
-                className="h-12 md:h-16"
+                className="h-10 md:h-12 lg:h-16"
                 onError={(e) => {
                   // Fallback to text if logo doesn't load
                   e.target.style.display = 'none';
@@ -317,85 +432,63 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-2 relative">
-              {navItems.map((item) => {
-              console.log('[Layout] Rendering nav item:', item.label);
-              return (
-                item.external ? (
-                  <a 
-                    key={item.href}
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="nav-pill-inactive text-shadow-adaptive-sm hover:nav-pill-active relative"
-                    onMouseEnter={() => handleMouseEnter(item.href)}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    <div className="flex items-center gap-2">
-                      <item.icon className="w-4 h-4 icon-shadow-adaptive-sm" />
-                      {item.label}
-                    </div>
-                    
-                    {/* Tooltip */}
-                    {hoveredItem === item.href && showTooltip && (
+            <nav className="hidden md:flex flex-1 items-center justify-center gap-1 lg:gap-2 relative">
+              {/* Primary nav items - always visible on md+ */}
+              {primaryNavItems.map((item) => {
+                console.log('[Layout] Rendering nav item:', item.label);
+                return renderNavItem(item);
+              })}
+
+              {/* Secondary nav items - only visible on xl+ */}
+              <div className="hidden xl:contents">
+                {secondaryNavItems.map((item) => {
+                  console.log('[Layout] Rendering nav item:', item.label);
+                  return renderNavItem(item);
+                })}
+              </div>
+
+              {/* "More" dropdown - only visible on md to xl */}
+              <div className="xl:hidden relative" ref={moreDropdownRef}>
+                <button
+                  onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
+                  className={`nav-pill-more text-shadow-adaptive-sm flex items-center gap-2 ${moreDropdownOpen ? 'nav-pill-more-active' : ''}`}
+                >
+                  <MoreHorizontal className="w-4 h-4 icon-shadow-adaptive-sm" />
+                  <span>more</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${moreDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* More Dropdown */}
+                {moreDropdownOpen && (
+                  <div className="absolute top-full right-0 w-48 mt-2 season-dropdown rounded-2xl shadow-lg z-[100] backdrop-blur-lg overflow-hidden">
+                    {secondaryNavItems.map((item, index) => (
                       <div 
-                        className={`absolute top-full mt-2 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-out ${
-                          tooltipVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-                        }`}
+                        key={item.href}
+                        className={index < secondaryNavItems.length - 1 ? 'border-b border-white/10' : ''}
                       >
-                        <div className="glass-3 rounded-lg px-3 py-2 text-sm text-white font-medium text-shadow-adaptive-sm whitespace-nowrap">
-                          Just click bro
-                          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 glass-3 rotate-45"></div>
-                        </div>
+                        {renderNavItem(item, true)}
                       </div>
-                    )}
-                  </a>
-                ) : (
-                  <Link 
-                    key={item.href}
-                    href={item.href}
-                    prefetch={false}
-                    className={
-                      router.pathname === item.href 
-                        ? 'nav-pill-active text-shadow-adaptive-sm relative'
-                        : 'nav-pill-inactive text-shadow-adaptive-sm relative'
-                    }
-                    onMouseEnter={() => handleMouseEnter(item.href)}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    <div className="flex items-center gap-2">
-                      <item.icon className="w-4 h-4 icon-shadow-adaptive-sm" />
-                      {item.label}
-                    </div>
-                    
-                    {/* Tooltip */}
-                    {hoveredItem === item.href && showTooltip && (
-                      <div className={`absolute top-full mt-2 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-out ${
-                          tooltipVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-                        }`}>
-                        <div className="glass-3 rounded-lg px-3 py-2 text-sm text-white font-medium text-shadow-adaptive-sm whitespace-nowrap">
-                          Just click bro
-                          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 glass-3 rotate-45"></div>
-                        </div>
-                      </div>
-                    )}
-                  </Link>
-                )
-              )})}
-              {/* Auth Section */}
+                    ))}
+                  </div>
+                )}
+              </div>
+            </nav>
+
+            {/* Auth Section */}
+            <div className="hidden md:block">
               {loading ? (
                 <div className="px-5 py-2.5 text-white/50 text-shadow-adaptive-sm">Loading...</div>
               ) : !user ? (
                 <Link 
                   href="/api/auth/login"
                   prefetch={false}
-                  className="btn-primary ml-4 text-shadow-adaptive-sm flex items-center gap-2"
+                  className="btn-primary text-shadow-adaptive-sm flex items-center gap-2"
                 >
                   <LogIn className="w-4 h-4 icon-shadow-adaptive-sm" />
                   log in with osu!
                 </Link>
               ) : (
-                <div className="relative ml-4" ref={dropdownRef}>
+                <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                     className="flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md bg-white/15 hover:bg-white/20 transition-all duration-300 border-2 border-white/20 hover:border-white/30"
@@ -411,7 +504,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                         <User className="w-4 h-4" />
                       </div>
                     )}
-                    <div className="flex flex-col text-left">
+                    <div className="hidden lg:flex flex-col text-left">
                       <span className="text-sm font-medium text-white text-shadow-adaptive-sm leading-tight">
                         {user.username}
                       </span>
@@ -471,7 +564,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
                   )}
                 </div>
               )}
-            </nav>
+            </div>
 
             {/* Mobile Navigation */}
             <div className="md:hidden flex items-center gap-2">
@@ -540,8 +633,8 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
 
               {/* Mobile Menu Content */}
               <div className="p-4 space-y-2">
-                {/* Navigation Items */}
-                {navItems.map((item) => (
+                {/* Navigation Items - all items for mobile */}
+                {allNavItems.map((item) => (
                 item.external ? (
                   <a 
                     key={item.href}
