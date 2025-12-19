@@ -30,71 +30,100 @@
 
 @layer components {
   
+  /* ============================================
+     GLASS EFFECTS
+     ============================================ */
+  
   .glass-1 {
-    @apply backdrop-blur-sm bg-white/20;
+    background: rgba(255, 255, 255, 0.20);
     border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07), 0 0 10px rgba(255, 255, 255, 0.1);
   }
   
   .glass-2 {
-    @apply backdrop-blur-sm bg-white/25;
+    background: rgba(255, 255, 255, 0.25);
     border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1), 0 0 10px rgba(255, 255, 255, 0.125);
   }
   
   .glass-3 {
-    @apply backdrop-blur-md bg-white/30;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    background: rgba(255, 255, 255, 0.30);
     border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15), 0 0 10px rgba(255, 255, 255, 0.15);
   }
   
   .glass-4 {
-    @apply backdrop-blur-md bg-white/35;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.35);
     border: 3px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2), 0 0 10px rgba(255, 255, 255, 0.2);
   }
 
   /* Glass Hover Effects */
   .glass-hover:hover {
-    @apply bg-white/40 border-white/30 transition-all duration-300;
+    background: rgba(255, 255, 255, 0.40);
+    border-color: rgba(255, 255, 255, 0.30);
     box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
+    transition: all 0.3s ease;
   }
 
   /* Special Glass Variants */
   .glass-dark {
-    @apply backdrop-blur-md bg-black/20 border border-white/10;
+    background: rgba(0, 0, 0, 0.20);
+    border: 1px solid rgba(255, 255, 255, 0.10);
   }
   
   .glass-primary {
-    @apply backdrop-blur-md bg-primary-500/10 border border-primary-500/20;
+    background: rgba(236, 72, 153, 0.10);
+    border: 1px solid rgba(236, 72, 153, 0.20);
   }
 
-  /* Neon Navigation Pills */
+  /* ============================================
+     NAVIGATION
+     ============================================ */
+  
   .nav-pill {
     @apply px-5 py-2.5 rounded-full font-medium transition-all duration-300;
   }
   
   .nav-pill-active {
-    @apply nav-pill backdrop-blur-sm bg-white/35 text-white;
+    @apply nav-pill;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.35);
+    color: white;
     border: 3px solid rgba(255, 255, 255, 0.6);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   
   .nav-pill-inactive {
-    @apply nav-pill backdrop-blur-sm bg-white/15 text-white/90;
+    @apply nav-pill;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
     border: 3px solid transparent;
   }
   
   .nav-pill-inactive:hover {
-    @apply backdrop-blur-sm bg-white/35 text-white;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.35);
+    color: white;
     border: 3px solid rgba(255, 255, 255, 0.8);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
-  /* Neon Button Styles */
+  /* ============================================
+     BUTTONS
+     ============================================ */
+  
   .btn-primary {
     @apply px-6 py-3 rounded-full font-semibold transition-all duration-300;
-    @apply backdrop-blur-md text-white;
+    color: white;
     background: linear-gradient(to bottom, #b43b77, #8f2f5d);
     border: 3px solid rgba(244, 114, 182, 1);
   }
@@ -107,37 +136,77 @@
   
   .btn-secondary {
     @apply px-6 py-3 rounded-full font-semibold transition-all duration-300;
-    @apply backdrop-blur-md bg-white/30 text-white;
+    background: rgba(255, 255, 255, 0.30);
+    color: white;
     border: 3px solid transparent;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
   
   .btn-secondary:hover {
-    @apply backdrop-blur-md bg-white/30 text-white;
+    background: rgba(255, 255, 255, 0.30);
+    color: white;
     border: 3px solid rgba(255, 255, 255, 0.8);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
   }
 
-  /* Card Components */
+  /* ============================================
+     CARD COMPONENTS
+     ============================================ */
+  
   .challenge-card {
-    @apply glass-2 rounded-2xl p-6 transition-all duration-300;
-    @apply hover:scale-[1.02] hover:shadow-xl;
+    background: rgba(255, 255, 255, 0.25);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .challenge-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
   }
   
   .stat-card {
-    @apply glass-3 rounded-xl p-4 text-center;
+    background: rgba(255, 255, 255, 0.30);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    text-align: center;
   }
   
   .leaderboard-item {
-    @apply glass-1 rounded-xl px-6 py-4 transition-all duration-200;
-    @apply hover:glass-2 hover:scale-[1.01];
+    background: rgba(255, 255, 255, 0.20);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    border-radius: 0.75rem;
+    padding: 1rem 1.5rem;
+    transition: all 0.2s ease;
+  }
+  
+  .leaderboard-item:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.01);
   }
 
-  /* Info Cards with Gradient Icons */
+  /* ============================================
+     INFO CARDS
+     ============================================ */
+  
   .info-card {
-    @apply glass-3 rounded-2xl p-6 transition-all duration-300;
-    @apply hover:shadow-xl hover:scale-[1.02];
+    background: rgba(255, 255, 255, 0.30);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .info-card:hover {
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+    transform: scale(1.02);
   }
   
   .icon-wrapper {
@@ -168,75 +237,138 @@
     background: linear-gradient(to bottom, #9f5dbf, #6d3f87);
   }
 
-  /* Podium Cards for Top 3 */
+  /* ============================================
+     PODIUM CARDS
+     ============================================ */
+  
   .podium-card {
-    @apply glass-3 rounded-2xl p-6 text-center transform transition-all duration-300;
-    @apply hover:scale-105 hover:shadow-2xl;
+    background: rgba(255, 255, 255, 0.30);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    text-align: center;
+    transform-origin: center;
+    transition: all 0.3s ease;
+  }
+  
+  .podium-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 16px 48px 0 rgba(31, 38, 135, 0.2);
   }
   
   .podium-1st {
-    @apply bg-gradient-to-br from-blue-100/60 to-blue-200/60 border-blue-200/50;
+    background: linear-gradient(to bottom right, rgba(191, 219, 254, 0.6), rgba(147, 197, 253, 0.6));
+    border-color: rgba(147, 197, 253, 0.5);
   }
   
   .podium-2nd {
-    @apply bg-gradient-to-br from-purple-100/60 to-purple-200/60 border-purple-200/50;
+    background: linear-gradient(to bottom right, rgba(233, 213, 255, 0.6), rgba(196, 181, 253, 0.6));
+    border-color: rgba(196, 181, 253, 0.5);
   }
   
   .podium-3rd {
-    @apply bg-gradient-to-br from-red-100/60 to-red-200/60 border-red-200/50;
+    background: linear-gradient(to bottom right, rgba(254, 202, 202, 0.6), rgba(252, 165, 165, 0.6));
+    border-color: rgba(252, 165, 165, 0.5);
   }
 
-  /* Difficulty Badges */
+  /* ============================================
+     DIFFICULTY BADGES
+     ============================================ */
+  
   .difficulty-badge {
     @apply px-3 py-1 rounded-full text-xs font-semibold border;
   }
   
   .difficulty-easy {
-    @apply bg-green-100/80 text-green-700 border-green-300/50;
+    background: rgba(187, 247, 208, 0.8);
+    color: #166534;
+    border-color: rgba(134, 239, 172, 0.5);
   }
   
   .difficulty-normal {
-    @apply bg-blue-100/80 text-blue-700 border-blue-300/50;
+    background: rgba(191, 219, 254, 0.8);
+    color: #1e3a8a;
+    border-color: rgba(147, 197, 253, 0.5);
   }
   
   .difficulty-hard {
-    @apply bg-yellow-100/80 text-yellow-700 border-yellow-300/50;
+    background: rgba(254, 240, 138, 0.8);
+    color: #713f12;
+    border-color: rgba(253, 224, 71, 0.5);
   }
   
   .difficulty-insane {
-    @apply bg-orange-100/80 text-orange-700 border-orange-300/50;
+    background: rgba(254, 215, 170, 0.8);
+    color: #7c2d12;
+    border-color: rgba(251, 146, 60, 0.5);
   }
   
   .difficulty-expert {
-    @apply bg-red-100/80 text-red-700 border-red-300/50;
+    background: rgba(254, 202, 202, 0.8);
+    color: #7f1d1d;
+    border-color: rgba(252, 165, 165, 0.5);
   }
   
   .difficulty-extreme {
-    @apply bg-purple-100/80 text-purple-700 border-purple-300/50;
+    background: rgba(233, 213, 255, 0.8);
+    color: #581c87;
+    border-color: rgba(196, 181, 253, 0.5);
   }
 
-  /* Dropdown/Select Styles */
+  /* ============================================
+     DROPDOWN/SELECT
+     ============================================ */
+  
   .select-glass {
-    @apply glass-3 rounded-full px-4 py-2 pr-10 font-medium;
-    @apply focus:outline-none focus:ring-2 focus:ring-white/50;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    background: rgba(255, 255, 255, 0.30);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-radius: 9999px;
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    font-weight: 500;
+  }
+  
+  .select-glass:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
   }
 
-  /* Loading States */
+  /* ============================================
+     LOADING STATES
+     ============================================ */
+  
   .skeleton {
-    @apply animate-pulse bg-white/20 rounded;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    background: rgba(255, 255, 255, 0.20);
+    border-radius: 0.25rem;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
   
   .skeleton-text {
-    @apply h-4 skeleton mb-2 last:mb-0;
+    height: 1rem;
+    @apply skeleton mb-2 last:mb-0;
   }
   
   .skeleton-box {
-    @apply skeleton rounded-xl;
+    @apply skeleton;
+    border-radius: 0.75rem;
   }
 
-  /* Challenge Type Badge Styles */
+  /* ============================================
+     CHALLENGE TYPE BADGES
+     ============================================ */
+  
   .challenge-badge-weekly {
-    @apply px-3 py-1.5 rounded-full font-semibold text-xs sm:text-sm;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.75rem;
     background: linear-gradient(to bottom, #16adda, #2f89ef);
     color: white;
     border: 3px solid #4dd4f0;
@@ -247,8 +379,17 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
+  @media (min-width: 640px) {
+    .challenge-badge-weekly {
+      font-size: 0.875rem;
+    }
+  }
+
   .challenge-badge-monthly {
-    @apply px-3 py-1.5 rounded-full font-semibold text-xs sm:text-sm;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.75rem;
     background: linear-gradient(to bottom, #b666d2, #9d6bb3);
     color: white;
     border: 3px solid #ea82d5;
@@ -259,8 +400,17 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
+  @media (min-width: 640px) {
+    .challenge-badge-monthly {
+      font-size: 0.875rem;
+    }
+  }
+
   .challenge-badge-custom {
-    @apply px-3 py-1.5 rounded-full font-semibold text-xs sm:text-sm;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.75rem;
     background: linear-gradient(to bottom, #f6b026, #d9703f);
     color: white;
     border: 3px solid #ffd75a;
@@ -271,6 +421,13 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
+  @media (min-width: 640px) {
+    .challenge-badge-custom {
+      font-size: 0.875rem;
+    }
+  }
+
+  /* Range slider styles */
   .slider {
     -webkit-appearance: none;
     appearance: none;
@@ -314,26 +471,26 @@
     min-height: -webkit-fill-available;
   }
 
-  /* Icon-style badge classes that match the gradient and border pattern */
+  /* Icon-style badge classes */
   .badge-icon-green {
-    background: linear-gradient(to bottom, #22c065, #16a66d); /* matches icon-gradient-green */
-    border: 3px solid rgba(134, 239, 172, 1); /* matches green-outline and icon-container-green */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* matches icon-container-green */
+    background: linear-gradient(to bottom, #22c065, #16a66d);
+    border: 3px solid rgba(134, 239, 172, 1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     color: white;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     font-weight: 600;
   }
   
   .badge-icon-orange {
-    background: linear-gradient(to bottom, #f6b026, #d9703f); /* matches icon-gradient-orange */
-    border: 3px solid #ffd75a; /* matches icon-container-orange */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* matches icon-container-orange */
+    background: linear-gradient(to bottom, #f6b026, #d9703f);
+    border: 3px solid #ffd75a;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     color: white;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     font-weight: 600;
   }
 
-  /* Adaptive Text Shadows for Readability on Any Background */
+  /* Adaptive Text Shadows for Readability */
   .text-shadow-adaptive-sm {
     text-shadow: 
       0 1px 2px rgba(0, 0, 0, 0.3),
@@ -377,32 +534,44 @@
 
   /* Gradient Text */
   .text-gradient-primary {
-    @apply bg-gradient-to-r from-primary-500 to-pink-500 bg-clip-text text-transparent;
+    background: linear-gradient(to right, #ec4899, #f472b6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   
   .text-gradient-blue {
-    @apply bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent;
+    background: linear-gradient(to right, #3b82f6, #06b6d4);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   
   .text-gradient-purple {
-    @apply bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent;
+    background: linear-gradient(to right, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   
   .text-gradient-green {
-    @apply bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent;
+    background: linear-gradient(to right, #10b981, #059669);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   /* Gradient Backgrounds */
   .bg-gradient-primary {
-    @apply bg-gradient-to-r from-primary-500 to-pink-500;
+    background: linear-gradient(to right, #ec4899, #f472b6);
   }
   
   .bg-gradient-info {
-    @apply bg-gradient-to-br from-blue-500 to-cyan-500;
+    background: linear-gradient(to bottom right, #3b82f6, #06b6d4);
   }
   
   .bg-gradient-success {
-    @apply bg-gradient-to-br from-green-500 to-emerald-500;
+    background: linear-gradient(to bottom right, #10b981, #059669);
   }
 
   /* Custom Scrollbar */
@@ -503,11 +672,11 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
-  /* Podium section override for glass-2 background within glass-1 container */
+  /* Podium section backgrounds */
   .podium-glass-2-bg {
     background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(12px);
   }
+  
   .podium-bg-blue {
     background: linear-gradient(to bottom, rgba(59, 130, 246, 0.8), rgba(29, 78, 216, 0.8));
   }
@@ -613,8 +782,10 @@
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
+  /* Season dropdown */
   .season-dropdown {
-    @apply backdrop-blur-md;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     background-color: rgba(255, 255, 255, 0.22);
     border: 3px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -637,7 +808,12 @@
   }
 
   .slider-track {
-    @apply glass-2 rounded-full p-1 flex relative;
+    background: rgba(255, 255, 255, 0.25);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-radius: 9999px;
+    padding: 0.25rem;
+    display: flex;
+    position: relative;
     min-width: 300px;
     box-shadow: 
       0 4px 6px -1px rgba(0, 0, 0, 0.1),
@@ -651,7 +827,7 @@
     top: 4px;
     bottom: 4px;
     left: 4px;
-    width: calc(25% - 8px); /* Fixed: account for padding on both sides */
+    width: calc(25% - 8px);
     background: linear-gradient(to bottom, #e19d2c, #d1653a);
     border: 3px solid rgba(252, 211, 77, 1);
     border-radius: 9999px;
@@ -663,71 +839,28 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
-  /* Fixed positioning calculations */
   .slider-thumb-second {
-    left: calc(25% + 4px); /* 25% + half the padding */
+    left: calc(25% + 4px);
   }
 
   .slider-thumb-third {
-    left: calc(50% + 4px); /* 50% + half the padding */
+    left: calc(50% + 4px);
   }
 
   .slider-thumb-fourth {
-    left: calc(75% + 4px); /* 75% + half the padding */
+    left: calc(75% + 4px);
   }
 
   .slider-option {
-    @apply relative z-10 px-3 py-2 rounded-full font-medium transition-all duration-300;
+    position: relative;
+    z-index: 10;
+    padding: 0.5rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 500;
+    transition: all 0.3s ease;
     flex: 1;
     text-align: center;
     font-size: 0.75rem;
-    line-height: 1.25rem;
-    color: rgba(255, 255, 255, 1);
-    text-shadow: 
-      0 1px 2px rgba(0, 0, 0, 0.4),
-      0 2px 4px rgba(0, 0, 0, 0.3),
-      0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  /* Alternative solution with more precise calculations */
-  .slider-thumb-alt {
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    width: calc((100% - 8px) / 4); /* Total width minus padding, divided by 4 */
-    background: linear-gradient(to bottom, #e19d2c, #d1653a);
-    border: 3px solid rgba(252, 211, 77, 1);
-    border-radius: 9999px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 
-      0 0 8px rgba(252, 211, 77, 0.5),
-      0 4px 8px rgba(0, 0, 0, 0.2),
-      0 2px 4px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-
-  /* Alternative positioning - more mathematically precise */
-  .slider-thumb-alt.slider-thumb-first {
-    left: 4px;
-  }
-
-  .slider-thumb-alt.slider-thumb-second {
-    left: calc(4px + (100% - 8px) / 4);
-  }
-
-  .slider-thumb-alt.slider-thumb-third {
-    left: calc(4px + (100% - 8px) / 4 * 2);
-  }
-
-  .slider-thumb-alt.slider-thumb-fourth {
-    left: calc(4px + (100% - 8px) / 4 * 3);
-  }
-
-  .slider-option {
-    @apply relative z-10 px-3 py-2 rounded-full font-medium transition-all duration-300; /* Reduced px-4 to px-3 */
-    flex: 1;
-    text-align: center;
-    font-size: 0.75rem; /* Slightly smaller text to fit */
     line-height: 1.25rem;
     color: rgba(255, 255, 255, 1);
     text-shadow: 
@@ -753,7 +886,6 @@
       0 0 8px rgba(255, 255, 255, 0.3);
   }
 
-  /* Add responsive styles for smaller screens */
   @media (max-width: 640px) {
     .slider-track {
       min-width: 280px;
@@ -786,6 +918,7 @@
     left: calc(50% + 4px);
   }
 
+  /* Staff badges */
   .staff-badge {
     padding: 0.5rem 1rem !important;
     border-radius: 9999px !important;
@@ -794,16 +927,13 @@
     font-size: 0.875rem !important;
     font-family: 'Inter', sans-serif !important;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-    backdrop-filter: blur(8px) !important;
     margin: 0.5rem 0 !important;
     display: inline-block !important;
-    /* Override any inherited backgrounds */
     background: none !important;
     background-image: none !important;
     background-color: transparent !important;
   }
 
-  /* Use higher specificity selectors */
   div.staff-badge.staff-badge-designer,
   .staff-badge-designer.staff-badge {
     background: linear-gradient(to bottom, #15abdc, #2d86dd) !important;
@@ -831,7 +961,7 @@
     box-shadow: 0 0 15px rgba(255, 215, 130, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
   }
 
-    div.staff-badge.staff-badge-mapper,
+  div.staff-badge.staff-badge-mapper,
   .staff-badge-mapper.staff-badge {
     background: linear-gradient(to bottom, #e63e3e, #be2625) !important;
     background-color: #e63e3e !important;
@@ -919,16 +1049,27 @@
 
   /* Focus States */
   .focus-ring-white {
-    @apply focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent;
+    outline: none;
+  }
+  
+  .focus-ring-white:focus {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
   }
   
   .focus-ring-primary {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 focus:ring-offset-transparent;
+    outline: none;
+  }
+  
+  .focus-ring-primary:focus {
+    box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.5);
   }
 
   /* Utility Classes */
   .center-absolute {
-    @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
   
   .gradient-border {
@@ -954,6 +1095,7 @@
     overflow: hidden;
   }
 
+  /* Text outlines */
   .text-outline-purple {
     color: white;
     -webkit-text-stroke: 2px rgba(196, 181, 253, 1);
@@ -1043,56 +1185,11 @@
       drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   }
 
-  /* Custom range slider styles for settings */
-  .slider {
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.2);
-    outline: none;
-    opacity: 0.9;
-    -webkit-transition: .2s;
-    transition: opacity .2s;
-  }
-
-  .slider:hover {
-    opacity: 1;
-  }
-
-  .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    background: white;
-    cursor: pointer;
-    border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: white;
-    cursor: pointer;
-    border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  /* Color picker custom styles */
-  input[type="range"].hue-slider::-webkit-slider-track {
-    height: 100%;
-    border-radius: 8px;
-  }
-
-  input[type="range"].hue-slider::-moz-range-track {
-    height: 100%;
-    border-radius: 8px;
-  }
-
   /* Settings specific glass effects */
   .settings-glass {
     background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
