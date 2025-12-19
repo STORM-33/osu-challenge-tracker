@@ -148,7 +148,7 @@ export default function AboutChallengers() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               {/* Weekly Card */}
               <div
-                className={`glass-1 flex flex-col rounded-xl sm:rounded-2xl p-4 sm:p-6 cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
+                className={`glass-1 flex flex-col rounded-xl sm:rounded-2xl p-4 sm:p-6 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:bg-white/30 ${
                   activeTab === 'weekly' ? 'ring-2 ring-blue-400/60 glass-2' : ''
                 }`}
                 onClick={() => setActiveTab('weekly')}
@@ -183,7 +183,7 @@ export default function AboutChallengers() {
 
               {/* CE Card */}
               <div
-                className={`glass-1 flex flex-col rounded-xl sm:rounded-2xl p-4 sm:p-6 cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
+                className={`glass-1 flex flex-col rounded-xl sm:rounded-2xl p-4 sm:p-6 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:bg-white/30 ${
                   activeTab === 'ce' ? 'ring-2 ring-purple-400/60 glass-2' : ''
                 }`}
                 onClick={() => setActiveTab('ce')}
@@ -218,7 +218,7 @@ export default function AboutChallengers() {
 
               {/* Custom Card */}
               <div
-                className={`glass-1 flex flex-col rounded-xl sm:rounded-2xl p-4 sm:p-6 cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl relative overflow-hidden ${
+                className={`glass-1 flex flex-col rounded-xl sm:rounded-2xl p-4 sm:p-6 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:bg-white/30 relative overflow-hidden ${
                   activeTab === 'custom' ? 'ring-2 ring-yellow-400/60 glass-2' : ''
                 }`}
                 onClick={() => setActiveTab('custom')}
