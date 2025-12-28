@@ -146,11 +146,26 @@ export default function AdminScheduledChallenges() {
     }
   };
 
+  // Helper: Convert UTC date string to local datetime-local input value
+  const utcToLocalInput = (utcDateString) => {
+    const date = new Date(utcDateString);
+    // Get local ISO string by adjusting for timezone offset
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offset * 60 * 1000);
+    return localDate.toISOString().slice(0, 16);
+  };
+
+  // Helper: Convert local datetime-local input value to UTC ISO string
+  const localInputToUtc = (localDateString) => {
+    // The input value is in local time, so we just create a date and convert to ISO
+    return new Date(localDateString).toISOString();
+  };
+
   // Open edit modal
   const handleEdit = (schedule) => {
     setEditingSchedule(schedule);
     setEditForm({
-      scheduled_time: new Date(schedule.scheduled_time).toISOString().slice(0, 16),
+      scheduled_time: utcToLocalInput(schedule.scheduled_time),
       room_name: schedule.room_data?.name || '',
       chat_messages: schedule.chat_messages?.join('\n') || '',
       // Ruleset config
@@ -171,8 +186,8 @@ export default function AdminScheduledChallenges() {
         id: editingSchedule.id
       };
 
-      // Only include changed fields
-      const newScheduledTime = new Date(editForm.scheduled_time).toISOString();
+      // Only include changed fields - convert local input back to UTC
+      const newScheduledTime = localInputToUtc(editForm.scheduled_time);
       if (newScheduledTime !== editingSchedule.scheduled_time) {
         updates.scheduled_time = newScheduledTime;
       }
