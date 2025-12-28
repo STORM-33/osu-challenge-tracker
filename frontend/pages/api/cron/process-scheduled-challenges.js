@@ -125,6 +125,7 @@ async function processSchedule(schedule) {
   console.log(`    Room: ${schedule.room_data?.name}`);
   console.log(`    Scheduled for: ${scheduledFor.toISOString()}`);
   console.log(`    Delay: ${Math.round(delay / 1000)}s`);
+  console.log(`    Has ruleset config: ${!!schedule.ruleset_config}`);  // NEW: Log ruleset config
 
   try {
     // Check if already being processed (race condition protection)
@@ -386,24 +387,58 @@ async function processSchedule(schedule) {
     // Step 5.5: Immediately add to tracker (Call update-challenge logic)
     console.log('📝 Step 5.5: Initializing tracker for new room...');
     let trackerInitialized = false;
+    let challengeId = null;
     try {
-      await triggerImmediateUpdate(room.id);
+      const trackerResult = await triggerImmediateUpdate(room.id);
       trackerInitialized = true;
-      console.log('✅ Tracker initialized successfully');
+      // Extract the challenge ID from the tracker result if available
+      challengeId = trackerResult?.challenge?.id || null;
+      console.log('✅ Tracker initialized successfully', challengeId ? `(Challenge ID: ${challengeId})` : '');
     } catch (trackError) {
       console.error('⚠️ Failed to initialize tracker (non-fatal):', trackError.message);
       // We log but don't fail, as the room exists on osu! now
     }
 
+    // Step 5.6: Apply ruleset configuration if provided
+    let rulesetApplied = false;
+    if (schedule.ruleset_config && challengeId) {
+      console.log('🎯 Step 5.6: Applying ruleset configuration...');
+      
+      try {
+        rulesetApplied = await applyRulesetConfig(challengeId, schedule.ruleset_config);
+        if (rulesetApplied) {
+          console.log('✅ Ruleset configuration applied successfully');
+        } else {
+          console.log('⚠️ Ruleset configuration could not be applied');
+        }
+      } catch (rulesetError) {
+        console.error('⚠️ Failed to apply ruleset (non-fatal):', rulesetError.message);
+        // Don't fail the whole operation - room was created successfully
+      }
+    } else if (schedule.ruleset_config && !challengeId) {
+      console.log('⚠️ Cannot apply ruleset: Challenge ID not available from tracker');
+    } else {
+      console.log('ℹ️ No ruleset configuration to apply');
+    }
+
     // Step 6: Mark as completed
     console.log('✅ Step 6: Marking as completed...');
+    
+    // Build error message if any non-fatal issues occurred
+    let errorMessage = null;
+    const issues = [];
+    if (!chatSent) issues.push('Chat messages failed');
+    if (schedule.ruleset_config && !rulesetApplied) issues.push('Ruleset configuration failed');
+    if (issues.length > 0) {
+      errorMessage = `${issues.join(', ')} (room created successfully)`;
+    }
     
     await supabaseAdmin
       .from('scheduled_challenges')
       .update({
         status: 'completed',
         created_room_id: room.id,
-        error_message: chatSent ? null : 'Chat messages failed (room created successfully)',
+        error_message: errorMessage,
         executed_at: new Date().toISOString()
       })
       .eq('id', scheduleId);
@@ -419,6 +454,7 @@ async function processSchedule(schedule) {
       roomName: room.name,
       chatSent,
       trackerInitialized,
+      rulesetApplied,
       tokenRefreshed,
       tokenSource,
       delaySeconds: Math.round(delay / 1000)
@@ -485,4 +521,64 @@ async function triggerImmediateUpdate(roomId) {
   }
   
   return responseData;
+}
+
+/**
+ * Apply ruleset configuration to a challenge
+ * @param {number} challengeId - The challenge ID to apply ruleset to
+ * @param {Object} rulesetConfig - The ruleset configuration
+ * @returns {boolean} - True if successfully applied
+ */
+async function applyRulesetConfig(challengeId, rulesetConfig) {
+  if (!rulesetConfig || !rulesetConfig.required_mods || rulesetConfig.required_mods.length === 0) {
+    console.log('    No valid ruleset config to apply');
+    return false;
+  }
+
+  try {
+    // Default to 'at_least' if not specified (matching Change 1)
+    const matchType = rulesetConfig.ruleset_match_type || 'at_least';
+    
+    console.log(`    Applying ruleset: ${matchType} with ${rulesetConfig.required_mods.length} mod(s)`);
+    
+    // Update the challenge with ruleset configuration
+    const { data: updatedChallenge, error: updateError } = await supabaseAdmin
+      .from('challenges')
+      .update({
+        has_ruleset: true,
+        required_mods: rulesetConfig.required_mods,
+        ruleset_match_type: matchType,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', challengeId)
+      .select('id, room_id')
+      .single();
+
+    if (updateError) {
+      console.error('    Failed to update challenge with ruleset:', updateError);
+      return false;
+    }
+
+    console.log(`    Ruleset applied to challenge ${challengeId} (room ${updatedChallenge.room_id})`);
+
+    // Calculate the ruleset winner
+    try {
+      const { data: winnerResult, error: winnerError } = await supabaseAdmin
+        .rpc('update_challenge_ruleset_winner', { challenge_id_param: challengeId });
+
+      if (winnerError) {
+        console.warn('    Winner calculation warning:', winnerError.message);
+      } else {
+        console.log('    Ruleset winner calculated');
+      }
+    } catch (winnerCalcError) {
+      console.warn('    Winner calculation error (non-fatal):', winnerCalcError.message);
+    }
+
+    return true;
+
+  } catch (error) {
+    console.error('    Error applying ruleset config:', error);
+    return false;
+  }
 }

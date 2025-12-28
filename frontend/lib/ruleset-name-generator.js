@@ -188,7 +188,7 @@ function formatSingleMod(mod) {
  * @param {string} matchType - 'exact', 'at_least', or 'any_of'
  * @returns {string} - Generated ruleset name
  */
-function generateRulesetName(requiredMods, matchType = 'exact') {
+function generateRulesetName(requiredMods, matchType = 'at_least') {
   if (!requiredMods || requiredMods.length === 0) {
     return 'NoMod';
   }
@@ -222,7 +222,7 @@ function generateRulesetName(requiredMods, matchType = 'exact') {
  * @param {string} matchType - 'exact', 'at_least', or 'any_of'
  * @returns {string} - Human-readable description
  */
-function generateRulesetDescription(requiredMods, matchType = 'exact') {
+function generateRulesetDescription(requiredMods, matchType = 'at_least') {
   if (!requiredMods || requiredMods.length === 0) {
     return 'No mods required';
   }
@@ -257,7 +257,7 @@ function isRulesetNameUnique(generatedName, existingNames = []) {
  * @param {string} matchType - 'exact', 'at_least', or 'any_of'
  * @returns {Object} - Object with name, description, and validation info
  */
-function previewRulesetName(requiredMods, matchType = 'exact') {
+function previewRulesetName(requiredMods, matchType = 'at_least') {
   const name = generateRulesetName(requiredMods, matchType);
   const description = generateRulesetDescription(requiredMods, matchType);
   

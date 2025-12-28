@@ -33,7 +33,7 @@ async function handleValidateRuleset(req, res) {
         const qualifies = validateScoreAgainstRuleset(
           testScore.mods_detailed || [],
           required_mods || [],
-          ruleset_match_type || 'exact'
+          ruleset_match_type || 'at_least' 
         );
 
         return {
@@ -43,21 +43,21 @@ async function handleValidateRuleset(req, res) {
           reason: qualifies ? 'Meets ruleset requirements' : getFailureReason(
             testScore.mods_detailed || [],
             required_mods || [],
-            ruleset_match_type || 'exact'
+            ruleset_match_type || 'at_least'  
           )
         };
       });
     }
 
     // Generate examples of qualifying mod combinations
-    const examples = generateQualifyingExamples(required_mods || [], ruleset_match_type || 'exact');
+    const examples = generateQualifyingExamples(required_mods || [], ruleset_match_type || 'at_least'); 
 
     res.status(200).json({
       success: true,
       validation: {
         valid: true,
         required_mods: required_mods || [],
-        match_type: ruleset_match_type || 'exact'
+        match_type: ruleset_match_type || 'at_least' 
       },
       score_tests: scoreTests,
       examples: examples,
@@ -156,7 +156,7 @@ function validateRulesetData({ required_mods, ruleset_match_type }) {
   };
 }
 
-function validateScoreAgainstRuleset(scoreMods, requiredMods, matchType) {
+function validateScoreAgainstRuleset(scoreMods, requiredMods, matchType = 'at_least') {
   // Handle empty cases
   if (!requiredMods || requiredMods.length === 0) {
     return true; // No requirements means all scores qualify
@@ -251,7 +251,7 @@ function validateScoreAgainstRuleset(scoreMods, requiredMods, matchType) {
   }
 }
 
-function getFailureReason(scoreMods, requiredMods, matchType) {
+function getFailureReason(scoreMods, requiredMods, matchType = 'at_least') {
   if (!requiredMods || requiredMods.length === 0) {
     return 'No requirements specified';
   }
@@ -318,7 +318,7 @@ function getFailureReason(scoreMods, requiredMods, matchType) {
   }
 }
 
-function generateQualifyingExamples(requiredMods, matchType) {
+function generateQualifyingExamples(requiredMods, matchType = 'at_least') {
   if (!requiredMods || requiredMods.length === 0) {
     return [{ description: 'Any mods (no requirements)', mods: [] }];
   }

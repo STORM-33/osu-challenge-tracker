@@ -11,7 +11,7 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
   const [winner, setWinner] = useState(null);
   const [formData, setFormData] = useState({
     required_mods: [],
-    ruleset_match_type: 'exact'
+    ruleset_match_type: 'at_least'  // CHANGED: Default from 'exact' to 'at_least'
   });
   const [errors, setErrors] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
@@ -25,7 +25,7 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
     // Check if form has changes from original data
     if (challenge) {
       const hasRulesetChanges = 
-        formData.ruleset_match_type !== (challenge.ruleset_match_type || 'exact') ||
+        formData.ruleset_match_type !== (challenge.ruleset_match_type || 'at_least') ||  // CHANGED: Default comparison to 'at_least'
         JSON.stringify(formData.required_mods) !== JSON.stringify(challenge.required_mods || []);
       
       setHasChanges(hasRulesetChanges);
@@ -73,7 +73,7 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
       if (data.challenge.has_ruleset) {
         setFormData({
           required_mods: data.challenge.required_mods || [],
-          ruleset_match_type: data.challenge.ruleset_match_type || 'exact'
+          ruleset_match_type: data.challenge.ruleset_match_type || 'at_least'  // CHANGED: Default to 'at_least'
         });
       }
 
@@ -327,8 +327,8 @@ export default function RulesetManager({ challengeId, onClose, onSuccess }) {
                 onChange={(e) => setFormData(prev => ({ ...prev, ruleset_match_type: e.target.value }))}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
-                <option value="exact">Exact Match - Players must have exactly these mods (no extras)</option>
                 <option value="at_least">At Least - Players must have at least these mods (extras allowed)</option>
+                <option value="exact">Exact Match - Players must have exactly these mods (no extras)</option>
                 <option value="any_of">Any Of - Players must have at least one of these mods (extras allowed)</option>
               </select>
             </div>

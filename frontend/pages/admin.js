@@ -894,6 +894,22 @@ export default function Admin() {
                     </div>
                   </div>
                 </Link>
+                <Link href="/admin/schedules">
+                  <div className="glass-card rounded-xl p-4 hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer group bg-gradient-to-r from-blue-50/80 to-cyan-50/80 border border-blue-200/60 mt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center group-hover:shadow-lg transition-all">
+                          <Calendar className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-neutral-800">Scheduled Challenges</h4>
+                          <p className="text-xs text-neutral-600">View and manage scheduled creations</p>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-blue-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </div>
+                </Link>
               </div>
             </div>
 

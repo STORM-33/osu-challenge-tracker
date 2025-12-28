@@ -132,7 +132,7 @@ async function handleCreateOrUpdateRuleset(req, res, challengeId) {
       .update({
         has_ruleset: true,
         required_mods: required_mods || [],
-        ruleset_match_type: ruleset_match_type || 'exact',
+        ruleset_match_type: ruleset_match_type || 'at_least',  // CHANGED: Default to 'at_least'
         updated_at: new Date().toISOString()
       })
       .eq('id', challengeId)
@@ -173,7 +173,7 @@ async function handleDeleteRuleset(req, res, challengeId) {
       .update({
         has_ruleset: false,
         required_mods: [],
-        ruleset_match_type: 'exact',
+        ruleset_match_type: 'at_least', 
         updated_at: new Date().toISOString()
       })
       .eq('id', challengeId)

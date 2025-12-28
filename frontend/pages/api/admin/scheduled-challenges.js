@@ -83,7 +83,9 @@ async function handleCreate(req, res) {
         osu_token: { required: false, type: 'string' },
         // Optional fields
         chat_messages: { required: false, type: 'array' },
-        season_id: { required: false, type: 'number' }
+        season_id: { required: false, type: 'number' },
+        // Optional ruleset configuration for mod challenges
+        ruleset_config: { required: false, type: 'object' }
       }
     });
 
@@ -93,7 +95,8 @@ async function handleCreate(req, res) {
       room_data,
       osu_token, // Optional - legacy support
       chat_messages,
-      season_id
+      season_id,
+      ruleset_config  // Optional ruleset config
     } = req.body;
 
     console.log(`Schedule request from osu_id ${osu_id}:`, {
@@ -101,8 +104,25 @@ async function handleCreate(req, res) {
       scheduled_time,
       playlist_items: room_data.playlist.length,
       has_chat_messages: !!chat_messages?.length,
+      has_ruleset_config: !!ruleset_config,  // Log ruleset config presence
       uses_stored_token: !osu_token // New workflow if no token provided
     });
+
+    // Validate ruleset_config if provided
+    if (ruleset_config) {
+      const rulesetValidation = validateRulesetConfig(ruleset_config);
+      if (!rulesetValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid ruleset configuration',
+          details: rulesetValidation.errors
+        });
+      }
+      console.log('✅ Ruleset config validated:', {
+        match_type: ruleset_config.ruleset_match_type,
+        mods_count: ruleset_config.required_mods?.length || 0
+      });
+    }
 
     // Verify user exists and is admin
     const { data: user, error: userError } = await supabaseAdmin
@@ -136,7 +156,7 @@ async function handleCreate(req, res) {
       });
     }
 
-    // NEW: If no token provided, check if user has stored token
+    // If no token provided, check if user has stored token
     if (!osu_token) {
       console.log('ℹ️ No token provided, checking for stored token...');
       
@@ -168,6 +188,7 @@ async function handleCreate(req, res) {
     }
 
     // Insert into database
+    // Include ruleset_config in the insert
     const { data: schedule, error: insertError } = await supabaseAdmin
       .from('scheduled_challenges')
       .insert({
@@ -177,6 +198,7 @@ async function handleCreate(req, res) {
         encrypted_token, // NULL for new workflow, encrypted for legacy
         chat_messages: chat_messages || [],
         season_id: season_id || null,
+        ruleset_config: ruleset_config || null,  // Store ruleset config
         status: 'pending'
       })
       .select()
@@ -190,6 +212,7 @@ async function handleCreate(req, res) {
     console.log('✅ Schedule created:', {
       id: schedule.id,
       scheduled_for: schedule.scheduled_time,
+      has_ruleset: !!ruleset_config,  // Log ruleset presence
       workflow: encrypted_token ? 'legacy' : 'new'
     });
 
@@ -228,6 +251,7 @@ async function handleList(req, res) {
         scheduled_time,
         room_data,
         chat_messages,
+        ruleset_config,
         status,
         created_room_id,
         error_message,
@@ -301,7 +325,8 @@ async function handleUpdate(req, res) {
         scheduled_time: { required: false, type: 'string' },
         room_data: { required: false, type: 'object' },
         chat_messages: { required: false, type: 'array' },
-        season_id: { required: false, type: 'number' } // NEW: Now supported
+        season_id: { required: false, type: 'number' },
+        ruleset_config: { required: false, type: 'object' }  // Support updating ruleset_config
       }
     });
 
@@ -338,6 +363,18 @@ async function handleUpdate(req, res) {
         });
       }
       updates.scheduled_time = newScheduledDate.toISOString();
+    }
+
+    // Validate ruleset_config if provided
+    if (updates.ruleset_config) {
+      const rulesetValidation = validateRulesetConfig(updates.ruleset_config);
+      if (!rulesetValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid ruleset configuration',
+          details: rulesetValidation.errors
+        });
+      }
     }
 
     // Update
@@ -434,4 +471,51 @@ async function handleDelete(req, res) {
     console.error('🚨 Delete schedule error:', error);
     return handleAPIError(res, error);
   }
+}
+
+/**
+ * Validate ruleset configuration
+ * @param {Object} rulesetConfig - The ruleset configuration to validate
+ * @returns {Object} - { valid: boolean, errors: string[] }
+ */
+function validateRulesetConfig(rulesetConfig) {
+  const errors = [];
+
+  if (!rulesetConfig) {
+    return { valid: true, errors: [] };
+  }
+
+  // Validate match type
+  const validMatchTypes = ['exact', 'at_least', 'any_of'];
+  if (rulesetConfig.ruleset_match_type && !validMatchTypes.includes(rulesetConfig.ruleset_match_type)) {
+    errors.push(`Invalid ruleset_match_type. Must be one of: ${validMatchTypes.join(', ')}`);
+  }
+
+  // Validate required_mods
+  if (rulesetConfig.required_mods) {
+    if (!Array.isArray(rulesetConfig.required_mods)) {
+      errors.push('required_mods must be an array');
+    } else if (rulesetConfig.required_mods.length === 0) {
+      errors.push('required_mods cannot be empty if ruleset_config is provided');
+    } else {
+      // Validate each mod has an acronym
+      for (let i = 0; i < rulesetConfig.required_mods.length; i++) {
+        const mod = rulesetConfig.required_mods[i];
+        if (!mod.acronym || typeof mod.acronym !== 'string') {
+          errors.push(`Mod at index ${i} must have a valid acronym`);
+        }
+        // Settings are optional, but if provided must be an object
+        if (mod.settings !== undefined && (typeof mod.settings !== 'object' || mod.settings === null)) {
+          errors.push(`Mod ${mod.acronym || i}: settings must be an object`);
+        }
+      }
+    }
+  } else {
+    errors.push('required_mods is required when ruleset_config is provided');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
 }
