@@ -312,6 +312,18 @@ async function processSchedule(schedule) {
     // Step 4: Create the room with retry logic
     console.log('🎮 Step 4: Creating multiplayer room...');
     
+    // Clean room_data: remove allowed_mods from playlist items to avoid invalid mod errors
+    const cleanedRoomData = {
+      ...schedule.room_data,
+      playlist: schedule.room_data.playlist?.map(item => {
+        const { allowed_mods, ...rest } = item;
+        if (allowed_mods && allowed_mods.length > 0) {
+          console.log(`    Stripped ${allowed_mods.length} allowed_mods from playlist item ${item.id || 0}`);
+        }
+        return rest;
+      })
+    };
+    
     let room = null;
     let lastError = null;
     const maxRetries = 3;
@@ -321,7 +333,7 @@ async function processSchedule(schedule) {
         console.log(`    Attempt ${attempt}/${maxRetries}...`);
         
         room = await trackedOsuAPI.createRoomWithUserToken(
-          schedule.room_data,
+          cleanedRoomData,
           accessToken
         );
 
@@ -399,7 +411,6 @@ async function processSchedule(schedule) {
       // We log but don't fail, as the room exists on osu! now
     }
 
-    // Step 5.6: Apply ruleset configuration if provided
     let rulesetApplied = false;
     if (schedule.ruleset_config && challengeId) {
       console.log('🎯 Step 5.6: Applying ruleset configuration...');
@@ -524,7 +535,6 @@ async function triggerImmediateUpdate(roomId) {
 }
 
 /**
- * Apply ruleset configuration to a challenge
  * @param {number} challengeId - The challenge ID to apply ruleset to
  * @param {Object} rulesetConfig - The ruleset configuration
  * @returns {boolean} - True if successfully applied
