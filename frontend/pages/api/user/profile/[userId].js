@@ -288,26 +288,49 @@ function calculateStatsFromSameData(scoresWithRanks, ranksArray) {
     return getDefaultStats();
   }
 
+  // For medal/achievement calculations, only count ENDED challenges
+  const now = new Date();
+  const completedPlaylistIds = new Set(
+    scoresWithRanks
+      .filter(score => {
+        const endDate = score.playlists?.challenges?.end_date;
+        // Only include if challenge has an end_date and it's in the past
+        return endDate && new Date(endDate) < now;
+      })
+      .map(s => s.playlist_id)
+  );
+
+  // Filter ranks to only completed challenges (for medal/achievement stats)
+  const completedRanks = ranksArray.filter(rank => completedPlaylistIds.has(rank.playlist_id));
+  const validCompletedRanks = completedRanks.filter(rank => rank.user_rank > 0);
+
+  // All ranks (for general display stats like avgRank)
+  const validRanks = ranksArray.filter(rank => rank.user_rank > 0);
+
+  // Medal-triggering stats: use COMPLETED challenges only
+  const firstPlaceCount = validCompletedRanks.filter(rank => rank.user_rank === 1).length;
+  const podiumCount = validCompletedRanks.filter(rank => rank.user_rank <= 3).length;
+  const top10Count = validCompletedRanks.filter(rank => rank.user_rank <= 10).length;
+
+  // Rank distribution (completed challenges only)
+  const rankDistribution = {
+    first: firstPlaceCount,
+    topThree: validCompletedRanks.filter(rank => rank.user_rank >= 2 && rank.user_rank <= 3).length,
+    topTen: validCompletedRanks.filter(rank => rank.user_rank >= 4 && rank.user_rank <= 10).length,
+    other: validCompletedRanks.filter(rank => rank.user_rank > 10).length
+  };
+
+  // =================================================================
+  // General stats: can use all data (including active challenges)
+  // =================================================================
+  
   // Basic aggregations
   const totalScorePoints = scoresWithRanks.reduce((sum, score) => sum + parseInt(score.score || 0), 0);
   const avgScore = Math.round(totalScorePoints / totalScores);
   const avgAccuracy = (scoresWithRanks.reduce((sum, score) => sum + (score.accuracy || 0), 0) / totalScores).toFixed(2);
   
-  // Rank-based stats
-  const validRanks = ranksArray.filter(rank => rank.user_rank > 0);
+  // Rank-based stats (all challenges for general display)
   const avgRank = validRanks.length > 0 ? Math.round(validRanks.reduce((sum, rank) => sum + rank.user_rank, 0) / validRanks.length) : null;
-  
-  const firstPlaceCount = validRanks.filter(rank => rank.user_rank === 1).length;
-  const podiumCount = validRanks.filter(rank => rank.user_rank <= 3).length;
-  const top10Count = validRanks.filter(rank => rank.user_rank <= 10).length;
-  
-  // Rank distribution
-  const rankDistribution = {
-    first: firstPlaceCount,
-    topThree: validRanks.filter(rank => rank.user_rank >= 2 && rank.user_rank <= 3).length,
-    topTen: validRanks.filter(rank => rank.user_rank >= 4 && rank.user_rank <= 10).length,
-    other: validRanks.filter(rank => rank.user_rank > 10).length
-  };
 
   // Score-based stats
   const perfectScoreCount = scoresWithRanks.filter(score => score.accuracy === 100.0).length;
@@ -323,7 +346,7 @@ function calculateStatsFromSameData(scoresWithRanks, ranksArray) {
     }
   });
 
-  // Best/worst values
+  // Best/worst values (all challenges)
   const bestRank = validRanks.length > 0 ? Math.min(...validRanks.map(r => r.user_rank)) : null;
   const worstRank = validRanks.length > 0 ? Math.max(...validRanks.map(r => r.user_rank)) : null;
   const bestAccuracy = Math.max(...scoresWithRanks.map(s => s.accuracy || 0)).toFixed(2);
