@@ -312,15 +312,19 @@ async function processSchedule(schedule) {
     // Step 4: Create the room with retry logic
     console.log('🎮 Step 4: Creating multiplayer room...');
     
-    // Clean room_data: remove allowed_mods from playlist items to avoid invalid mod errors
+    // Clean room_data: remove AT from allowed mods to avoid invalid mod errors
     const cleanedRoomData = {
       ...schedule.room_data,
       playlist: schedule.room_data.playlist?.map(item => {
-        const { allowed_mods, ...rest } = item;
-        if (allowed_mods && allowed_mods.length > 0) {
-          console.log(`    Stripped ${allowed_mods.length} allowed_mods from playlist item ${item.id || 0}`);
+        if (item.allowed_mods && item.allowed_mods.length > 0) {
+          const filteredMods = item.allowed_mods.filter(mod => mod.acronym !== 'AT');
+          const removedCount = item.allowed_mods.length - filteredMods.length;
+          if (removedCount > 0) {
+            console.log(`    Removed AT mod from playlist item ${item.id || 0}`);
+          }
+          return { ...item, allowed_mods: filteredMods };
         }
-        return rest;
+        return item;
       })
     };
     
