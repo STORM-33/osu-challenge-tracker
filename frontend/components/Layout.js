@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/AuthContext';
-import ChristmasSnowfall from './ChristmasSnowfall';
 import { useSettings } from '../lib/SettingsContext';
 import { Trophy, User, LogIn, LogOut, BarChart3, Plus, Heart, Link2, X, Menu, Home, Settings, ChevronDown, MessageCircle, MoreHorizontal } from 'lucide-react';
 
@@ -272,9 +271,6 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
 
   return (
     <div className="min-h-screen relative">
-
-      <ChristmasSnowfall />
-
       {/* Background image layer with smooth transition */}
       <div 
         className={`bg-fixed-mobile -z-20 transition-opacity duration-500 ${bgReady ? 'opacity-100' : 'opacity-0'}`}
@@ -346,63 +342,7 @@ export default function Layout({ children, backgroundImage = '/default-bg.png' }
             {/* Layer the regular grid first, then the thick grid on top */}
             <rect width="100%" height="100%" fill="url(#grid)" mask="url(#fadeMask)" />
             <rect width="100%" height="100%" fill="url(#thickGrid)" mask="url(#fadeMask)" />
-
-            {/* Christmas Lights - positioned using percentages for full width coverage */}
-            {/* Top row - evenly distributed */}
-            <circle cx="5%" cy="24" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '0s'}} />
-            <circle cx="10%" cy="24" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '0.2s'}} />
-            <circle cx="15%" cy="24" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '0.4s'}} />
-            <circle cx="20%" cy="24" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '0.6s'}} />
-            <circle cx="25%" cy="24" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '0.8s'}} />
-            <circle cx="30%" cy="24" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '1.0s'}} />
-            <circle cx="35%" cy="24" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '1.2s'}} />
-            <circle cx="40%" cy="24" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '1.4s'}} />
-            <circle cx="45%" cy="24" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '1.6s'}} />
-            <circle cx="50%" cy="24" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '1.8s'}} />
-            <circle cx="55%" cy="24" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '2.0s'}} />
-            <circle cx="60%" cy="24" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '0.3s'}} />
-            <circle cx="65%" cy="24" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '0.5s'}} />
-            <circle cx="70%" cy="24" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '0.7s'}} />
-            <circle cx="75%" cy="24" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '0.9s'}} />
-            <circle cx="80%" cy="24" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '1.1s'}} />
-            <circle cx="85%" cy="24" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '1.3s'}} />
-            <circle cx="90%" cy="24" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '1.5s'}} />
-            <circle cx="95%" cy="24" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '1.7s'}} />
-
-            {/* Second row - offset positioning */}
-            <circle cx="7.5%" cy="48" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '0.1s'}} />
-            <circle cx="17.5%" cy="48" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '0.3s'}} />
-            <circle cx="27.5%" cy="48" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '0.5s'}} />
-            <circle cx="37.5%" cy="48" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '0.7s'}} />
-            <circle cx="47.5%" cy="48" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '0.9s'}} />
-            <circle cx="57.5%" cy="48" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '1.1s'}} />
-            <circle cx="67.5%" cy="48" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '1.3s'}} />
-            <circle cx="77.5%" cy="48" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '1.5s'}} />
-            <circle cx="87.5%" cy="48" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '1.7s'}} />
-
-            {/* Third row - sparse */}
-            <circle cx="12%" cy="72" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '0.2s'}} />
-            <circle cx="32%" cy="72" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '0.6s'}} />
-            <circle cx="52%" cy="72" r="3" fill="#ef4444" opacity="0.9" filter="url(#lightGlowRed)" className="christmas-light" style={{animationDelay: '1.0s'}} />
-            <circle cx="72%" cy="72" r="3" fill="#eab308" opacity="0.9" filter="url(#lightGlowGold)" className="christmas-light" style={{animationDelay: '1.4s'}} />
-            <circle cx="92%" cy="72" r="3" fill="#22c065" opacity="0.9" filter="url(#lightGlowGreen)" className="christmas-light" style={{animationDelay: '1.8s'}} />
           </svg>
-
-          {/* CSS for twinkling lights */}
-          <style jsx>{`
-            .christmas-light {
-              animation: twinkle 2s ease-in-out infinite;
-            }
-
-            @keyframes twinkle {
-              0%, 100% {
-                opacity: 0.9;
-              }
-              50% {
-                opacity: 0.3;
-              }
-            }
-          `}</style>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-4 relative">

@@ -1,7 +1,6 @@
 import FormattedDescription from '../lib/text-formatting';
 import { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
 import { X, Github, Twitter, ExternalLink } from 'lucide-react';
-import ChristmasTree from './ChristmasTree';
 import { createPortal } from 'react-dom';
 
 const ExpandedTeamModal = memo(function ExpandedTeamModal({ 
@@ -421,11 +420,6 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
           </div>
         </div>
       </div>
-
-      {/* Christmas Tree */}
-      {(member?.id === 2 || member?.name === 'Storm') && (
-        <ChristmasTree position="absolute" />
-      )}
 
       {/* ))) Panel */}
       {showJokeModal && createPortal(
