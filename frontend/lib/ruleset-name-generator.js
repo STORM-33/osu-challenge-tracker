@@ -59,7 +59,7 @@ const MOD_DEFAULT_VALUES = {
   start_scale: 2.0,
   
   // Barrel Roll
-  roll_speed: 1.0,
+  spin_speed: 1.0,
   spin_speed: 1.0,
   
   // Depth

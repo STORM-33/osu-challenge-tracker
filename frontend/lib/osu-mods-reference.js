@@ -354,13 +354,13 @@ const SETTING_CONFIGS = {
   },
 
   // Barrel Roll (corrected name)
-  roll_speed: { 
+  spin_speed: { 
     type: 'range', 
     min: 0.02, 
     max: 12.0, 
     step: 0.01, 
     default: 0.5,
-    label: 'Roll Speed',
+    label: 'Spin Speed',
     format: (val) => `${val}`
   },
   direction: { 
@@ -587,7 +587,7 @@ const SETTING_RANGES = {
   },
   
   // Barrel Roll (corrected name)
-  roll_speed: { min: 0.02, max: 12.0, type: 'number', precision: 0.01 },
+  spin_speed: { min: 0.02, max: 12.0, type: 'number', precision: 0.01 },
   direction: { 
     type: 'select', 
     options: ['Clockwise', 'Counterclockwise'] 
