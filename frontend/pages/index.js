@@ -315,19 +315,19 @@ export default function AboutChallengers() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                       <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="text-xl sm:text-2xl font-black text-white mb-1 text-shadow-adaptive">Week 1</div>
-                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">5.5★ - 5.9★</div>
+                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">5.50★ - 5.99★</div>
                       </div>
                       <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="text-xl sm:text-2xl font-black text-white mb-1 text-shadow-adaptive">Week 2</div>
-                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">6.0★ - 6.4★</div>
+                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">6.00★ - 6.49★</div>
                       </div>
                       <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="text-xl sm:text-2xl font-black text-white mb-1 text-shadow-adaptive">Week 3</div>
-                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">6.5★ - 6.9★</div>
+                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">6.50★ - 6.99★</div>
                       </div>
                       <div className="text-center glass-1 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="text-xl sm:text-2xl font-black text-white mb-1 text-shadow-adaptive">Week 4</div>
-                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">7.0★ - 7.5★</div>
+                        <div className="text-sm sm:text-base font-semibold text-white/90 text-shadow-adaptive-sm">7.00★ - 7.49★</div>
                       </div>
                     </div>
                   </div>
