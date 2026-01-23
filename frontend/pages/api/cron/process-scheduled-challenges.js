@@ -415,9 +415,32 @@ async function processSchedule(schedule) {
       // We log but don't fail, as the room exists on osu! now
     }
 
+    // Step 5.6: Ensure challenge has season_id
+    let seasonApplied = false;
+    if (challengeId) {
+      let seasonId = schedule.season_id;
+      
+      if (!seasonId) {
+        const { data: currentSeasonId } = await supabaseAdmin.rpc('get_current_season_id');
+        seasonId = currentSeasonId;
+      }
+      
+      if (seasonId) {
+        await supabaseAdmin
+          .from('challenges')
+          .update({ season_id: seasonId })
+          .eq('id', challengeId);
+        
+        console.log(`✅ Set season_id ${seasonId} for challenge ${challengeId}`);
+        seasonApplied = true;
+      } else {
+        console.warn('⚠️ No season_id available (none in schedule, no current season)');
+      }
+    }
+
     let rulesetApplied = false;
     if (schedule.ruleset_config && challengeId) {
-      console.log('🎯 Step 5.6: Applying ruleset configuration...');
+      console.log('🎯 Step 5.7: Applying ruleset configuration...');
       
       try {
         rulesetApplied = await applyRulesetConfig(challengeId, schedule.ruleset_config);
@@ -469,6 +492,7 @@ async function processSchedule(schedule) {
       roomName: room.name,
       chatSent,
       trackerInitialized,
+      seasonApplied,
       rulesetApplied,
       tokenRefreshed,
       tokenSource,
