@@ -51,6 +51,12 @@ function getCharacterOffset(text, baseChars, offsetPerChar) {
 }
 
 const pct = (v) => (typeof v === "number" ? v.toFixed(2) + "%" : "-");
+function fmtTopPercent(me) {
+  if (!me || typeof me.percentile !== 'number') return '-';
+  if (me.position === 1) return '0.01%';
+  const top = 100 - me.percentile;
+  return top <= 0 ? '0.01%' : top.toFixed(2) + '%';
+}
 
 function parseStyle(styleAttr = "") {
   const out = {};
@@ -287,7 +293,7 @@ async function generateSvgGeneric(svgFile, profile, stats, streaks, leaderboard,
   setText("#rank", me.position ?? "-");
   setText("#plays", stats?.totalScores ?? "-");
   setText("#top1", stats?.firstPlaceCount ?? "-");
-  setText("#top", pct(100 - (me.percentile ?? 0)));
+  setText("#top", fmtTopPercent(me));
   setText("#current_streak", currentStreakText);
   setText("#best_streak", bestStreakText);
   convertAllTextToPaths($, variant);
