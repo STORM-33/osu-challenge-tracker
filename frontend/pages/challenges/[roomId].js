@@ -414,7 +414,7 @@ export default function ChallengeDetail() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[400px] overflow-y-auto scrollbar-glass">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[420px] overflow-y-auto overflow-x-hidden scrollbar-glass py-1 px-2">
                     {getSortedAndFilteredPlaylists().map((playlist) => {
                       const participantCount = playlist.scores?.length || 0;
                       const isSelected = playlist.id === selectedPlaylistId;
