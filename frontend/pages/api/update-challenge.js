@@ -442,9 +442,9 @@ async function handler(req, res) {
     
     console.log(`✅ Request ${requestId}: Complete in ${Math.round(totalTime)}ms`);
 
-    return res.status(200).json({ 
-      success: true, 
-      challenge: challengeData,
+    return res.status(200).json({
+      success: true,
+      challenge: { ...challengeData, id: challengeDbId },
       message: 'Challenge updated successfully',
       stats: {
         playlistsProcessed,
