@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { trackedOsuAPI } from '../../../lib/osu-api';
+import { osuAPI } from '../../../lib/osu-api';
 import { decryptToken, parseToken, isTokenExpired, createTokenString, encryptToken, maskToken } from '../../../lib/token-encryption';
 import { handleAPIError } from '../../../lib/api-utils';
 
@@ -205,7 +205,7 @@ async function processSchedule(schedule) {
       console.log('🔄 Token expired or expiring soon, refreshing...');
       
       try {
-        const newTokens = await trackedOsuAPI.refreshUserToken(refreshToken);
+        const newTokens = await osuAPI.refreshUserToken(refreshToken);
         accessToken = newTokens.access_token;
         newRefreshToken = newTokens.refresh_token;
         tokenRefreshed = true;
@@ -336,7 +336,7 @@ async function processSchedule(schedule) {
       try {
         console.log(`    Attempt ${attempt}/${maxRetries}...`);
         
-        room = await trackedOsuAPI.createRoomWithUserToken(
+        room = await osuAPI.createRoomWithUserToken(
           cleanedRoomData,
           accessToken
         );
@@ -384,7 +384,7 @@ async function processSchedule(schedule) {
       console.log('💬 Step 5: Sending chat messages...');
       
       try {
-        await trackedOsuAPI.sendChatToRoom(
+        await osuAPI.sendChatToRoom(
           room.id,
           schedule.osu_id,
           schedule.chat_messages,

@@ -1,6 +1,5 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { handleAPIResponse, handleAPIError } from '../../../lib/api-utils';
-import apiTracker from '../../../lib/api-tracker';
 import { syncConfig, isStale } from '../../../lib/sync-config';
 import { invalidateChallengeCache } from '../../../lib/memory-cache';
 import pLimit from 'p-limit';
@@ -35,18 +34,7 @@ export default async function handler(req, res) {
 
     console.log('⏰ CRON: Starting automated challenge updates (5-min cycle)');
 
-    // 2. CHECK API LIMITS
-    const limitStatus = apiTracker.checkLimits();
-    if (limitStatus === 'critical') {
-      console.warn('🚨 CRON: API limits critical, skipping update cycle');
-      return res.status(429).json({
-        success: false,
-        reason: 'api_limits_critical',
-        message: 'API usage too high, skipping this cycle'
-      });
-    }
-
-    // 3. GET ALL ACTIVE CHALLENGES
+    // 2. GET ALL ACTIVE CHALLENGES
     const { data: activeChallenges, error: fetchError } = await supabaseAdmin
       .from('challenges')
       .select('id, room_id, name, updated_at, is_active')
@@ -147,7 +135,6 @@ export default async function handler(req, res) {
       successful_updates: successCount,
       failed_updates: failureCount,
       execution_time_ms: totalTime,
-      api_usage: apiTracker.getUsageStats(),
       results: updateResults
     });
 

@@ -568,23 +568,4 @@ export const settingsQueries = {
     return data || [];
   },
 
-  // Legacy function for backward compatibility (DEPRECATED)
-  getDonorBackgrounds: async (minDonationAmount = 0) => {
-    console.warn('getDonorBackgrounds is deprecated, use getAvailableBackgrounds instead');
-    const { data, error } = await supabase
-      .from('backgrounds')
-      .select('*')
-      .eq('is_active', true)
-      .lte('min_donation_total', minDonationAmount)
-      .order('sort_order', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
-  },
-
-  // Legacy function for backward compatibility (DEPRECATED)
-  getDonorBackground: async (backgroundId) => {
-    console.warn('getDonorBackground is deprecated, use getBackground instead');
-    return await settingsQueries.getBackground(backgroundId);
-  }
 };

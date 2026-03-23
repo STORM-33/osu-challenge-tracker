@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { validateRequest, handleAPIError, handleAPIResponse } from '../../../lib/api-utils';
 import { encryptToken, maskToken, parseToken, isTokenExpired } from '../../../lib/token-encryption';
-import { trackedOsuAPI } from '../../../lib/osu-api';
+import { osuAPI } from '../../../lib/osu-api';
 
 const SCHEDULER_SECRET = process.env.SCHEDULER_SHARED_SECRET;
 
@@ -129,7 +129,7 @@ async function handleSetToken(req, res) {
     console.log('🔍 Verifying token validity with osu! API...');
     try {
       const { accessToken } = parseToken(osu_token);
-      const userInfo = await trackedOsuAPI.getUserWithToken(accessToken);
+      const userInfo = await osuAPI.getUserWithToken(accessToken);
       
       // Verify the token belongs to the user
       if (userInfo.id !== osu_id) {

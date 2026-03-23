@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../../lib/auth-middleware';
 import { OSU_MODS, CONFLICTING_MODS, SETTING_RANGES, SETTING_CONFIGS } from '../../../../lib/osu-mods-reference';
+import { invalidateChallengeCache } from '../../../../lib/memory-cache';
 
 async function handler(req, res) {
   const { challengeId } = req.query;
@@ -152,6 +153,9 @@ async function handleCreateOrUpdateRuleset(req, res, challengeId) {
       console.warn('Winner calculation error:', winnerError);
     }
 
+    // Invalidate cache so the ruleset banner updates immediately
+    invalidateChallengeCache(updatedChallenge.room_id);
+
     res.status(200).json({
       success: true,
       challenge: updatedChallenge,
@@ -190,6 +194,9 @@ async function handleDeleteRuleset(req, res, challengeId) {
       .from('challenge_ruleset_winners')
       .delete()
       .eq('challenge_id', challengeId);
+
+    // Invalidate cache so the ruleset banner updates immediately
+    invalidateChallengeCache(updatedChallenge.room_id);
 
     res.status(200).json({
       success: true,

@@ -1,9 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { withAdminAuth } from '../../../lib/auth-middleware';
-import { trackedFetch } from '../../../lib/api-tracker';
 import { handleAPIResponse, handleAPIError, validateRequest, getPaginationParams, paginatedResponse } from '../../../lib/api-utils';
-import apiTracker from '../../../lib/api-tracker';
 import { memoryCache, createCacheKey, CACHE_DURATIONS } from '../../../lib/memory-cache';
 import { generateETag, checkETag } from '../../../lib/api-utils';
 import { isStale } from '../../../lib/sync-config';
@@ -170,11 +168,6 @@ async function handleCreateChallenge(req, res) {
 
     console.log(`🔍 Creating challenge for room ID: ${roomId}`);
 
-    const limitStatus = apiTracker.checkLimits();
-    if (limitStatus === 'critical') {
-      return handleAPIError(res, new Error('API usage critical - temporarily limiting requests'));
-    }
-
     // Check if challenge already exists
     const { data: existingChallenge, error: checkError } = await supabase
       .from('challenges')
@@ -200,10 +193,10 @@ async function handleCreateChallenge(req, res) {
     let currentSeasonId = null;
     try {
       const baseUrl = req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-      const seasonResponse = await trackedFetch(`${baseUrl}/api/seasons/current`, {
+      const seasonResponse = await fetch(`${baseUrl}/api/seasons/current`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
-      }, 'internal-api');
+      });
 
       if (seasonResponse.ok) {
         const seasonData = await seasonResponse.json();
@@ -255,10 +248,6 @@ async function handleCreateChallenge(req, res) {
 
     console.log('✅ Challenge created successfully:', challenge.id);
 
-    const usageStats = apiTracker.getUsageStats();
-
-    console.log('🎉 Challenge creation completed successfully');
-
     return handleAPIResponse(res, {
       challenge: {
         ...challenge,
@@ -267,11 +256,7 @@ async function handleCreateChallenge(req, res) {
           next_cron_update: 'Within 5 minutes'
         }
       },
-      message: 'Challenge created successfully. Cron job will fetch data within 5 minutes.',
-      apiUsage: {
-        percentage: usageStats.usage?.functions?.percentage || '0',
-        remaining: usageStats.usage?.functions?.remaining || 100000
-      }
+      message: 'Challenge created successfully. Cron job will fetch data within 5 minutes.'
     }, { status: 201 });
 
   } catch (error) {

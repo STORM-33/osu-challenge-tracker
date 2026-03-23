@@ -1,7 +1,6 @@
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { trackedOsuAPI } from '../../../lib/osu-api';
-import apiTracker from '../../../lib/api-tracker';
-import { validateRequest, handleAPIError } from '../../../lib/api-utils';
+import { osuAPI } from '../../../lib/osu-api';
+import { validateRequest, handleAPIError, handleAPIResponse } from '../../../lib/api-utils';
 import { withAdminAuth } from '../../../lib/auth-middleware';
 
 async function handler(req, res) {
@@ -42,34 +41,17 @@ async function handler(req, res) {
     for (const [index, challenge] of challenges.entries()) {
       console.log(`\n=== Processing ${index + 1}/${challenges.length}: ${challenge.name} (Room ${challenge.room_id}) ===`);
       
-      // Check API limits before each challenge
-      const limitStatus = apiTracker.checkLimits();
-      const usageStats = apiTracker.getUsageStats();
-      
-      console.log(`API usage before challenge: ${usageStats.usage?.functions?.percentage || '0'}%`);
-      
-      if (limitStatus === 'critical') {
-        console.warn('🚨 Hit critical API limit. Stopping bulk update.');
-        results.push({
-          challengeId: challenge.id,
-          roomId: challenge.room_id,
-          status: 'skipped',
-          reason: 'API limit reached'
-        });
-        break;
-      }
-
       try {
         if (dryRun) {
           // Just check if the room exists and count scores
-          const roomData = await trackedOsuAPI.getRoom(challenge.room_id);
+          const roomData = await osuAPI.getRoom(challenge.room_id);
           totalApiCalls += 1;
           
           let estimatedScores = 0;
           if (roomData?.playlist) {
             for (const playlist of roomData.playlist) {
               // Just get first page to estimate total
-              const scoresResponse = await trackedOsuAPI.getRoomScores(challenge.room_id, playlist.id, 1);
+              const scoresResponse = await osuAPI.getRoomScores(challenge.room_id, playlist.id, 1);
               estimatedScores += scoresResponse.total || 0;
               totalApiCalls += 1;
             }
@@ -141,8 +123,6 @@ async function handler(req, res) {
       }
     }
 
-    const finalUsage = apiTracker.getUsageStats();
-    
     return handleAPIResponse(res, {
       summary: {
         totalChallenges: challenges.length,
@@ -150,11 +130,6 @@ async function handler(req, res) {
         totalFailed,
         totalApiCalls,
         dryRun
-      },
-      apiUsage: {
-        initial: apiTracker.getUsageStats(),
-        final: finalUsage,
-        percentage: finalUsage.usage?.functions?.percentage || '0'
       },
       results
     }, { cache: false });

@@ -1,8 +1,6 @@
 import { supabaseAdmin } from '../../lib/supabase-admin';
-import { trackedOsuAPI } from '../../lib/osu-api'; 
-import apiTracker from '../../lib/api-tracker';
+import { osuAPI } from '../../lib/osu-api';
 import { handleAPIError, validateRequest } from '../../lib/api-utils';
-import { markChallengeUpdated } from '../../lib/update-tracker';
 import pLimit from 'p-limit';
 
 // Helper function to process mods
@@ -80,12 +78,6 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
 
   const processPlaylist = async (playlist, index) => {
     try {
-      const currentLimitStatus = apiTracker.checkLimits();
-      if (currentLimitStatus === 'critical') {
-        console.warn(`🚨 Request ${requestId}: Hit critical limit at playlist ${index + 1}`);
-        return null;
-      }
-
       const covers = playlist.beatmap?.beatmapset?.covers || {};
       const playlistRecord = {
         playlist_id: playlist.id,
@@ -105,7 +97,7 @@ async function processPlaylistsInParallel(roomData, roomIdNum, requestId, maxRet
       
       while (scoreRetryCount < maxRetries) {
         try {
-          scores = await trackedOsuAPI.getAllRoomScores(roomIdNum, playlist.id);
+          scores = await osuAPI.getAllRoomScores(roomIdNum, playlist.id);
           break;
         } catch (scoreError) {
           scoreRetryCount++;
@@ -318,12 +310,6 @@ async function handler(req, res) {
       throw new Error('Invalid room ID');
     }
 
-    // Check API limits
-    const limitStatus = apiTracker.checkLimits();
-    if (limitStatus === 'critical') {
-      throw new Error('API usage critical');
-    }
-
     console.log(`🔄 Request ${requestId}: Updating challenge ${roomIdNum}`);
 
     // 1. Fetch room data
@@ -333,7 +319,7 @@ async function handler(req, res) {
     
     while (retryCount < maxRetries) {
       try {
-        roomData = await trackedOsuAPI.getRoom(roomIdNum);
+        roomData = await osuAPI.getRoom(roomIdNum);
         break;
       } catch (apiError) {
         retryCount++;
@@ -436,10 +422,6 @@ async function handler(req, res) {
     const totalTime = Date.now() - totalStartTime;
 
     // 6. Mark as updated
-    markChallengeUpdated(roomIdNum);
-
-    const finalUsage = apiTracker.getUsageStats();
-    
     console.log(`✅ Request ${requestId}: Complete in ${Math.round(totalTime)}ms`);
 
     return res.status(200).json({
@@ -454,10 +436,6 @@ async function handler(req, res) {
       },
       performance: {
         totalTimeMs: Math.round(totalTime)
-      },
-      apiUsage: {
-        percentage: finalUsage.usage?.functions?.percentage || '0',
-        remaining: finalUsage.usage?.functions?.remaining || 100000
       },
       ruleset: rulesetResult,
       requestId

@@ -1,6 +1,4 @@
-import apiTracker, { trackedFetch } from './api-tracker';
-
-class TrackedOsuAPI {
+class OsuAPI {
   constructor() {
     this.baseURL = 'https://osu.ppy.sh/api/v2';
     this.token = null;
@@ -22,7 +20,7 @@ class TrackedOsuAPI {
 
     console.log('🔑 Authenticating with osu! API...');
     
-    const response = await trackedFetch('https://osu.ppy.sh/oauth/token', {
+    const response = await fetch('https://osu.ppy.sh/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,7 +31,7 @@ class TrackedOsuAPI {
         grant_type: 'client_credentials',
         scope: 'public'
       })
-    }, 'osu-auth');
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to get osu! token: ${response.status}`);
@@ -55,11 +53,11 @@ class TrackedOsuAPI {
     
     console.log(`📡 osu! API: GET /users/${userId}`);
     
-    const response = await trackedFetch(`${this.baseURL}/users/${userId}`, {
+    const response = await fetch(`${this.baseURL}/users/${userId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
-    }, 'osu-api');
+    });
 
     if (!response.ok) {
       console.error(`❌ osu! API failed: GET /users/${userId} (${response.status})`);
@@ -79,11 +77,11 @@ class TrackedOsuAPI {
       
       console.log(`📡 osu! API: GET /rooms/${roomId}`);
       
-      const response = await trackedFetch(`${this.baseURL}/rooms/${roomId}`, {
+      const response = await fetch(`${this.baseURL}/rooms/${roomId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
-      }, 'osu-api');
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to get room ${roomId}: ${response.status}`);
@@ -113,11 +111,11 @@ class TrackedOsuAPI {
     
     console.log(`📡 osu! API: GET /rooms/${roomId}/playlist/${playlistId}/scores (limit=${limit})`);
     
-    const response = await trackedFetch(url, {
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
-    }, 'osu-api');
+    });
 
     if (!response.ok) {
       console.error(`❌ osu! API failed: GET /rooms/${roomId}/playlist/${playlistId}/scores (${response.status})`);
@@ -183,11 +181,11 @@ class TrackedOsuAPI {
     
     console.log(`📡 osu! API: GET /beatmaps/${beatmapId}`);
     
-    const response = await trackedFetch(`${this.baseURL}/beatmaps/${beatmapId}`, {
+    const response = await fetch(`${this.baseURL}/beatmaps/${beatmapId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
-    }, 'osu-api');
+    });
 
     if (!response.ok) {
       console.error(`❌ osu! API failed: GET /beatmaps/${beatmapId} (${response.status})`);
@@ -232,23 +230,6 @@ class TrackedOsuAPI {
     return users;
   }
 
-  // Helper method to get current API usage stats
-  getCurrentUsage() {
-    const stats = apiTracker.getUsageStats();
-    return {
-      percentage: stats.usage?.functions?.percentage || '0',
-      current: stats.usage?.functions?.current || 0,
-      limit: stats.usage?.functions?.limit || 100000,
-      external: stats.breakdown?.external?.total || 0
-    };
-  }
-
-  // Log current usage with context
-  logUsage(context = '') {
-    const usage = this.getCurrentUsage();
-    console.log(`📊 ${context ? context + ' - ' : ''}API Usage: ${usage.percentage}% (${usage.current}/${usage.limit}), External: ${usage.external}`);
-  }
-
   /**
    * Refresh a user's osu! token using their refresh token
    * @param {string} refreshToken - User's refresh token
@@ -257,7 +238,7 @@ class TrackedOsuAPI {
   async refreshUserToken(refreshToken) {
     console.log('🔄 Refreshing user token...');
     
-    const response = await trackedFetch('https://osu.ppy.sh/oauth/token', {
+    const response = await fetch('https://osu.ppy.sh/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -269,7 +250,7 @@ class TrackedOsuAPI {
         refresh_token: refreshToken,
         scope: '*'
       })
-    }, 'osu-user-token-refresh');
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -303,7 +284,7 @@ class TrackedOsuAPI {
         playlist_items: roomData.playlist?.length || 0
       });
       
-      const response = await trackedFetch(`${this.baseURL}/rooms`, {
+      const response = await fetch(`${this.baseURL}/rooms`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${userAccessToken}`,
@@ -311,7 +292,7 @@ class TrackedOsuAPI {
           'User-Agent': 'osu!'
         },
         body: JSON.stringify(roomData)
-      }, 'osu-api-create-room');
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -358,7 +339,7 @@ class TrackedOsuAPI {
     try {
       // Step 1: Put user in the room
       console.log(`Adding user ${userId} to room ${roomId}...`);
-      const joinResponse = await trackedFetch(
+      const joinResponse = await fetch(
         `${this.baseURL}/rooms/${roomId}/users/${userId}`,
         {
           method: 'PUT',
@@ -366,8 +347,7 @@ class TrackedOsuAPI {
             'Authorization': `Bearer ${userAccessToken}`,
             'User-Agent': 'osu!'
           }
-        },
-        'osu-api-join-room'
+        }
       );
 
       if (!joinResponse.ok) {
@@ -395,7 +375,7 @@ class TrackedOsuAPI {
           // Retry up to 3 times per message
           for (let attempt = 1; attempt <= 3; attempt++) {
             try {
-              const msgResponse = await trackedFetch(
+              const msgResponse = await fetch(
                 `${this.baseURL}/chat/channels/${channelId}/messages`,
                 {
                   method: 'POST',
@@ -408,8 +388,7 @@ class TrackedOsuAPI {
                     message: message,
                     is_action: false
                   })
-                },
-                'osu-api-send-message'
+                }
               );
 
               if (msgResponse.ok) {
@@ -454,7 +433,7 @@ class TrackedOsuAPI {
         let removed = false;
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            const leaveResponse = await trackedFetch(
+            const leaveResponse = await fetch(
               `${this.baseURL}/rooms/${roomId}/users/${userId}`,
               {
                 method: 'DELETE',
@@ -462,8 +441,7 @@ class TrackedOsuAPI {
                   'Authorization': `Bearer ${userAccessToken}`,
                   'User-Agent': 'osu!'
                 }
-              },
-              'osu-api-leave-room'
+              }
             );
 
             if (leaveResponse.ok || leaveResponse.status === 404) {
@@ -506,12 +484,12 @@ class TrackedOsuAPI {
   async getUserWithToken(userAccessToken) {
     console.log('👤 Getting user info with provided token...');
     
-    const response = await trackedFetch(`${this.baseURL}/me`, {
+    const response = await fetch(`${this.baseURL}/me`, {
       headers: {
         'Authorization': `Bearer ${userAccessToken}`,
         'User-Agent': 'osu!'
       }
-    }, 'osu-api-get-me');
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to get user info: ${response.status}`);
@@ -528,4 +506,4 @@ class TrackedOsuAPI {
 }
 
 // Export singleton instance
-export const trackedOsuAPI = new TrackedOsuAPI();
+export const osuAPI = new OsuAPI();
