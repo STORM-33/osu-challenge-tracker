@@ -3,12 +3,14 @@ import { AuthProvider } from '../lib/AuthContext';
 import { SettingsProvider } from '../lib/SettingsContext';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from '../components/ErrorBoundary';
+import AprilFools from '../components/AprilFools';
 
 function MyApp({ Component, pageProps }) {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <SettingsProvider>
+          <AprilFools />
           <Component {...pageProps} />
           <Toaster 
             position="bottom-right"
