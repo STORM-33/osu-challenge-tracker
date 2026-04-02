@@ -3,6 +3,119 @@ import { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
 import { X, Github, Twitter, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
+// ====================================================
+// APRIL FOOLS 2026 - Storm's modal easter eggs
+// To revert: delete this block, the state/effects, webmaster badge, and clippy render below
+// ====================================================
+const CLIPPY_MESSAGES = [
+  "It looks like you're trying to view a team member! Would you like help?",
+  "I see you clicked on Storm's profile. Did you know he made this website using Notepad.exe?",
+  "Would you like me to optimize this page? Just kidding, I can't do anything.",
+  "You've been staring at this profile for a while. Everything okay?",
+  "Are you lost? Click anywhere to continue being lost.",
+  "Remember to add this page to your Bookmarks! (Ctrl+D)",
+  "Tip: Try pressing Alt+F4 for a secret easter egg!",
+];
+
+// Clippy SVG - the actual paperclip with googly eyes
+const ClippySVG = () => (
+  <svg width="40" height="80" viewBox="0 0 40 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {/* Paperclip body */}
+    <path d="M20 8 C20 4, 28 4, 28 8 L28 55 C28 63, 12 63, 12 55 L12 20 C12 14, 22 14, 22 20 L22 50 C22 54, 16 54, 16 50 L16 22"
+      stroke="#8C8C8C" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+    {/* Left eye - white */}
+    <ellipse cx="16" cy="18" rx="4.5" ry="5.5" fill="white" stroke="#333" strokeWidth="1"/>
+    {/* Right eye - white */}
+    <ellipse cx="26" cy="18" rx="4.5" ry="5.5" fill="white" stroke="#333" strokeWidth="1"/>
+    {/* Left pupil */}
+    <ellipse cx="17" cy="19" rx="2" ry="2.5" fill="#333"/>
+    {/* Right pupil */}
+    <ellipse cx="27" cy="19" rx="2" ry="2.5" fill="#333"/>
+    {/* Left eyebrow */}
+    <path d="M11 12 Q16 9, 21 12" stroke="#555" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+    {/* Right eyebrow */}
+    <path d="M21 12 Q26 9, 31 12" stroke="#555" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+  </svg>
+);
+
+function Clippy({ onDismiss }) {
+  const [msgIndex, setMsgIndex] = useState(0);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleNo = () => {
+    if (msgIndex < CLIPPY_MESSAGES.length - 1) {
+      setMsgIndex(prev => prev + 1);
+    } else {
+      setVisible(false);
+      if (onDismiss) onDismiss();
+    }
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: '20px', right: '20px', zIndex: 400,
+      fontFamily: "'Tahoma', 'MS Sans Serif', sans-serif",
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+      width: '280px',
+    }}>
+      {/* Speech bubble */}
+      <div style={{
+        background: '#FFFFCC', border: '2px solid #000000',
+        borderRadius: '8px', padding: '12px', marginBottom: '4px',
+        fontSize: '13px', color: '#000000', lineHeight: 1.4,
+        position: 'relative', width: '100%',
+      }}>
+        {CLIPPY_MESSAGES[msgIndex]}
+        {/* Bubble pointer */}
+        <div style={{
+          position: 'absolute', bottom: '-10px', left: '40px',
+          width: 0, height: 0,
+          borderLeft: '10px solid transparent',
+          borderRight: '10px solid transparent',
+          borderTop: '10px solid #000000',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-7px', left: '42px',
+          width: 0, height: 0,
+          borderLeft: '8px solid transparent',
+          borderRight: '8px solid transparent',
+          borderTop: '8px solid #FFFFCC',
+        }} />
+        <div style={{ display: 'flex', gap: '8px', marginTop: '10px', justifyContent: 'center' }}>
+          <button onClick={handleNo} style={{
+            background: '#C0C0C0', border: '2px outset #FFFFFF',
+            padding: '3px 16px', cursor: 'pointer', fontSize: '12px',
+            fontFamily: "'Tahoma', sans-serif", color: '#000000',
+          }}>
+            No
+          </button>
+          <button onClick={handleNo} style={{
+            background: '#C0C0C0', border: '2px outset #FFFFFF',
+            padding: '3px 16px', cursor: 'pointer', fontSize: '12px',
+            fontFamily: "'Tahoma', sans-serif", color: '#000000',
+          }}>
+            Also No
+          </button>
+        </div>
+      </div>
+      {/* Clippy */}
+      <div style={{ marginLeft: '20px' }}>
+        <ClippySVG />
+      </div>
+    </div>
+  );
+}
+
+const STORM_NAME = 'Storm';
+// ==================================================== END APRIL FOOLS ====================================================
+
 const ExpandedTeamModal = memo(function ExpandedTeamModal({ 
   member, 
   isVisible, 
@@ -14,11 +127,15 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
   const [isMobile, setIsMobile] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   
-  // ))) state 
+  // ))) state
   const [clickCount, setClickCount] = useState(0);
   const [joke, setJoke] = useState(null);
   const [showJokeModal, setShowJokeModal] = useState(false);
   const [jokeAnimating, setJokeAnimating] = useState(false);
+
+  // APRIL FOOLS - Clippy for Storm
+  const [showClippy, setShowClippy] = useState(false);
+  const isStorm = member?.name?.toLowerCase() === STORM_NAME.toLowerCase();
 
   useEffect(() => {  // <-- Move here, inside component
     setIsMounted(true);
@@ -57,7 +174,10 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
       setClickCount(0);
       setJoke(null);
       setShowJokeModal(false);
-      
+
+      // APRIL FOOLS - Show Clippy for Storm
+      setShowClippy(isStorm);
+
       // Prevent body scroll on mobile
       if (isMobile) {
         document.body.style.overflow = 'hidden';
@@ -67,8 +187,9 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
     } else {
       // Restore body scroll
       document.body.style.overflow = '';
+      setShowClippy(false);
     }
-  }, [isVisible, isMobile]);
+  }, [isVisible, isMobile, isStorm]);
 
   // ))) click handler
   const handleAvatarClick = useCallback(async () => {
@@ -383,6 +504,18 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
                 <div className={roleBadgeClass}>
                   {member.role}
                 </div>
+                {/* APRIL FOOLS - Webmaster badge */}
+                {isStorm && (
+                  <div style={{
+                    display: 'inline-block', marginTop: '6px',
+                    background: '#000080', color: '#00FF00',
+                    border: '2px outset #808080', padding: '2px 10px',
+                    fontFamily: "'Courier New', monospace", fontSize: '11px',
+                    fontWeight: 'bold',
+                  }}>
+                    @ WEBMASTER @
+                  </div>
+                )}
               </div>
             </div>
 
@@ -420,6 +553,12 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
           </div>
         </div>
       </div>
+
+      {/* APRIL FOOLS - Clippy for Storm */}
+      {isStorm && showClippy && createPortal(
+        <Clippy onDismiss={() => setShowClippy(false)} />,
+        document.body
+      )}
 
       {/* ))) Panel */}
       {showJokeModal && createPortal(
