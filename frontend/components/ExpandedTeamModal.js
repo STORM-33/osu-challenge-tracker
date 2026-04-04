@@ -66,7 +66,7 @@ function Clippy({ onDismiss }) {
       width: '280px',
     }}>
       {/* Speech bubble */}
-      <div style={{
+      <div className="af-clippy-bubble" style={{
         background: '#FFFFCC', border: '2px solid #000000',
         borderRadius: '8px', padding: '12px', marginBottom: '4px',
         fontSize: '13px', color: '#000000', lineHeight: 1.4,
@@ -133,9 +133,20 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
   const [showJokeModal, setShowJokeModal] = useState(false);
   const [jokeAnimating, setJokeAnimating] = useState(false);
 
-  // APRIL FOOLS - Clippy for Storm
+  // APRIL FOOLS - Clippy for Storm (only in Geocities mode)
   const [showClippy, setShowClippy] = useState(false);
+  const [geocitiesActive, setGeocitiesActive] = useState(false);
   const isStorm = member?.name?.toLowerCase() === STORM_NAME.toLowerCase();
+
+  useEffect(() => {
+    const handler = () => setGeocitiesActive(prev => {
+      const next = !prev;
+      if (!next) setShowClippy(false);
+      return next;
+    });
+    window.addEventListener('toggle-geocities', handler);
+    return () => window.removeEventListener('toggle-geocities', handler);
+  }, []);
 
   useEffect(() => {  // <-- Move here, inside component
     setIsMounted(true);
@@ -175,8 +186,8 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
       setJoke(null);
       setShowJokeModal(false);
 
-      // APRIL FOOLS - Show Clippy for Storm
-      setShowClippy(isStorm);
+      // APRIL FOOLS - Show Clippy for Storm only in Geocities mode
+      setShowClippy(isStorm && geocitiesActive);
 
       // Prevent body scroll on mobile
       if (isMobile) {
@@ -189,7 +200,7 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
       document.body.style.overflow = '';
       setShowClippy(false);
     }
-  }, [isVisible, isMobile, isStorm]);
+  }, [isVisible, isMobile, isStorm, geocitiesActive]);
 
   // ))) click handler
   const handleAvatarClick = useCallback(async () => {
@@ -501,19 +512,24 @@ const ExpandedTeamModal = memo(function ExpandedTeamModal({
                 `}>
                   {member.name}
                 </h2>
-                <div className={roleBadgeClass}>
-                  {member.role}
-                </div>
-                {/* APRIL FOOLS - Webmaster badge */}
-                {isStorm && (
-                  <div style={{
-                    display: 'inline-block', marginTop: '6px',
-                    background: '#000080', color: '#00FF00',
-                    border: '2px outset #808080', padding: '2px 10px',
-                    fontFamily: "'Courier New', monospace", fontSize: '11px',
-                    fontWeight: 'bold',
-                  }}>
+                {/* APRIL FOOLS - Replace Storm's role badge with webmaster toggle */}
+                {isStorm ? (
+                  <div
+                    onClick={() => window.dispatchEvent(new Event('toggle-geocities'))}
+                    style={{
+                      display: 'inline-block',
+                      background: '#000080', color: '#00FF00',
+                      border: '2px outset #808080', padding: '2px 10px',
+                      fontFamily: "'Courier New', monospace", fontSize: '11px',
+                      fontWeight: 'bold', cursor: 'pointer',
+                    }}
+                    title="What does this do...?"
+                  >
                     @ WEBMASTER @
+                  </div>
+                ) : (
+                  <div className={roleBadgeClass}>
+                    {member.role}
                   </div>
                 )}
               </div>

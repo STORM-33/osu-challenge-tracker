@@ -182,6 +182,14 @@ const GEOCITIES_CSS = `
     font-family: 'Comic Sans MS', cursive !important;
   }
 
+  /* Clippy bubble - keep text black */
+  .af-clippy-bubble,
+  .af-clippy-bubble * {
+    color: #000000 !important;
+    background: #FFFFCC !important;
+    border-color: #000000 !important;
+  }
+
   /* BLINK animation */
   @keyframes blink90s {
     0%, 49% { opacity: 1; }

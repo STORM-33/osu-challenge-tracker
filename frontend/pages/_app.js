@@ -4,13 +4,22 @@ import { SettingsProvider } from '../lib/SettingsContext';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from '../components/ErrorBoundary';
 import AprilFools from '../components/AprilFools';
+import { useState, useEffect } from 'react';
 
 function MyApp({ Component, pageProps }) {
+  const [geocitiesMode, setGeocitiesMode] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setGeocitiesMode(prev => !prev);
+    window.addEventListener('toggle-geocities', handler);
+    return () => window.removeEventListener('toggle-geocities', handler);
+  }, []);
+
   return (
     <ErrorBoundary>
       <AuthProvider>
         <SettingsProvider>
-          <AprilFools />
+          {geocitiesMode && <AprilFools />}
           <Component {...pageProps} />
           <Toaster 
             position="bottom-right"
