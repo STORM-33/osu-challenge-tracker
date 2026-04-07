@@ -1,88 +1,121 @@
-const OSU_MODS = {
-  // Difficulty Reduction
-  'EZ': { name: 'Easy', category: 'Difficulty Reduction', settings: [] },
-  'NF': { name: 'No Fail', category: 'Difficulty Reduction', settings: [] },
-  'HT': { name: 'Half Time', category: 'Difficulty Reduction', settings: ['speed_change', 'adjust_pitch'] },
-  'DC': { name: 'Daycore', category: 'Difficulty Reduction', settings: ['speed_change'] },
+const OFFICIAL_MODS_REFERENCE = require('../../osu-mods-refference.json');
 
-  // Difficulty Increase
-  'HR': { name: 'Hard Rock', category: 'Difficulty Increase', settings: [] },
-  'SD': { name: 'Sudden Death', category: 'Difficulty Increase', settings: ['restart', 'fail_on_slider_tail'] },
-  'PF': { name: 'Perfect', category: 'Difficulty Increase', settings: ['restart'] },
-  'DT': { name: 'Double Time', category: 'Difficulty Increase', settings: ['speed_change', 'adjust_pitch'] },
-  'NC': { name: 'Nightcore', category: 'Difficulty Increase', settings: ['speed_change'] },
-  'HD': { name: 'Hidden', category: 'Difficulty Increase', settings: ['only_fade_approach_circles'] },
-  'FL': { name: 'Flashlight', category: 'Difficulty Increase', settings: ['size_multiplier', 'combo_based_size', 'follow_delay'] },
-  'AC': { name: 'Accuracy Challenge', category: 'Difficulty Increase', settings: ['minimum_accuracy', 'accuracy_judge_mode', 'restart'] },
-  'BL': { name: 'Blinds', category: 'Difficulty Increase', settings: [] },
-
-  // Automation
-  'AT': { name: 'Autoplay', category: 'Automation', settings: [] },
-  'CN': { name: 'Cinema', category: 'Automation', settings: [] },
-  'RL': { name: 'Relax', category: 'Automation', settings: [] },
-  'RX': { name: 'Relax', category: 'Automation', settings: [] },
-  'AP': { name: 'Autopilot', category: 'Automation', settings: [] },
-  'SO': { name: 'Spun Out', category: 'Automation', settings: [] },
-
-  // Conversion
-  'MR': { name: 'Mirror', category: 'Conversion', settings: ['reflection'] },
-  'DA': { name: 'Difficulty Adjust', category: 'Conversion', settings: ['circle_size', 'drain_rate', 'overall_difficulty', 'approach_rate', 'scroll_speed'] },
-  'CL': { name: 'Classic', category: 'Conversion', settings: ['no_slider_head_accuracy', 'classic_note_lock', 'always_play_tail_sample', 'fade_hit_circle_early', 'classic_health'] },
-  'RD': { name: 'Random', category: 'Conversion', settings: ['seed', 'angle_sharpness'] },
-  'TP': { name: 'Target Practice', category: 'Conversion', settings: ['seed', 'metronome'] },
-  'FR': { name: 'Freeze Frame', category: 'Conversion', settings: [] },
-  'ST': { name: 'Strict Tracking', category: 'Conversion', settings: [] },
-
-  // Fun & Visual
-  'WU': { name: 'Wind Up', category: 'Fun', settings: ['initial_rate', 'final_rate', 'adjust_pitch'] },
-  'WD': { name: 'Wind Down', category: 'Fun', settings: ['initial_rate', 'final_rate', 'adjust_pitch'] },
-  'AS': { name: 'Adaptive Speed', category: 'Fun', settings: ['initial_rate', 'adjust_pitch'] },
-  'AD': { name: 'Approach Different', category: 'Fun', settings: ['initial_size', 'style'] },
-  'MU': { name: 'Muted', category: 'Fun', settings: ['start_muted', 'enable_metronome', 'final_volume_combo_count', 'mute_hit_sounds'] },
-  'DF': { name: 'Deflate', category: 'Fun', settings: ['start_scale'] },
-  'GR': { name: 'Grow', category: 'Fun', settings: ['start_scale'] },
-  'SI': { name: 'Spin In', category: 'Fun', settings: [] },
-  'TC': { name: 'Traceable', category: 'Fun', settings: [] },
-  'BR': { name: 'Barrel Roll', category: 'Fun', settings: ['spin_speed', 'direction'] },
-  'DP': { name: 'Depth', category: 'Fun', settings: ['max_depth', 'show_approach_circles'] },
-  'TR': { name: 'Transform', category: 'Fun', settings: [] },
-  'WG': { name: 'Wiggle', category: 'Fun', settings: ['strength'] },
-  'MG': { name: 'Magnetised', category: 'Fun', settings: ['attraction_strength'] },
-  'RP': { name: 'Repel', category: 'Fun', settings: ['repulsion_strength'] },
-  'BU': { name: 'Bubbles', category: 'Fun', settings: [] },
-  'SY': { name: 'Synesthesia', category: 'Fun', settings: [] },
-  'BM': { name: 'Bloom', category: 'Fun', settings: ['max_size_combo_count', 'max_cursor_size'] },
-  'NS': { name: 'No Scope', category: 'Fun', settings: ['hidden_combo_count'] },
-  'AL': { name: 'Alternate', category: 'Fun', settings: [] },
-  'SG': { name: 'Single Tap', category: 'Fun', settings: [] },
-
-  // System
-  'TD': { name: 'Touch Device', category: 'System', settings: [] },
-  'SV2': { name: 'Score V2', category: 'System', settings: [] },
-
-  // osu!mania Key Mods
-  '1K': { name: '1 Key', category: 'osu!mania', settings: [] },
-  '2K': { name: '2 Keys', category: 'osu!mania', settings: [] },
-  '3K': { name: '3 Keys', category: 'osu!mania', settings: [] },
-  '4K': { name: '4 Keys', category: 'osu!mania', settings: [] },
-  '5K': { name: '5 Keys', category: 'osu!mania', settings: [] },
-  '6K': { name: '6 Keys', category: 'osu!mania', settings: [] },
-  '7K': { name: '7 Keys', category: 'osu!mania', settings: [] },
-  '8K': { name: '8 Keys', category: 'osu!mania', settings: [] },
-  '9K': { name: '9 Keys', category: 'osu!mania', settings: [] },
-
-  // osu!mania Specific
-  'DS': { name: 'Dual Stages', category: 'osu!mania', settings: [] },
-  'IN': { name: 'Invert', category: 'osu!mania', settings: [] },
-  'CS': { name: 'Constant Speed', category: 'osu!mania', settings: ['scroll_speed'] },
-  'HO': { name: 'Hold Off', category: 'osu!mania', settings: [] },
-  'NR': { name: 'No Release', category: 'osu!mania', settings: [] },
-  'FI': { name: 'Fade In', category: 'osu!mania', settings: [] },
-
-  // Mode Specific
-  'SW': { name: 'Swap', category: 'Mode Specific', settings: [] },
-  'FF': { name: 'Floating Fruits', category: 'Mode Specific', settings: [] },
+const CATEGORY_LABELS = {
+  DifficultyReduction: 'Difficulty Reduction',
+  DifficultyIncrease: 'Difficulty Increase',
+  Automation: 'Automation',
+  Conversion: 'Conversion',
+  Fun: 'Fun',
+  System: 'System'
 };
+
+function normalizeCategory(type) {
+  return CATEGORY_LABELS[type] || type.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+function normalizeRulesetName(name) {
+  return name === 'fruits' ? 'catch' : name;
+}
+
+function getSettingNames(settings) {
+  if (!Array.isArray(settings)) {
+    return [];
+  }
+
+  return settings
+    .map((setting) => setting?.Name)
+    .filter(Boolean);
+}
+
+function buildOsuMods(reference) {
+  const mods = {};
+
+  for (const ruleset of reference) {
+    for (const mod of ruleset?.Mods || []) {
+      const acronym = mod.Acronym;
+      const settingNames = getSettingNames(mod.Settings);
+
+      if (!mods[acronym]) {
+        mods[acronym] = {
+          name: mod.Name,
+          category: normalizeCategory(mod.Type),
+          settings: [...new Set(settingNames)]
+        };
+        continue;
+      }
+
+      mods[acronym].settings = [...new Set([...mods[acronym].settings, ...settingNames])];
+    }
+  }
+
+  return mods;
+}
+
+function buildConflictingMods(reference, validMods, rulesetName = 'osu') {
+  const conflictPairs = new Set();
+  const normalizedRulesetName = normalizeRulesetName(rulesetName);
+  const targetRuleset = reference.find(
+    (ruleset) => normalizeRulesetName(ruleset.Name) === normalizedRulesetName
+  );
+
+  if (!targetRuleset) {
+    return [];
+  }
+
+  for (const mod of targetRuleset?.Mods || []) {
+    const modAcronym = mod.Acronym;
+    const incompatibilities = Array.isArray(mod.IncompatibleMods) ? mod.IncompatibleMods : [];
+
+    for (const incompatibleAcronym of incompatibilities) {
+      if (incompatibleAcronym === modAcronym) {
+        continue;
+      }
+
+      if (!validMods[modAcronym] || !validMods[incompatibleAcronym]) {
+        continue;
+      }
+
+      const [first, second] = [modAcronym, incompatibleAcronym].sort();
+      conflictPairs.add(`${first}|${second}`);
+    }
+  }
+
+  return [...conflictPairs]
+    .map((pair) => pair.split('|'))
+    .sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+}
+
+function buildModeSpecificMods(reference) {
+  const rulesetMods = {};
+
+  for (const ruleset of reference) {
+    const rulesetName = normalizeRulesetName(ruleset.Name);
+    rulesetMods[rulesetName] = new Set((ruleset?.Mods || []).map((mod) => mod.Acronym));
+  }
+
+  const modeNames = Object.keys(rulesetMods);
+  const commonMods = new Set(rulesetMods[modeNames[0]] || []);
+  for (const modeName of modeNames.slice(1)) {
+    for (const acronym of [...commonMods]) {
+      if (!rulesetMods[modeName].has(acronym)) {
+        commonMods.delete(acronym);
+      }
+    }
+  }
+
+  const modeSpecificMods = {};
+  for (const [modeName, modSet] of Object.entries(rulesetMods)) {
+    modeSpecificMods[modeName] = [...modSet]
+      .filter((acronym) => !commonMods.has(acronym))
+      .sort();
+  }
+
+  return modeSpecificMods;
+}
+
+const OSU_MODS = buildOsuMods(OFFICIAL_MODS_REFERENCE);
+const CONFLICTING_MODS = buildConflictingMods(OFFICIAL_MODS_REFERENCE, OSU_MODS, 'osu');
+const MODE_SPECIFIC_MODS = buildModeSpecificMods(OFFICIAL_MODS_REFERENCE);
 
 const SETTING_CONFIGS = {
   // Speed/Rate settings
@@ -449,19 +482,6 @@ const SETTING_CONFIGS = {
   }
 };
 
-const CONFLICTING_MODS = [
-  ['HT', 'DC', 'DT', 'NC', 'WU', 'WD', 'AS'], // Speed/Rate mods
-  ['EZ', 'HR'], // Difficulty adjustment
-  ['NF', 'SD', 'PF', 'AC', 'CN'], // Fail conditions
-  ['AT', 'CN', 'RL', 'RX', 'AP', 'SO'], // Automation
-  ['AL', 'SG'], // Input modification
-  ['MG', 'RP'], // Position modification
-  ['FI', 'HD', 'FL'], // Visual conflicts (mania)
-  ['HO', 'NR'], // Hold note mods (mania)
-  ['TR', 'WG', 'MG', 'RP', 'BU', 'DP'], // Transformation mods
-  ['ST', 'TP', 'SD', 'SO'], // Target practice conflicts (restored)
-];
-
 const SETTING_RANGES = {
   // Speed/Rate settings
   speed_change: { 
@@ -610,14 +630,6 @@ const SETTING_RANGES = {
   
   // No Scope settings
   hidden_combo_count: { min: 0, max: 50, type: 'integer' },
-};
-
-// Mode-specific mods for filtering
-const MODE_SPECIFIC_MODS = {
-  'osu': ['BL', 'AP', 'SO', 'TP', 'FR', 'ST', 'AD', 'DF', 'GR', 'SI', 'TC', 'DP', 'TR', 'WG', 'MG', 'RP', 'BU', 'BM', 'AL', 'SG', 'TD'],
-  'taiko': ['SW'],
-  'catch': ['FF'],
-  'mania': ['1K', '2K', '3K', '4K', '5K', '6K', '7K', '8K', '9K', 'DS', 'IN', 'CS', 'HO', 'NR', 'FI']
 };
 
 module.exports = {
